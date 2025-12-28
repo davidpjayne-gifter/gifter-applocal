@@ -1,14 +1,15 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
 type Gift = {
-  id: string | number;
-  recipient: string;
-  item: string;
-  cost: number;
-  tracking: string;
+  id: string;
+  recipient_name: string | null;
+  title: string;
+  cost: number | null;
+  tracking_number: string | null;
   created_at?: string;
 };
 
@@ -22,7 +23,7 @@ const inputStyle: React.CSSProperties = {
 export default function Home() {
   const [gifts, setGifts] = useState<Gift[]>([]);
   const [recipient, setRecipient] = useState("");
-  const [item, setItem] = useState("");
+  const [title, setTitle] = useState("");
   const [cost, setCost] = useState("");
   const [tracking, setTracking] = useState("");
   const [loading, setLoading] = useState(false);
@@ -38,7 +39,9 @@ export default function Home() {
 
     const { data, error } = await supabase
       .from("gifts")
-      .select("*")
+      .select(
+        "id, recipient_name, title, cost, tracking_number, created_at"
+      )
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -52,27 +55,24 @@ export default function Home() {
 
   async function addGift() {
     const trimmedRecipient = recipient.trim();
-    const trimmedItem = item.trim();
-    const costNumber = Number(cost);
-    const trimmedTracking = tracking.trim();
+    const trimmedTitle = title.trim();
+    const costNumber = cost ? Number(cost) : null;
+    const trimmedTracking = tracking.trim() || null;
 
     if (!trimmedRecipient) return setErrorText("Recipient is required.");
-    if (!trimmedItem) return setErrorText("Gift item is required.");
-    if (!cost || Number.isNaN(costNumber))
-      return setErrorText("Valid cost is required (ex: 25 or 25.99).");
-
-    // tracking is required by your DB schema
-    if (!trimmedTracking) return setErrorText("Tracking is required.");
+    if (!trimmedTitle) return setErrorText("Gift title is required.");
+    if (cost && Number.isNaN(costNumber))
+      return setErrorText("Cost must be a number.");
 
     setLoading(true);
     setErrorText("");
 
     const { error } = await supabase.from("gifts").insert([
       {
-        recipient: trimmedRecipient,
-        item: trimmedItem,
+        recipient_name: trimmedRecipient,
+        title: trimmedTitle,
         cost: costNumber,
-        tracking: trimmedTracking,
+        tracking_number: trimmedTracking,
       },
     ]);
 
@@ -84,20 +84,35 @@ export default function Home() {
     }
 
     setRecipient("");
-    setItem("");
+    setTitle("");
     setCost("");
     setTracking("");
+
     await fetchGifts();
     setLoading(false);
   }
 
   return (
-    <main style={{ padding: 40, fontFamily: "system-ui, -apple-system, Arial" }}>
-      <h1 style={{ fontSize: 28, fontWeight: 800, marginBottom: 20 }}>
+    <main
+      style={{
+        padding: 40,
+        fontFamily: "system-ui, -apple-system, Arial",
+        maxWidth: 900,
+        margin: "0 auto",
+      }}
+    >
+      <h1 style={{ fontSize: 28, fontWeight: 800, marginBottom: 4 }}>
         Gift Tracker
       </h1>
 
-      {errorText ? (
+      <Link
+        href="/gifts"
+        style={{ marginBottom: 20, display: "inline-block" }}
+      >
+        View My Gifts →
+      </Link>
+
+      {errorText && (
         <div
           style={{
             marginBottom: 16,
@@ -110,14 +125,14 @@ export default function Home() {
         >
           {errorText}
         </div>
-      ) : null}
+      )}
 
       <div
         style={{
           display: "flex",
           flexWrap: "wrap",
           gap: 10,
-          marginBottom: 20,
+          marginBottom: 24,
           alignItems: "center",
         }}
       >
@@ -129,14 +144,14 @@ export default function Home() {
         />
 
         <input
-          placeholder="Gift item"
-          value={item}
-          onChange={(e) => setItem(e.target.value)}
+          placeholder="Gift title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
           style={inputStyle}
         />
 
         <input
-          placeholder="Cost (e.g. 25.99)"
+          placeholder="Cost (optional)"
           value={cost}
           onChange={(e) => setCost(e.target.value)}
           inputMode="decimal"
@@ -144,7 +159,7 @@ export default function Home() {
         />
 
         <input
-          placeholder="Tracking (required)"
+          placeholder="Tracking # (optional)"
           value={tracking}
           onChange={(e) => setTracking(e.target.value)}
           style={{ ...inputStyle, minWidth: 240 }}
@@ -170,8 +185,14 @@ export default function Home() {
       <ul style={{ paddingLeft: 18 }}>
         {gifts.map((gift) => (
           <li key={gift.id} style={{ marginBottom: 8 }}>
-            <strong>{gift.recipient}</strong> – {gift.item} (${gift.cost}){" "}
-            <span style={{ color: "#475569" }}>• Tracking: {gift.tracking}</span>
+            <strong>{gift.recipient_name}</strong> – {gift.title}
+            {gift.cost !== null && ` ($${gift.cost})`}
+            {gift.tracking_number && (
+              <span style={{ color: "#475569" }}>
+                {" "}
+                • Tracking: {gift.tracking_number}
+              </span>
+            )}
           </li>
         ))}
       </ul>
