@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 type Props = {
   listId: string;
   seasonId: string;
+  recipientName?: string | null;
 };
 
 type LimitState =
@@ -28,11 +29,11 @@ function normalizeRecipientKey(name: string) {
   return name.trim().toLowerCase();
 }
 
-export default function AddGiftForm({ listId, seasonId }: Props) {
+export default function AddGiftForm({ listId, seasonId, recipientName = null }: Props) {
   const [open, setOpen] = useState(false);
 
   const [title, setTitle] = useState("");
-  const [recipient, setRecipient] = useState("");
+  const [recipient, setRecipient] = useState(recipientName ?? "");
   const [cost, setCost] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
@@ -49,6 +50,11 @@ export default function AddGiftForm({ listId, seasonId }: Props) {
     const t = setTimeout(() => setToast(null), 2200);
     return () => clearTimeout(t);
   }, [toast]);
+
+  useEffect(() => {
+    if (!open) return;
+    setRecipient(recipientName ?? "");
+  }, [open, recipientName]);
 
   const canSubmit = useMemo(
     () => title.trim().length > 0 && recipient.trim().length > 0 && !submitting,
