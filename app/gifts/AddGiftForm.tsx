@@ -7,6 +7,7 @@ type Props = {
   listId: string;
   seasonId: string;
   recipientName?: string | null;
+  onAdded?: () => void;
 };
 
 type LimitState =
@@ -29,7 +30,12 @@ function normalizeRecipientKey(name: string) {
   return name.trim().toLowerCase();
 }
 
-export default function AddGiftForm({ listId, seasonId, recipientName = null }: Props) {
+export default function AddGiftForm({
+  listId,
+  seasonId,
+  recipientName = null,
+  onAdded,
+}: Props) {
   const [open, setOpen] = useState(false);
 
   const [title, setTitle] = useState("");
@@ -148,7 +154,13 @@ export default function AddGiftForm({ listId, seasonId, recipientName = null }: 
     setToast("Gift added ✅");
 
     // Refresh after animation for a native feel
-    setTimeout(() => window.location.reload(), 300);
+    setTimeout(() => {
+      if (onAdded) {
+        onAdded();
+        return;
+      }
+      window.location.reload();
+    }, 300);
   }
 
   return (
