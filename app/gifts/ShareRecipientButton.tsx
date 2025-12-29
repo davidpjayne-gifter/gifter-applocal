@@ -1,49 +1,74 @@
 "use client";
 
-import { useState } from "react";
+export default function ShareRecipientButton({
+  recipientKey,
+  listId,
+}: {
+  recipientKey: string;
+  listId: string;
+}) {
+  async function handleClick() {
+    const rk = (recipientKey || "").trim().toLowerCase();
+    const lid = (listId || "").trim();
 
-export default function ShareRecipientButton({ recipient }: { recipient: string }) {
-  const [loading, setLoading] = useState(false);
-
-  async function openShare() {
-    setLoading(true);
-
-    const res = await fetch("/api/share/recipient", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ recipient }),
-    });
-
-    const json = await res.json();
-
-    if (!res.ok || !json.ok) {
-      alert(json.error || "Could not create screenshot view");
-      setLoading(false);
+    if (!rk) {
+      console.error("ShareRecipientButton missing recipientKey prop:", recipientKey);
+      alert("Share failed: recipient key is missing.");
+      return;
+    }
+    if (!lid) {
+      console.error("ShareRecipientButton missing listId prop:", listId);
+      alert("Share failed: list id is missing.");
       return;
     }
 
-    // ✅ Open dynamic route
-    window.open(`/share/${json.token}`, "_blank");
+    const res = await fetch("/api/share", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ recipientKey: rk, listId: lid }),
+    });
 
-    setLoading(false);
+    const raw = await res.text();
+    let json: any = null;
+    try {
+      json = raw ? JSON.parse(raw) : null;
+    } catch {
+      json = null;
+    }
+
+    if (!res.ok) {
+      console.error("Share API error status:", res.status);
+      console.error("Share API raw:", raw);
+      alert((json && json.error) || `Share failed (${res.status}).`);
+      return;
+    }
+
+    const token = json?.token;
+    if (!token) {
+      console.error("Share API missing token:", { raw, json });
+      alert("Share failed: token missing.");
+      return;
+    }
+
+    window.open(`/share/${token}`, "_blank");
   }
 
   return (
     <button
-      onClick={openShare}
-      disabled={loading}
+      type="button"
+      onClick={handleClick}
       style={{
-        padding: "8px 12px",
-        borderRadius: 8,
-        border: "1px solid #0f172a",
-        background: loading ? "#475569" : "#ffffff",
-        color: "#0f172a",
+        padding: "6px 10px",
+        borderRadius: 10,
+        border: "1px solid #cbd5e1",
+        background: "#ffffff",
+        fontSize: 12,
         fontWeight: 800,
-        cursor: loading ? "not-allowed" : "pointer",
-        whiteSpace: "nowrap",
+        color: "#334155",
+        cursor: "pointer",
       }}
     >
-      {loading ? "Opening..." : "Screenshot (To Share)"}
+      Share this list
     </button>
   );
 }

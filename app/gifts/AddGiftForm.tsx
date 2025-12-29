@@ -1,236 +1,395 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
-const inputStyle: React.CSSProperties = {
-  padding: "10px 12px",
-  borderRadius: 6,
-  border: "1px solid #cbd5e1",
-  minWidth: 180,
+type Props = {
+  listId: string;
+  seasonId: string;
 };
 
-function dateToNoonISO(dateStr: string) {
-  return new Date(`${dateStr}T12:00:00`).toISOString();
+type LimitState =
+  | { ok: true; giftsUsed: number; recipientsUsed: number }
+  | { ok: false; reason: "gifts" | "recipients"; giftsUsed: number; recipientsUsed: number };
+
+const FREE_LIMITS = {
+  maxRecipients: 2,
+  maxGifts: 3,
+};
+
+function moneyToNumber(input: string) {
+  const cleaned = input.replace(/[^0-9.]/g, "");
+  if (!cleaned) return null;
+  const n = Number(cleaned);
+  return Number.isNaN(n) ? null : n;
 }
 
-type CarrierValue = "usps" | "ups" | "fedex" | "dhl" | "amazon" | "unknown";
-
-const carriers: Array<{ value: CarrierValue; label: string }> = [
-  { value: "unknown", label: "Other / Auto-detect" },
-  { value: "usps", label: "USPS" },
-  { value: "ups", label: "UPS" },
-  { value: "fedex", label: "FedEx" },
-  { value: "dhl", label: "DHL" },
-  { value: "amazon", label: "Amazon" },
-];
-
-function carrierLabel(carrier: CarrierValue) {
-  switch (carrier) {
-    case "usps":
-      return "USPS";
-    case "ups":
-      return "UPS";
-    case "fedex":
-      return "FedEx";
-    case "dhl":
-      return "DHL";
-    case "amazon":
-      return "Amazon";
-    default:
-      return "Unknown";
-  }
+function normalizeRecipientKey(name: string) {
+  return name.trim().toLowerCase();
 }
 
-function detectCarrier(trackingNumberRaw: string): CarrierValue {
-  const tn = trackingNumberRaw.replace(/\s+/g, "").toUpperCase();
-  if (!tn) return "unknown";
+export default function AddGiftForm({ listId, seasonId }: Props) {
+  const [open, setOpen] = useState(false);
 
-  // UPS: starts with 1Z
-  if (tn.startsWith("1Z")) return "ups";
-
-  // USPS: 20–22 digits (often), or starts with 9...
-  if (/^\d{20,22}$/.test(tn)) return "usps";
-  if (/^9\d{15,21}$/.test(tn)) return "usps";
-
-  // FedEx: common digit lengths
-  if (/^\d{12}$/.test(tn)) return "fedex";
-  if (/^\d{15}$/.test(tn)) return "fedex";
-  if (/^\d{20}$/.test(tn)) return "fedex";
-  if (/^\d{22}$/.test(tn)) return "fedex";
-
-  // DHL (simple heuristics)
-  if (/^JD\d+$/i.test(tn)) return "dhl";
-  if (/^\d{10}$/.test(tn)) return "dhl";
-
-  return "unknown";
-}
-
-export default function AddGiftForm({ onAdded }: { onAdded: () => void }) {
-  const [recipient, setRecipient] = useState("");
   const [title, setTitle] = useState("");
+  const [recipient, setRecipient] = useState("");
   const [cost, setCost] = useState("");
-  const [tracking, setTracking] = useState("");
-  const [carrier, setCarrier] = useState<CarrierValue>("unknown");
-  const [etaDate, setEtaDate] = useState("");
 
-  const [loading, setLoading] = useState(false);
-  const [errorText, setErrorText] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  // ✅ Live detected carrier (only meaningful if user leaves Auto/Unknown)
-  const detected = useMemo(() => {
-    const tn = tracking.trim();
-    if (!tn) return "unknown";
-    return detectCarrier(tn);
-  }, [tracking]);
+  // iOS toast
+  const [toast, setToast] = useState<string | null>(null);
 
-  const liveHint =
-    carrier === "unknown" && tracking.trim()
-      ? detected !== "unknown"
-        ? `Detected: ${carrierLabel(detected)} (auto)`
-        : "Detected: Unknown (auto)"
-      : carrier !== "unknown"
-      ? `Using: ${carrierLabel(carrier)} (manual)`
-      : "";
+  // Upgrade sheet
+  const [showUpgrade, setShowUpgrade] = useState(false);
+  const [limitState, setLimitState] = useState<LimitState | null>(null);
 
-  async function addGift() {
-    const recipient_name = recipient.trim();
-    const giftTitle = title.trim();
-    const costNumber = cost ? Number(cost) : null;
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 2200);
+    return () => clearTimeout(t);
+  }, [toast]);
 
-    const tracking_number = tracking.trim() || null;
-    const delivery_eta = etaDate ? dateToNoonISO(etaDate) : null;
+  const canSubmit = useMemo(
+    () => title.trim().length > 0 && recipient.trim().length > 0 && !submitting,
+    [title, recipient, submitting]
+  );
 
-    if (!recipient_name) return setErrorText("Recipient is required.");
-    if (!giftTitle) return setErrorText("Gift title is required.");
-    if (cost && Number.isNaN(costNumber)) return setErrorText("Cost must be a number.");
+  async function computeFreeLimits(nextRecipientName: string): Promise<LimitState> {
+    const { count: giftsUsed, error: giftsErr } = await supabase
+      .from("gifts")
+      .select("id", { count: "exact", head: true })
+      .eq("list_id", listId)
+      .eq("season_id", seasonId);
 
-    // Use dropdown if set; otherwise use detected carrier (if any)
-    const finalCarrier: CarrierValue =
-      carrier !== "unknown"
-        ? carrier
-        : tracking_number
-        ? detectCarrier(tracking_number)
-        : "unknown";
+    if (giftsErr) {
+      console.error(giftsErr);
+      return { ok: true, giftsUsed: 0, recipientsUsed: 0 };
+    }
 
-    setLoading(true);
-    setErrorText("");
+    const { data: recRows, error: recErr } = await supabase
+      .from("gifts")
+      .select("recipient_name")
+      .eq("list_id", listId)
+      .eq("season_id", seasonId);
+
+    if (recErr) {
+      console.error(recErr);
+      return { ok: true, giftsUsed: giftsUsed ?? 0, recipientsUsed: 0 };
+    }
+
+    const distinct = new Set(
+      (recRows ?? [])
+        .map((r: any) => (r.recipient_name ?? "").trim())
+        .filter(Boolean)
+        .map(normalizeRecipientKey)
+    );
+
+    const recipientsUsed = distinct.size;
+    const nextKey = normalizeRecipientKey(nextRecipientName);
+    const isNewRecipient = nextKey.length > 0 && !distinct.has(nextKey);
+
+    if ((giftsUsed ?? 0) >= FREE_LIMITS.maxGifts) {
+      return { ok: false, reason: "gifts", giftsUsed: giftsUsed ?? 0, recipientsUsed };
+    }
+    if (isNewRecipient && recipientsUsed >= FREE_LIMITS.maxRecipients) {
+      return { ok: false, reason: "recipients", giftsUsed: giftsUsed ?? 0, recipientsUsed };
+    }
+
+    return { ok: true, giftsUsed: giftsUsed ?? 0, recipientsUsed };
+  }
+
+  async function handleSubmit() {
+    if (!canSubmit) return;
+
+    setSubmitting(true);
+
+    const limits = await computeFreeLimits(recipient);
+    setLimitState(limits);
+
+    if (!limits.ok) {
+      setSubmitting(false);
+      setShowUpgrade(true);
+      return;
+    }
+
+    const costNumber = moneyToNumber(cost);
 
     const { error } = await supabase.from("gifts").insert([
       {
-        recipient_name,
-        title: giftTitle,
+        title: title.trim(),
+        recipient_name: recipient.trim(),
         cost: costNumber,
-        tracking_number,
-        carrier: finalCarrier === "unknown" ? null : finalCarrier,
-        delivery_eta,
+        list_id: listId,
+        season_id: seasonId,
+        wrapped: false,
       },
     ]);
 
-    setLoading(false);
+    setSubmitting(false);
 
-    if (error) return setErrorText(error.message);
+    if (error) {
+      console.error(error);
+      setToast("Couldn’t add gift — try again.");
+      return;
+    }
 
-    setRecipient("");
     setTitle("");
+    setRecipient("");
     setCost("");
-    setTracking("");
-    setCarrier("unknown");
-    setEtaDate("");
+    setOpen(false);
 
-    onAdded();
+    setToast("Gift added ✅");
+
+    // Refresh after animation for a native feel
+    setTimeout(() => window.location.reload(), 300);
   }
 
   return (
-    <div style={{ marginBottom: 0 }}>
-      {errorText && (
+    <>
+      {/* Floating + */}
+      <button
+        onClick={() => setOpen(true)}
+        style={{
+          position: "fixed",
+          right: 18,
+          bottom: 18,
+          width: 54,
+          height: 54,
+          borderRadius: 18,
+          border: "1px solid #e2e8f0",
+          background: "#0f172a",
+          color: "white",
+          fontWeight: 900,
+          fontSize: 24,
+          boxShadow: "0 10px 30px rgba(0,0,0,0.18)",
+          cursor: "pointer",
+          zIndex: 50,
+        }}
+        aria-label="Add gift"
+      >
+        +
+      </button>
+
+      {/* Toast */}
+      {toast && (
         <div
           style={{
-            marginBottom: 12,
-            padding: 12,
-            borderRadius: 6,
-            background: "#fee2e2",
-            color: "#7f1d1d",
+            position: "fixed",
+            left: "50%",
+            bottom: 90,
+            transform: "translateX(-50%)",
+            padding: "10px 14px",
+            borderRadius: 999,
+            background: "rgba(15,23,42,0.95)",
+            color: "white",
+            fontWeight: 800,
+            fontSize: 13,
+            boxShadow: "0 10px 30px rgba(0,0,0,0.18)",
+            zIndex: 60,
           }}
         >
-          {errorText}
+          {toast}
         </div>
       )}
 
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-        <input
-          placeholder="Recipient"
-          value={recipient}
-          onChange={(e) => setRecipient(e.target.value)}
-          style={inputStyle}
-        />
-
-        <input
-          placeholder="Gift title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          style={inputStyle}
-        />
-
-        <input
-          placeholder="Cost (optional)"
-          value={cost}
-          onChange={(e) => setCost(e.target.value)}
-          inputMode="decimal"
-          style={inputStyle}
-        />
-
-        <select
-          value={carrier}
-          onChange={(e) => setCarrier(e.target.value as CarrierValue)}
-          style={inputStyle}
-        >
-          {carriers.map((c) => (
-            <option key={c.value} value={c.value}>
-              {c.label}
-            </option>
-          ))}
-        </select>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <input
-            placeholder="Tracking # (optional)"
-            value={tracking}
-            onChange={(e) => setTracking(e.target.value)}
-            style={{ ...inputStyle, minWidth: 240 }}
-          />
-          {liveHint ? (
-            <span style={{ fontSize: 12, color: "#64748b" }}>{liveHint}</span>
-          ) : null}
-        </div>
-
-        <input
-          type="date"
-          value={etaDate}
-          onChange={(e) => setEtaDate(e.target.value)}
-          style={inputStyle}
-        />
-
-        <button
-          onClick={addGift}
-          disabled={loading}
+      {/* Backdrop */}
+      {open && (
+        <div
+          onClick={() => (submitting ? null : setOpen(false))}
           style={{
-            padding: "10px 16px",
-            borderRadius: 6,
-            border: "1px solid #0f172a",
-            background: loading ? "#475569" : "#0f172a",
-            color: "white",
-            fontWeight: 700,
-            cursor: loading ? "not-allowed" : "pointer",
+            position: "fixed",
+            inset: 0,
+            background: "rgba(15,23,42,0.35)",
+            backdropFilter: "blur(6px)",
+            zIndex: 40,
+          }}
+        />
+      )}
+
+      {/* Bottom sheet */}
+      <div
+        style={{
+          position: "fixed",
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 45,
+          transform: open ? "translateY(0)" : "translateY(110%)",
+          transition: "transform 220ms ease",
+        }}
+      >
+        <div
+          style={{
+            maxWidth: 520,
+            margin: "0 auto",
+            background: "#fff",
+            borderTopLeftRadius: 26,
+            borderTopRightRadius: 26,
+            border: "1px solid #e2e8f0",
+            boxShadow: "0 -10px 40px rgba(0,0,0,0.12)",
+            padding: 16,
           }}
         >
-          {loading ? "Adding..." : "Add Gift"}
-        </button>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ fontSize: 16, fontWeight: 900 }}>Add a gift</div>
+            <button
+              onClick={() => (submitting ? null : setOpen(false))}
+              style={{
+                border: "1px solid #e2e8f0",
+                background: "#fff",
+                borderRadius: 999,
+                padding: "6px 10px",
+                fontWeight: 900,
+                cursor: "pointer",
+              }}
+            >
+              Close
+            </button>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 12 }}>
+            <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <span style={{ fontSize: 12, fontWeight: 900, color: "#334155" }}>Person</span>
+              <input
+                value={recipient}
+                onChange={(e) => setRecipient(e.target.value)}
+                placeholder="e.g., Emma"
+                style={{
+                  padding: "12px 12px",
+                  borderRadius: 14,
+                  border: "1px solid #e2e8f0",
+                  fontSize: 14,
+                  outline: "none",
+                }}
+              />
+            </label>
+
+            <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <span style={{ fontSize: 12, fontWeight: 900, color: "#334155" }}>Gift</span>
+              <input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="e.g., AirPods case"
+                style={{
+                  padding: "12px 12px",
+                  borderRadius: 14,
+                  border: "1px solid #e2e8f0",
+                  fontSize: 14,
+                  outline: "none",
+                }}
+              />
+            </label>
+
+            <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <span style={{ fontSize: 12, fontWeight: 900, color: "#334155" }}>Cost (optional)</span>
+              <input
+                value={cost}
+                onChange={(e) => setCost(e.target.value)}
+                placeholder="$25"
+                inputMode="decimal"
+                style={{
+                  padding: "12px 12px",
+                  borderRadius: 14,
+                  border: "1px solid #e2e8f0",
+                  fontSize: 14,
+                  outline: "none",
+                }}
+              />
+            </label>
+
+            <button
+              onClick={handleSubmit}
+              disabled={!canSubmit}
+              style={{
+                marginTop: 6,
+                padding: "12px 14px",
+                borderRadius: 16,
+                border: "1px solid #0f172a",
+                background: canSubmit ? "#0f172a" : "#cbd5e1",
+                color: "#fff",
+                fontWeight: 900,
+                fontSize: 14,
+                cursor: canSubmit ? "pointer" : "not-allowed",
+              }}
+            >
+              {submitting ? "Adding…" : "Add gift"}
+            </button>
+
+            <div style={{ fontSize: 12, color: "#64748b", textAlign: "center", marginTop: 4 }}>
+              Free includes up to {FREE_LIMITS.maxRecipients} people + {FREE_LIMITS.maxGifts} gifts per season.
+            </div>
+          </div>
+        </div>
       </div>
 
-      <p style={{ margin: "10px 0 0 0", color: "#64748b", fontSize: 12 }}>
-        Leave carrier on “Other / Auto-detect” and we’ll detect as you type.
-      </p>
-    </div>
+      {/* Upgrade sheet (simple placeholder for now) */}
+      {showUpgrade && (
+        <>
+          <div
+            onClick={() => setShowUpgrade(false)}
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(15,23,42,0.45)",
+              backdropFilter: "blur(6px)",
+              zIndex: 70,
+            }}
+          />
+          <div
+            style={{
+              position: "fixed",
+              left: 0,
+              right: 0,
+              bottom: 0,
+              zIndex: 80,
+            }}
+          >
+            <div
+              style={{
+                maxWidth: 520,
+                margin: "0 auto",
+                background: "#fff",
+                borderTopLeftRadius: 26,
+                borderTopRightRadius: 26,
+                border: "1px solid #e2e8f0",
+                boxShadow: "0 -10px 40px rgba(0,0,0,0.12)",
+                padding: 16,
+              }}
+            >
+              <div style={{ fontSize: 16, fontWeight: 900 }}>Upgrade to keep going</div>
+              <div style={{ marginTop: 8, color: "#334155", fontSize: 13, lineHeight: 1.35 }}>
+                {limitState?.ok === false && limitState.reason === "gifts" ? (
+                  <>
+                    Free plan includes <b>3 gifts</b> per season. Upgrade to add unlimited gifts.
+                  </>
+                ) : (
+                  <>
+                    Free plan includes <b>2 people</b> per season. Upgrade to add unlimited people.
+                  </>
+                )}
+              </div>
+
+              <button
+                onClick={() => setShowUpgrade(false)}
+                style={{
+                  marginTop: 12,
+                  width: "100%",
+                  padding: "12px 14px",
+                  borderRadius: 16,
+                  border: "1px solid #0f172a",
+                  background: "#0f172a",
+                  color: "#fff",
+                  fontWeight: 900,
+                  cursor: "pointer",
+                }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+    </>
   );
 }

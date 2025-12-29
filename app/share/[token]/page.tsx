@@ -125,7 +125,7 @@ export default async function SharePage(props: {
           textAlign: "center",
         }}
       >
-        Tip: screenshot this page to share.
+        Screenshot to share
       </div>
     </main>
   );
