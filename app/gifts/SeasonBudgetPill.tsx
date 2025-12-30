@@ -59,6 +59,12 @@ export default function SeasonBudgetPill({ seasonId, totalSpent, initialBudget }
     return initialBudget - totalSpent;
   }, [initialBudget, totalSpent]);
 
+  const isOver = typeof delta === "number" && delta < 0;
+  const displayAmount = typeof delta === "number" ? Math.abs(delta) : 0;
+  const deltaClasses = isOver
+    ? "bg-rose-50 border-rose-200 text-rose-800"
+    : "bg-emerald-50 border-emerald-200 text-emerald-800";
+
   async function save(next: number | null) {
     // 🔒 Absolute guard: never call the API unless we have a real UUID
     if (!seasonIdValid) {
@@ -233,18 +239,10 @@ export default function SeasonBudgetPill({ seasonId, totalSpent, initialBudget }
 
       {initialBudget !== null && delta !== null && (
         <span
-          style={{
-            padding: "4px 10px",
-            borderRadius: 999,
-            border: "1px solid",
-            fontSize: 12,
-            fontWeight: 900,
-            background: "#fff",
-            borderColor: delta >= 0 ? "#bbf7d0" : "#fecaca",
-          }}
-          title={delta >= 0 ? "Left to spend" : "Over budget"}
+          className={`rounded-full border px-2.5 py-1 text-xs font-black ${deltaClasses}`}
+          title={isOver ? "Over budget" : "Left to spend"}
         >
-          {delta >= 0 ? `Left: ${money(delta)}` : `Over: ${money(Math.abs(delta))}`}
+          {isOver ? `Over: ${money(displayAmount)}` : `Left: ${money(displayAmount)}`}
         </span>
       )}
     </div>
