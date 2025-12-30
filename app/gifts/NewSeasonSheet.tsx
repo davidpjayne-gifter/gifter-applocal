@@ -65,9 +65,9 @@ export default function NewSeasonSheet({ listId }: { listId: string }) {
       {/* Trigger button */}
       <button
         onClick={() => setOpen(true)}
+        className="inline-flex items-center justify-center text-blue-600 hover:bg-blue-50"
         style={{
           marginTop: 10,
-          width: "100%",
           padding: "10px 12px",
           borderRadius: 14,
           border: "1px solid #e2e8f0",

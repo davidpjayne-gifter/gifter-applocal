@@ -167,28 +167,38 @@ export default function AddGiftForm({
   return (
     <>
       {triggerVariant === "floating" ? (
-        <button
-          onClick={() => setOpen(true)}
+        <div
           style={{
             position: "fixed",
             right: 18,
             bottom: "calc(5rem + env(safe-area-inset-bottom))",
-            width: 54,
-            height: 54,
-            borderRadius: 18,
-            border: "1px solid #e2e8f0",
-            background: "#0f172a",
-            color: "white",
-            fontWeight: 900,
-            fontSize: 24,
-            boxShadow: "0 10px 30px rgba(0,0,0,0.18)",
-            cursor: "pointer",
             zIndex: 60,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 6,
           }}
-          aria-label="Add gift"
         >
-          +
-        </button>
+          <button
+            onClick={() => setOpen(true)}
+            style={{
+              width: 54,
+              height: 54,
+              borderRadius: 18,
+              border: "1px solid #e2e8f0",
+              background: "#0f172a",
+              color: "white",
+              fontWeight: 900,
+              fontSize: 24,
+              boxShadow: "0 10px 30px rgba(0,0,0,0.18)",
+              cursor: "pointer",
+            }}
+            aria-label="Add gift"
+          >
+            +
+          </button>
+          <div style={{ fontSize: 11, fontWeight: 800, color: "#fff" }}>Add GIFT</div>
+        </div>
       ) : (
         <button
           onClick={() => setOpen(true)}
