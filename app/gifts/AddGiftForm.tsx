@@ -54,6 +54,7 @@ export default function AddGiftForm({
 
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [costError, setCostError] = useState("");
 
   // iOS toast
   const [toast, setToast] = useState<string | null>(null);
@@ -72,6 +73,17 @@ export default function AddGiftForm({
     if (!open) return;
     setRecipient(recipientName ?? "");
   }, [open, recipientName]);
+
+  const parsedCost = useMemo(() => {
+    const raw = cost.trim().replace(/[^0-9.]/g, "");
+    if (!raw) return null;
+    const value = Number(raw);
+    return Number.isFinite(value) ? value : NaN;
+  }, [cost]);
+
+  const costIsValid = useMemo(() => {
+    return typeof parsedCost === "number" && Number.isFinite(parsedCost) && parsedCost > 0;
+  }, [parsedCost]);
 
   const recipientKey = normalizeRecipientKey(recipient);
   const willAddNewRecipient =
@@ -96,6 +108,7 @@ export default function AddGiftForm({
 
     setSubmitting(true);
     setSubmitError("");
+    setCostError("");
 
     if (!isPro && (hitsGiftLimit || hitsRecipientLimit)) {
       setSubmitting(false);
@@ -103,7 +116,18 @@ export default function AddGiftForm({
       return;
     }
 
+    const costRaw = cost.trim();
     const costNumber = moneyToNumber(cost);
+    if (!costRaw) {
+      setSubmitting(false);
+      setCostError("Cost is required.");
+      return;
+    }
+    if (costRaw.includes("-") || costNumber === null || !Number.isFinite(costNumber) || costNumber <= 0) {
+      setSubmitting(false);
+      setCostError("Enter a valid cost.");
+      return;
+    }
 
     const { data: sessionData } = await supabase.auth.getSession();
     const token = sessionData.session?.access_token;
@@ -248,6 +272,7 @@ export default function AddGiftForm({
         }}
       >
         <div
+          className="bg-white text-gray-900"
           style={{
             maxWidth: 520,
             margin: "0 auto",
@@ -260,7 +285,9 @@ export default function AddGiftForm({
           }}
         >
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div style={{ fontSize: 16, fontWeight: 900 }}>Add a gift</div>
+            <div className="text-gray-900" style={{ fontSize: 16, fontWeight: 900 }}>
+              🎁 Add a GIFT
+            </div>
             <button
               onClick={() => (submitting ? null : setOpen(false))}
               style={{
@@ -278,11 +305,14 @@ export default function AddGiftForm({
 
           <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 12 }}>
             <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              <span style={{ fontSize: 12, fontWeight: 900, color: "#334155" }}>Person</span>
+              <span className="text-gray-900" style={{ fontSize: 12, fontWeight: 900 }}>
+                Person
+              </span>
               <input
                 value={recipient}
                 onChange={(e) => setRecipient(e.target.value)}
                 placeholder="e.g., Emma"
+                className="text-gray-900 placeholder:text-gray-400"
                 style={{
                   padding: "12px 12px",
                   borderRadius: 14,
@@ -294,11 +324,14 @@ export default function AddGiftForm({
             </label>
 
             <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              <span style={{ fontSize: 12, fontWeight: 900, color: "#334155" }}>Gift</span>
+              <span className="text-gray-900" style={{ fontSize: 12, fontWeight: 900 }}>
+                Gift
+              </span>
               <input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="e.g., AirPods case"
+                className="text-gray-900 placeholder:text-gray-400"
                 style={{
                   padding: "12px 12px",
                   borderRadius: 14,
@@ -310,12 +343,19 @@ export default function AddGiftForm({
             </label>
 
             <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              <span style={{ fontSize: 12, fontWeight: 900, color: "#334155" }}>Cost (optional)</span>
+              <span className="text-gray-900" style={{ fontSize: 12, fontWeight: 900 }}>
+                Cost
+              </span>
               <input
                 value={cost}
-                onChange={(e) => setCost(e.target.value)}
+                onChange={(e) => {
+                  setCost(e.target.value);
+                  setCostError("");
+                }}
                 placeholder="$25"
                 inputMode="decimal"
+                required
+                className="text-gray-900 placeholder:text-gray-400"
                 style={{
                   padding: "12px 12px",
                   borderRadius: 14,
@@ -324,16 +364,20 @@ export default function AddGiftForm({
                   outline: "none",
                 }}
               />
+              {costError && (
+                <span className="text-xs font-semibold text-rose-600">{costError}</span>
+              )}
             </label>
 
             <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              <span style={{ fontSize: 12, fontWeight: 900, color: "#334155" }}>
+              <span className="text-gray-900" style={{ fontSize: 12, fontWeight: 900 }}>
                 Tracking (optional)
               </span>
               <input
                 value={tracking}
                 onChange={(e) => setTracking(e.target.value)}
                 placeholder="Tracking number"
+                className="text-gray-900 placeholder:text-gray-400"
                 style={{
                   padding: "12px 12px",
                   borderRadius: 14,
