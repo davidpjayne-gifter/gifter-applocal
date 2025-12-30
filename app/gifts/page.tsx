@@ -8,6 +8,7 @@ import GiftStatusForm from "./GiftStatusForm";
 import ShareRecipientButton from "./ShareRecipientButton";
 import RecipientWrapUpButton from "./RecipientWrapUpButton";
 import SeasonBudgetPill from "./SeasonBudgetPill";
+import SignOutButton from "./SignOutButton";
 
 import { supabase } from "@/lib/supabase";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
@@ -266,6 +267,10 @@ export default async function GiftsPage() {
 
         <div style={{ marginTop: 6, display: "flex", justifyContent: "center" }}>
           <span style={pillStyle()}>Season: {activeSeason.name}</span>
+        </div>
+
+        <div style={{ marginTop: 8, display: "flex", justifyContent: "flex-end" }}>
+          <SignOutButton />
         </div>
 
         <div style={{ marginTop: 8, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
