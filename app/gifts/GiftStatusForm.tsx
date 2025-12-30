@@ -46,7 +46,7 @@ export default function GiftStatusForm({ giftId, isWrapped, shippingStatus, upda
         onClick={() => handle("unknown")}
         style={statusButtonStyle(!isWrapped && shippingStatus === "unknown")}
       >
-        Unknown
+        Storebought
       </button>
 
       <button

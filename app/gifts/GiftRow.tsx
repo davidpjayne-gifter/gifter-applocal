@@ -23,7 +23,7 @@ type Props = {
 function statusLabel(status: ShippingStatus) {
   if (status === "in_transit") return "In Transit";
   if (status === "arrived") return "Arrived";
-  return "Unknown";
+  return "Storebought";
 }
 
 export default function GiftRow({ gift, updateGiftStatus }: Props) {
