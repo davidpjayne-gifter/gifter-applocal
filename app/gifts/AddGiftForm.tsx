@@ -373,17 +373,16 @@ export default function AddGiftForm({
               </SignInCtaButton>
             )}
 
-            <div
-              style={{
-                fontSize: 12,
-                color: hitsGiftLimit || hitsRecipientLimit ? "#0f172a" : "#64748b",
-                textAlign: "center",
-                marginTop: 4,
-                fontWeight: hitsGiftLimit || hitsRecipientLimit ? 700 : 500,
-              }}
-            >
-              Free includes up to {freeRecipientLimit} people + {freeGiftLimit} gifts per season.
-            </div>
+            {isPro ? (
+              <p className="mt-1 flex items-center justify-center gap-1 text-sm font-semibold text-green-600">
+                <span>You’re a Pro</span> ✅
+              </p>
+            ) : (
+              <p className="mt-1 text-center text-sm text-slate-600">
+                Free includes up to <span className="font-semibold">2 people</span> +{" "}
+                <span className="font-semibold">3 gifts</span> per season.
+              </p>
+            )}
 
             {showUpgradeCta && (
               <button
