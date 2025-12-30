@@ -13,6 +13,7 @@ type Props = {
   freeGiftLimit: number;
   freeRecipientLimit: number;
   existingRecipientKeys: string[];
+  triggerVariant?: "floating" | "inline";
 };
 
 export default function RefreshAfterAdd({
@@ -25,6 +26,7 @@ export default function RefreshAfterAdd({
   freeGiftLimit,
   freeRecipientLimit,
   existingRecipientKeys,
+  triggerVariant = "floating",
 }: Props) {
   const router = useRouter();
 
@@ -39,6 +41,7 @@ export default function RefreshAfterAdd({
       freeGiftLimit={freeGiftLimit}
       freeRecipientLimit={freeRecipientLimit}
       existingRecipientKeys={existingRecipientKeys}
+      triggerVariant={triggerVariant}
       onAdded={() => router.refresh()}
     />
   );

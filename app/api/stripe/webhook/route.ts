@@ -85,6 +85,7 @@ async function handleCheckoutCompleted(params: {
       stripe_customer_id: stripeCustomerId,
       stripe_subscription_id: stripeSubscriptionId,
       subscription_status: subscriptionStatus ?? "active",
+      is_pro: isProStatus(subscriptionStatus ?? "active"),
       current_period_end: currentPeriodEnd,
     })
     .eq("id", userId);

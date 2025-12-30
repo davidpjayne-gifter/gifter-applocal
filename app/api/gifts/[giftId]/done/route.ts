@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { getOrCreateCurrentList } from "@/lib/currentList";
 
 function isUuid(v: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
@@ -15,11 +16,18 @@ function priceBucket(price: number | null | undefined) {
   return "100_plus";
 }
 
+function getAccessToken(req: NextRequest) {
+  const authHeader = req.headers.get("authorization") || "";
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  if (token) return token;
+  return req.cookies.get("sb-access-token")?.value ?? null;
+}
+
 type Ctx = {
   params: Promise<{ giftId?: string }>;
 };
 
-export async function POST(req: Request, ctx: Ctx) {
+export async function POST(req: NextRequest, ctx: Ctx) {
   try {
     const { giftId: rawGiftId } = await ctx.params;
     const giftId = String(rawGiftId || "").trim();
@@ -27,6 +35,19 @@ export async function POST(req: Request, ctx: Ctx) {
     if (!isUuid(giftId)) {
       return NextResponse.json({ error: "Invalid giftId", giftId }, { status: 400 });
     }
+
+    const token = getAccessToken(req);
+    if (!token) {
+      return NextResponse.json({ error: "Missing auth token" }, { status: 401 });
+    }
+
+    const { data: userData, error: userErr } = await supabaseAdmin.auth.getUser(token);
+    if (userErr || !userData?.user) {
+      return NextResponse.json({ error: "Invalid auth token" }, { status: 401 });
+    }
+
+    const currentList = await getOrCreateCurrentList(userData.user.id);
+    const listId = currentList.id;
 
     // 1) Mark gift as done (adjust column names if yours differ)
     const nowIso = new Date().toISOString();
@@ -38,6 +59,7 @@ export async function POST(req: Request, ctx: Ctx) {
         done_at: nowIso,    // <-- change if you use wrapped_at / completed_at etc
       })
       .eq("id", giftId)
+      .eq("list_id", listId)
       .select("id, title, category, price") // <-- change if your columns differ
       .single();
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { getOrCreateCurrentList } from "@/lib/currentList";
 
 function isUuid(v: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
@@ -37,6 +38,9 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
     if (userErr || !userData?.user) {
       return NextResponse.json({ error: "Invalid auth token" }, { status: 401 });
     }
+
+    const currentList = await getOrCreateCurrentList(userData.user.id);
+    const listId = currentList.id;
 
     const body = await req.json().catch(() => ({}));
     const { title, cost, tracking } = body ?? {};
@@ -78,11 +82,16 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
       .from("gifts")
       .update(updates)
       .eq("id", giftId)
+      .eq("list_id", listId)
       .select("id,title,cost,tracking_number,shipping_status,wrapped")
-      .single();
+      .maybeSingle();
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+
+    if (!gift) {
+      return NextResponse.json({ error: "Gift not found" }, { status: 404 });
     }
 
     return NextResponse.json({ gift });

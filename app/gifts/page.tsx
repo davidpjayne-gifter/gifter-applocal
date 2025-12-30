@@ -12,9 +12,9 @@ import SignOutButton from "./SignOutButton";
 import GiftRow from "./GiftRow";
 import SignInBanner from "./SignInBanner";
 
-import { supabase } from "@/lib/supabase";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { FREE_GIFT_LIMIT, FREE_RECIPIENT_LIMIT, getProfileForUser, isPro } from "@/lib/entitlements";
+import { getOrCreateCurrentList } from "@/lib/currentList";
 
 /* ---------------- TYPES ---------------- */
 
@@ -102,6 +102,16 @@ function seasonTotalSpent(allGifts: Gift[]) {
   return allGifts.reduce((sum, g) => sum + (typeof g.cost === "number" ? g.cost : 0), 0);
 }
 
+async function getUserIdFromCookie() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("sb-access-token")?.value ?? null;
+  if (!token) return null;
+
+  const { data: userData, error: userErr } = await supabaseAdmin.auth.getUser(token);
+  if (userErr || !userData?.user?.id) return null;
+  return userData.user.id;
+}
+
 /* ---------------- SERVER ACTIONS ---------------- */
 
 async function updateGiftStatus(formData: FormData) {
@@ -112,26 +122,35 @@ async function updateGiftStatus(formData: FormData) {
 
   if (!giftId) return;
 
+  const userId = await getUserIdFromCookie();
+  if (!userId) return;
+
+  const { id: listId } = await getOrCreateCurrentList(userId);
+
   if (status === "wrapped") {
     await supabaseAdmin
       .from("gifts")
       .update({ wrapped: true, shipping_status: "arrived" })
-      .eq("id", giftId);
+      .eq("id", giftId)
+      .eq("list_id", listId);
   } else if (status === "arrived") {
     await supabaseAdmin
       .from("gifts")
       .update({ wrapped: false, shipping_status: "arrived" })
-      .eq("id", giftId);
+      .eq("id", giftId)
+      .eq("list_id", listId);
   } else if (status === "in_transit") {
     await supabaseAdmin
       .from("gifts")
       .update({ wrapped: false, shipping_status: "in_transit" })
-      .eq("id", giftId);
+      .eq("id", giftId)
+      .eq("list_id", listId);
   } else {
     await supabaseAdmin
       .from("gifts")
       .update({ wrapped: false, shipping_status: "unknown" })
-      .eq("id", giftId);
+      .eq("id", giftId)
+      .eq("list_id", listId);
   }
 
   revalidatePath("/gifts");
@@ -141,10 +160,14 @@ async function markRecipientWrappedUp(formData: FormData) {
   "use server";
 
   const recipientKey = String(formData.get("recipientKey") || "");
-  const listId = String(formData.get("listId") || "");
   const seasonId = String(formData.get("seasonId") || "");
 
-  if (!recipientKey || !listId || !seasonId) return;
+  if (!recipientKey || !seasonId) return;
+
+  const userId = await getUserIdFromCookie();
+  if (!userId) return;
+
+  const { id: listId } = await getOrCreateCurrentList(userId);
 
   const q = supabaseAdmin
     .from("gifts")
@@ -177,10 +200,14 @@ async function reopenRecipient(formData: FormData) {
   "use server";
 
   const recipientKey = String(formData.get("recipientKey") || "");
-  const listId = String(formData.get("listId") || "");
   const seasonId = String(formData.get("seasonId") || "");
 
-  if (!recipientKey || !listId || !seasonId) return;
+  if (!recipientKey || !seasonId) return;
+
+  const userId = await getUserIdFromCookie();
+  if (!userId) return;
+
+  const { id: listId } = await getOrCreateCurrentList(userId);
 
   await supabaseAdmin
     .from("recipient_wrapups")
@@ -194,7 +221,13 @@ async function reopenRecipient(formData: FormData) {
 
 /* ---------------- PAGE ---------------- */
 
-export default async function GiftsPage() {
+export default async function GiftsPage(props: {
+  searchParams?: Promise<{ season?: string }> | { season?: string };
+}) {
+  const searchParams = props.searchParams ? await props.searchParams : undefined;
+  const requestedSeasonId =
+    typeof searchParams?.season === "string" ? searchParams.season.trim() : "";
+
   const cookieStore = await cookies();
   const token = cookieStore.get("sb-access-token")?.value ?? null;
   let userId: string | null = null;
@@ -206,24 +239,107 @@ export default async function GiftsPage() {
     }
   }
 
-  const { data: activeSeason, error: seasonErr } = await supabase
-    .from("seasons")
-    .select("id,name,list_id,is_active,budget")
-    .eq("is_active", true)
-    .single<Season>();
-
-  if (seasonErr || !activeSeason?.id) {
+  if (!userId) {
     return (
-      <main style={{ padding: 24, maxWidth: 520, margin: "0 auto" }}>
-        <h1 style={{ fontSize: 22, fontWeight: 900 }}>My GIFTs</h1>
-        <p>No active season.</p>
+      <main style={{ padding: 16, maxWidth: 520, margin: "0 auto" }}>
+        <SignInBanner />
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ fontSize: 22, fontWeight: 900, textAlign: "center" }}>My GIFTs</div>
+        </div>
+        <div
+          style={{
+            border: "1px dashed #cbd5e1",
+            borderRadius: 14,
+            padding: 16,
+            textAlign: "center",
+            color: "#64748b",
+          }}
+        >
+          Sign in to view your gifts.
+        </div>
       </main>
     );
   }
 
-  const { data: giftsRaw } = await supabase
+  let listIdForClient = "";
+
+  try {
+    const list = await getOrCreateCurrentList(userId);
+    listIdForClient = list.id;
+  } catch (err: any) {
+    return (
+      <main style={{ padding: 24, maxWidth: 520, margin: "0 auto" }}>
+        <h1 style={{ fontSize: 22, fontWeight: 900 }}>My GIFTs</h1>
+        <p style={{ color: "#b91c1c" }}>Failed to load your gift list.</p>
+      </main>
+    );
+  }
+
+  const { data: seasons, error: seasonsErr } = await supabaseAdmin
+    .from("seasons")
+    .select("id,name,list_id,is_active,budget,created_at")
+    .eq("list_id", listIdForClient)
+    .order("created_at", { ascending: false });
+
+  if (seasonsErr) {
+    return (
+      <main style={{ padding: 24, maxWidth: 520, margin: "0 auto" }}>
+        <h1 style={{ fontSize: 22, fontWeight: 900 }}>My GIFTs</h1>
+        <p style={{ color: "#b91c1c" }}>Failed to load seasons.</p>
+      </main>
+    );
+  }
+
+  const requestedSeason = requestedSeasonId
+    ? (seasons ?? []).find((season) => season.id === requestedSeasonId) ?? null
+    : null;
+
+  const activeSeason = requestedSeason ?? (seasons ?? []).find((season) => season.is_active) ?? null;
+
+  if (!activeSeason) {
+    return (
+      <main style={{ padding: 16, maxWidth: 520, margin: "0 auto" }}>
+        <SignInBanner />
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ fontSize: 22, fontWeight: 900, textAlign: "center" }}>My GIFTs</div>
+          <div style={{ marginTop: 8, display: "flex", justifyContent: "flex-end", gap: 8 }}>
+            <Link
+              href="/settings"
+              style={{
+                padding: "6px 10px",
+                borderRadius: 10,
+                border: "1px solid #cbd5e1",
+                background: "#fff",
+                fontSize: 12,
+                fontWeight: 800,
+                color: "#334155",
+                textDecoration: "none",
+              }}
+            >
+              Settings
+            </Link>
+            <SignOutButton />
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-600/15 via-blue-600/10 to-blue-600/5 px-4 py-4 text-slate-900">
+          <div className="text-base font-black">Start your first season</div>
+          <div className="mt-1 text-sm text-slate-700">
+            Create a season to start adding gifts.
+          </div>
+        </div>
+
+        <div style={{ marginTop: 16 }}>
+          <NewSeasonSheet listId={listIdForClient} />
+        </div>
+      </main>
+    );
+  }
+
+  const { data: giftsRaw } = await supabaseAdmin
     .from("gifts")
     .select("*")
+    .eq("list_id", listIdForClient)
     .eq("season_id", activeSeason.id)
     .order("recipient_name", { ascending: true })
     .order("created_at", { ascending: false });
@@ -265,11 +381,11 @@ export default async function GiftsPage() {
 
   const recipientKeys = Object.keys(grouped);
 
-  const { data: wrapupsRaw } = await supabase
+  const { data: wrapupsRaw } = await supabaseAdmin
     .from("recipient_wrapups")
     .select("season_id,list_id,recipient_key,wrapped_up_at")
     .eq("season_id", activeSeason.id)
-    .eq("list_id", activeSeason.list_id);
+    .eq("list_id", listIdForClient);
 
   const wrapups = (wrapupsRaw ?? []) as RecipientWrapupRow[];
   const wrapupSet = new Set(wrapups.map((r) => r.recipient_key));
@@ -281,10 +397,9 @@ export default async function GiftsPage() {
   });
 
   const seasonIdForClient = String(activeSeason.id ?? "").trim();
-  const listIdForClient = String(activeSeason.list_id ?? "").trim();
 
   return (
-      <main style={{ padding: 16, maxWidth: 520, margin: "0 auto" }}>
+    <main style={{ padding: 16, maxWidth: 520, margin: "0 auto" }}>
       <SignInBanner />
       <div style={{ marginBottom: 14 }}>
         <div style={{ fontSize: 22, fontWeight: 900, textAlign: "center" }}>My GIFTs</div>
@@ -330,164 +445,187 @@ export default async function GiftsPage() {
 
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        {sortedRecipientKeys.map((key) => {
-          const list = grouped[key];
-          const displayName = key === "unassigned" ? "Unassigned" : toTitleCase(key);
+      {gifts.length === 0 ? (
+        <div className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-600/15 via-blue-600/10 to-blue-600/5 px-4 py-4 text-slate-900">
+          <div className="text-sm font-semibold text-center">
+            😕 You don&apos;t have any GIFTs yet! Add one here
+          </div>
+          <div style={{ marginTop: 12, display: "flex", justifyContent: "center" }}>
+            <RefreshAfterAdd
+              listId={listIdForClient}
+              seasonId={seasonIdForClient}
+              recipientName={null}
+              isPro={userIsPro}
+              giftsUsed={giftsUsed}
+              recipientsUsed={recipientsUsed}
+              freeGiftLimit={FREE_GIFT_LIMIT}
+              freeRecipientLimit={FREE_RECIPIENT_LIMIT}
+              existingRecipientKeys={existingRecipientKeys}
+              triggerVariant="inline"
+            />
+          </div>
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          {sortedRecipientKeys.map((key) => {
+            const list = grouped[key];
+            const displayName = key === "unassigned" ? "Unassigned" : toTitleCase(key);
 
-          const { total, wrappedCount, unwrappedCount, spend, hasAnyCost } = recipientSummary(list);
-          const isWrappedUp = wrapupSet.has(key);
+            const { total, wrappedCount, unwrappedCount, spend, hasAnyCost } = recipientSummary(list);
+            const isWrappedUp = wrapupSet.has(key);
 
-          if (isWrappedUp) {
+            if (isWrappedUp) {
+              return (
+                <section
+                  key={key}
+                  className="overflow-hidden rounded-2xl border border-blue-200 bg-white shadow-sm"
+                >
+                  <form action={reopenRecipient} className="m-0">
+                    <input type="hidden" name="recipientKey" value={key} />
+                    <input type="hidden" name="listId" value={listIdForClient} />
+                    <input type="hidden" name="seasonId" value={seasonIdForClient} />
+
+                    <button
+                      type="submit"
+                      className="w-full cursor-pointer text-left"
+                      title="Click to reopen"
+                    >
+                      <div className="border-b border-blue-700/70 bg-gradient-to-br from-blue-600/25 via-blue-600/20 to-blue-600/10 px-4 py-4 sm:px-5">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="min-w-0">
+                            <h2 className="text-lg font-black text-slate-900 sm:text-xl">
+                              {displayName}
+                            </h2>
+
+                            <div className="mt-2 flex flex-wrap gap-2 text-xs font-semibold text-slate-900">
+                              <span className="rounded-full border border-blue-200 bg-white/80 px-2.5 py-1">
+                              {wrappedCount}/{total} wrapped
+                              </span>
+                              <span className="rounded-full border border-blue-200 bg-white/80 px-2.5 py-1">
+                                {total} gifts
+                              </span>
+                              {hasAnyCost && (
+                                <span className="rounded-full border border-blue-200 bg-white/80 px-2.5 py-1">
+                                  {money(spend)}
+                                </span>
+                              )}
+                              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-emerald-800">
+                                all wrapped
+                              </span>
+                            </div>
+
+                            <div className="mt-2 text-xs text-slate-600">
+                              Wrapped up — click to reopen
+                            </div>
+                          </div>
+
+                          <div className="text-sm font-semibold text-slate-700">Ready ✅</div>
+                        </div>
+                      </div>
+                    </button>
+                  </form>
+                </section>
+              );
+            }
+
             return (
               <section
                 key={key}
                 className="overflow-hidden rounded-2xl border border-blue-200 bg-white shadow-sm"
               >
-                <form action={reopenRecipient} className="m-0">
-                  <input type="hidden" name="recipientKey" value={key} />
-                  <input type="hidden" name="listId" value={listIdForClient} />
-                  <input type="hidden" name="seasonId" value={seasonIdForClient} />
+                <div className="border-b border-blue-700/70 bg-gradient-to-br from-blue-600/25 via-blue-600/20 to-blue-600/10 px-4 py-4 sm:px-5">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
+                      <h2 className="text-lg font-black text-slate-900 sm:text-xl">{displayName}</h2>
 
-                  <button
-                    type="submit"
-                    className="w-full cursor-pointer text-left"
-                    title="Click to reopen"
-                  >
-                    <div className="border-b border-blue-700/70 bg-gradient-to-br from-blue-600/25 via-blue-600/20 to-blue-600/10 px-4 py-4 sm:px-5">
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="min-w-0">
-                          <h2 className="text-lg font-black text-slate-900 sm:text-xl">
-                            {displayName}
-                          </h2>
+                      <div className="mt-2 flex flex-wrap gap-2 text-xs font-semibold text-slate-900">
+                        <span className="rounded-full border border-blue-200 bg-white/80 px-2.5 py-1">
+                          {wrappedCount}/{total} wrapped
+                        </span>
+                        <span className="rounded-full border border-blue-200 bg-white/80 px-2.5 py-1">
+                          {total} gifts
+                        </span>
+                        {hasAnyCost && (
+                          <span className="rounded-full border border-blue-200 bg-white/80 px-2.5 py-1">
+                            {money(spend)}
+                          </span>
+                        )}
 
-                          <div className="mt-2 flex flex-wrap gap-2 text-xs font-semibold text-slate-900">
-                            <span className="rounded-full border border-blue-200 bg-white/80 px-2.5 py-1">
-                            {wrappedCount}/{total} wrapped
-                            </span>
-                            <span className="rounded-full border border-blue-200 bg-white/80 px-2.5 py-1">
-                              {total} gifts
-                            </span>
-                            {hasAnyCost && (
-                              <span className="rounded-full border border-blue-200 bg-white/80 px-2.5 py-1">
-                                {money(spend)}
-                              </span>
-                            )}
-                            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-emerald-800">
-                              all wrapped
-                            </span>
-                          </div>
+                        {unwrappedCount > 0 ? (
+                          <span className="rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-rose-800">
+                            {unwrappedCount} left
+                          </span>
+                        ) : (
+                          <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-emerald-800">
+                            all wrapped
+                          </span>
+                        )}
+                      </div>
 
-                          <div className="mt-2 text-xs text-slate-600">
-                            Wrapped up — click to reopen
-                          </div>
-                        </div>
-
-                        <div className="text-sm font-semibold text-slate-700">Ready ✅</div>
+                      {/* ✅ RESTORED: Add gift for THIS recipient */}
+                      <div className="mt-3">
+                        <RefreshAfterAdd
+                          listId={listIdForClient}
+                          seasonId={seasonIdForClient}
+                          recipientName={key === "unassigned" ? null : displayName}
+                          isPro={userIsPro}
+                          giftsUsed={giftsUsed}
+                          recipientsUsed={recipientsUsed}
+                          freeGiftLimit={FREE_GIFT_LIMIT}
+                          freeRecipientLimit={FREE_RECIPIENT_LIMIT}
+                          existingRecipientKeys={existingRecipientKeys}
+                        />
                       </div>
                     </div>
-                  </button>
-                </form>
+
+                    <form action={markRecipientWrappedUp} className="m-0">
+                      <input type="hidden" name="recipientKey" value={key} />
+                      <input type="hidden" name="listId" value={listIdForClient} />
+                      <input type="hidden" name="seasonId" value={seasonIdForClient} />
+
+                      <RecipientWrapUpButton
+                        disabled={list.length === 0}
+                        label="Mark All Wrapped Up"
+                        confirmText={`Wrap up ${displayName}?\n\nThis will mark all gifts as wrapped and collapse this section (you can reopen it anytime).`}
+                      />
+                    </form>
+                  </div>
+                </div>
+
+                <div style={{ padding: "0 14px 14px 14px" }}>
+                  <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+                    {list.map((gift) => (
+                      <GiftRow key={gift.id} gift={gift} updateGiftStatus={updateGiftStatus} />
+                    ))}
+                  </ul>
+
+                  {list.length > 0 && (
+                    <div style={bottomActionRowStyle()}>
+                      <ShareRecipientButton recipientKey={key} listId={listIdForClient} />
+                    </div>
+                  )}
+                </div>
               </section>
             );
-          }
+          })}
+        </div>
+      )}
 
-          return (
-            <section
-              key={key}
-              className="overflow-hidden rounded-2xl border border-blue-200 bg-white shadow-sm"
-            >
-              <div className="border-b border-blue-700/70 bg-gradient-to-br from-blue-600/25 via-blue-600/20 to-blue-600/10 px-4 py-4 sm:px-5">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="min-w-0">
-                    <h2 className="text-lg font-black text-slate-900 sm:text-xl">{displayName}</h2>
-
-                    <div className="mt-2 flex flex-wrap gap-2 text-xs font-semibold text-slate-900">
-                      <span className="rounded-full border border-blue-200 bg-white/80 px-2.5 py-1">
-                        {wrappedCount}/{total} wrapped
-                      </span>
-                      <span className="rounded-full border border-blue-200 bg-white/80 px-2.5 py-1">
-                        {total} gifts
-                      </span>
-                      {hasAnyCost && (
-                        <span className="rounded-full border border-blue-200 bg-white/80 px-2.5 py-1">
-                          {money(spend)}
-                        </span>
-                      )}
-
-                      {unwrappedCount > 0 ? (
-                        <span className="rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-rose-800">
-                          {unwrappedCount} left
-                        </span>
-                      ) : (
-                        <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-emerald-800">
-                          all wrapped
-                        </span>
-                      )}
-                    </div>
-
-                    {/* ✅ RESTORED: Add gift for THIS recipient */}
-                    <div className="mt-3">
-                      <RefreshAfterAdd
-                        listId={listIdForClient}
-                        seasonId={seasonIdForClient}
-                        recipientName={key === "unassigned" ? null : displayName}
-                        isPro={userIsPro}
-                        giftsUsed={giftsUsed}
-                        recipientsUsed={recipientsUsed}
-                        freeGiftLimit={FREE_GIFT_LIMIT}
-                        freeRecipientLimit={FREE_RECIPIENT_LIMIT}
-                        existingRecipientKeys={existingRecipientKeys}
-                      />
-                    </div>
-                  </div>
-
-                  <form action={markRecipientWrappedUp} className="m-0">
-                    <input type="hidden" name="recipientKey" value={key} />
-                    <input type="hidden" name="listId" value={listIdForClient} />
-                    <input type="hidden" name="seasonId" value={seasonIdForClient} />
-
-                    <RecipientWrapUpButton
-                      disabled={list.length === 0}
-                      label="Mark All Wrapped Up"
-                      confirmText={`Wrap up ${displayName}?\n\nThis will mark all gifts as wrapped and collapse this section (you can reopen it anytime).`}
-                    />
-                  </form>
-                </div>
-              </div>
-
-              <div style={{ padding: "0 14px 14px 14px" }}>
-                <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-                  {list.map((gift) => (
-                    <GiftRow key={gift.id} gift={gift} updateGiftStatus={updateGiftStatus} />
-                  ))}
-                </ul>
-
-                {list.length > 0 && (
-                  <div style={bottomActionRowStyle()}>
-                    <ShareRecipientButton recipientKey={key} listId={listIdForClient} />
-                  </div>
-                )}
-              </div>
-            </section>
-          );
-        })}
-      </div>
-
-      {/* ✅ Keep bottom “unassigned” add too */}
-      <div style={{ marginTop: 16 }}>
-        <RefreshAfterAdd
-          listId={listIdForClient}
-          seasonId={seasonIdForClient}
-          recipientName={null}
-          isPro={userIsPro}
-          giftsUsed={giftsUsed}
-          recipientsUsed={recipientsUsed}
-          freeGiftLimit={FREE_GIFT_LIMIT}
-          freeRecipientLimit={FREE_RECIPIENT_LIMIT}
-          existingRecipientKeys={existingRecipientKeys}
-        />
-      </div>
+      {gifts.length > 0 && (
+        <div style={{ marginTop: 16 }}>
+          <RefreshAfterAdd
+            listId={listIdForClient}
+            seasonId={seasonIdForClient}
+            recipientName={null}
+            isPro={userIsPro}
+            giftsUsed={giftsUsed}
+            recipientsUsed={recipientsUsed}
+            freeGiftLimit={FREE_GIFT_LIMIT}
+            freeRecipientLimit={FREE_RECIPIENT_LIMIT}
+            existingRecipientKeys={existingRecipientKeys}
+          />
+        </div>
+      )}
 
       <div style={{ marginTop: 16 }}>
         <NewSeasonSheet listId={listIdForClient} />

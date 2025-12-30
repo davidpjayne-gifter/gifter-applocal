@@ -18,7 +18,7 @@ function amazonSearchUrl(title: string) {
   return `https://www.amazon.com/s?k=${encodeURIComponent(title)}`;
 }
 
-export default function ExploreClient({ items }: { items: Item[] }) {
+export default function ExploreClient({ items, listId }: { items: Item[]; listId: string | null }) {
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [isPro, setIsPro] = useState(false);
   const [profileChecked, setProfileChecked] = useState(false);
@@ -67,10 +67,13 @@ export default function ExploreClient({ items }: { items: Item[] }) {
   }, [toast]);
 
   async function loadActiveSeason() {
+    if (!listId) return null;
+
     const { data, error } = await supabase
       .from("seasons")
       .select("id,list_id")
       .eq("is_active", true)
+      .eq("list_id", listId)
       .single();
 
     if (error || !data?.id || !data?.list_id) return null;
@@ -82,6 +85,11 @@ export default function ExploreClient({ items }: { items: Item[] }) {
 
     if (!isPro) {
       setShowUpgrade(true);
+      return;
+    }
+
+    if (!listId) {
+      setToast("Please sign in first.");
       return;
     }
 

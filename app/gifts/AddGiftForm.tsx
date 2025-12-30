@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import UpgradeSheet from "@/app/components/UpgradeSheet";
 import Toast from "@/app/components/Toast";
@@ -16,6 +17,7 @@ type Props = {
   freeRecipientLimit: number;
   existingRecipientKeys: string[];
   onAdded?: () => void;
+  triggerVariant?: "floating" | "inline";
 };
 
 function moneyToNumber(input: string) {
@@ -40,12 +42,14 @@ export default function AddGiftForm({
   freeRecipientLimit,
   existingRecipientKeys,
   onAdded,
+  triggerVariant = "floating",
 }: Props) {
   const [open, setOpen] = useState(false);
 
   const [title, setTitle] = useState("");
   const [recipient, setRecipient] = useState(recipientName ?? "");
   const [cost, setCost] = useState("");
+  const [tracking, setTracking] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
@@ -55,6 +59,7 @@ export default function AddGiftForm({
 
   // Upgrade sheet
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     if (!toast) return;
@@ -121,6 +126,7 @@ export default function AddGiftForm({
         cost: costNumber,
         list_id: listId,
         season_id: seasonId,
+        tracking: tracking.trim() ? tracking.trim() : null,
       }),
     });
 
@@ -138,6 +144,7 @@ export default function AddGiftForm({
     setTitle("");
     setRecipient("");
     setCost("");
+    setTracking("");
     setOpen(false);
 
     setToast("Gift added ✅");
@@ -152,31 +159,52 @@ export default function AddGiftForm({
     }, 300);
   }
 
+  const showUpgradeCta =
+    !isPro && (hitsGiftLimit || hitsRecipientLimit || submitError.includes("Free includes"));
+
   return (
     <>
-      {/* Floating + */}
-      <button
-        onClick={() => setOpen(true)}
-        style={{
-          position: "fixed",
-          right: 18,
-          bottom: 18,
-          width: 54,
-          height: 54,
-          borderRadius: 18,
-          border: "1px solid #e2e8f0",
-          background: "#0f172a",
-          color: "white",
-          fontWeight: 900,
-          fontSize: 24,
-          boxShadow: "0 10px 30px rgba(0,0,0,0.18)",
-          cursor: "pointer",
-          zIndex: 50,
-        }}
-        aria-label="Add gift"
-      >
-        +
-      </button>
+      {triggerVariant === "floating" ? (
+        <button
+          onClick={() => setOpen(true)}
+          style={{
+            position: "fixed",
+            right: 18,
+            bottom: 18,
+            width: 54,
+            height: 54,
+            borderRadius: 18,
+            border: "1px solid #e2e8f0",
+            background: "#0f172a",
+            color: "white",
+            fontWeight: 900,
+            fontSize: 24,
+            boxShadow: "0 10px 30px rgba(0,0,0,0.18)",
+            cursor: "pointer",
+            zIndex: 50,
+          }}
+          aria-label="Add gift"
+        >
+          +
+        </button>
+      ) : (
+        <button
+          onClick={() => setOpen(true)}
+          style={{
+            width: "100%",
+            maxWidth: 240,
+            padding: "10px 14px",
+            borderRadius: 14,
+            border: "1px solid #0f172a",
+            background: "#0f172a",
+            color: "#fff",
+            fontWeight: 900,
+            cursor: "pointer",
+          }}
+        >
+          Add Gift
+        </button>
+      )}
 
       {/* Toast */}
       <Toast message={toast ?? ""} onClose={() => setToast(null)} />
@@ -286,6 +314,24 @@ export default function AddGiftForm({
               />
             </label>
 
+            <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <span style={{ fontSize: 12, fontWeight: 900, color: "#334155" }}>
+                Tracking (optional)
+              </span>
+              <input
+                value={tracking}
+                onChange={(e) => setTracking(e.target.value)}
+                placeholder="Tracking number"
+                style={{
+                  padding: "12px 12px",
+                  borderRadius: 14,
+                  border: "1px solid #e2e8f0",
+                  fontSize: 14,
+                  outline: "none",
+                }}
+              />
+            </label>
+
             <button
               onClick={handleSubmit}
               disabled={!canSubmit}
@@ -319,6 +365,26 @@ export default function AddGiftForm({
             >
               Free includes up to {freeRecipientLimit} people + {freeGiftLimit} gifts per season.
             </div>
+
+            {showUpgradeCta && (
+              <button
+                type="button"
+                onClick={() => router.push("/pricing")}
+                style={{
+                  marginTop: 8,
+                  width: "100%",
+                  padding: "10px 12px",
+                  borderRadius: 12,
+                  border: "1px solid #0f172a",
+                  background: "#0f172a",
+                  color: "#fff",
+                  fontWeight: 900,
+                  cursor: "pointer",
+                }}
+              >
+                Upgrade to Pro
+              </button>
+            )}
           </div>
         </div>
       </div>

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef } from "react";
 
-type Variant = "danger" | "default";
+type Variant = "danger" | "default" | "success";
 
 type Props = {
   open: boolean;
@@ -19,6 +19,9 @@ type Props = {
 function confirmButtonClass(variant: Variant) {
   if (variant === "danger") {
     return "bg-rose-600 text-white hover:bg-rose-700";
+  }
+  if (variant === "success") {
+    return "bg-emerald-600 text-white hover:bg-emerald-700";
   }
   return "bg-slate-900 text-white hover:bg-slate-800";
 }

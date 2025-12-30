@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { getOrCreateCurrentList } from "@/lib/currentList";
 import SettingsClient from "./SettingsClient";
 
 export const dynamic = "force-dynamic";
@@ -24,6 +25,14 @@ type Device = {
   created_at: string | null;
 };
 
+type Season = {
+  id: string;
+  name: string;
+  list_id: string;
+  is_active: boolean;
+  created_at: string | null;
+};
+
 async function getAccessTokenFromCookies() {
   const store = await cookies();
   return (
@@ -38,12 +47,14 @@ export default async function SettingsPage() {
 
   let profile: Profile | null = null;
   let devices: Device[] = [];
+  let pastSeasons: Season[] = [];
 
   if (token) {
     const { data: userData, error: userErr } = await supabaseAdmin.auth.getUser(token);
 
     if (!userErr && userData?.user) {
       const userId = userData.user.id;
+      const list = await getOrCreateCurrentList(userId);
 
       const { data: profileData } = await supabaseAdmin
         .from("profiles")
@@ -76,8 +87,23 @@ export default async function SettingsPage() {
         .order("last_seen_at", { ascending: false });
 
       devices = deviceData ?? [];
+
+      const { data: seasonData } = await supabaseAdmin
+        .from("seasons")
+        .select("id,name,list_id,is_active,created_at")
+        .eq("list_id", list.id)
+        .eq("is_active", false)
+        .order("created_at", { ascending: false });
+
+      pastSeasons = seasonData ?? [];
     }
   }
 
-  return <SettingsClient initialProfile={profile} initialDevices={devices} />;
+  return (
+    <SettingsClient
+      initialProfile={profile}
+      initialDevices={devices}
+      initialPastSeasons={pastSeasons}
+    />
+  );
 }

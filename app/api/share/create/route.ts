@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { getOrCreateCurrentList } from "@/lib/currentList";
 
 function randomToken(len = 16) {
   const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
@@ -8,14 +9,29 @@ function randomToken(len = 16) {
   return out;
 }
 
-export async function POST() {
+export async function POST(req: NextRequest) {
   try {
-    // Grab the default list (first one)
+    const authHeader = req.headers.get("authorization") || "";
+    const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+    const cookieToken = req.cookies.get("sb-access-token")?.value ?? null;
+    const accessToken = bearerToken || cookieToken;
+
+    if (!accessToken) {
+      return NextResponse.json({ ok: false, error: "Missing auth token" }, { status: 401 });
+    }
+
+    const { data: userData, error: userErr } = await supabaseAdmin.auth.getUser(accessToken);
+    if (userErr || !userData?.user) {
+      return NextResponse.json({ ok: false, error: "Invalid auth token" }, { status: 401 });
+    }
+
+    const currentList = await getOrCreateCurrentList(userData.user.id);
+    const listId = currentList.id;
+
     const { data: list, error } = await supabaseAdmin
       .from("gift_lists")
       .select("id, share_token")
-      .order("created_at", { ascending: true })
-      .limit(1)
+      .eq("id", listId)
       .maybeSingle();
 
     if (error) {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 const PRESETS = [
   { label: "Christmas", example: `Christmas ${new Date().getFullYear()}` },
@@ -27,9 +28,18 @@ export default function NewSeasonSheet({ listId }: { listId: string }) {
     if (!canSubmit) return;
     setSubmitting(true);
 
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+
+    if (!token) {
+      setSubmitting(false);
+      setToast("Please sign in first.");
+      return;
+    }
+
     const res = await fetch("/api/seasons/new", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ listId, name }),
     });
 

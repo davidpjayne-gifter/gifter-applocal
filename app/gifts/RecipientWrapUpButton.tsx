@@ -42,7 +42,7 @@ export default function RecipientWrapUpButton({ disabled, label, confirmText }: 
         description={confirmText}
         confirmText="Wrap up"
         cancelText="Cancel"
-        variant="default"
+        variant="success"
         onCancel={() => setConfirmOpen(false)}
         onConfirm={() => {
           setConfirmOpen(false);

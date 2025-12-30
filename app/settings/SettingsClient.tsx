@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { supabase } from "@/lib/supabase";
@@ -27,9 +28,18 @@ type Device = {
   created_at: string | null;
 };
 
+type Season = {
+  id: string;
+  name: string;
+  list_id: string;
+  is_active: boolean;
+  created_at: string | null;
+};
+
 type Props = {
   initialProfile: Profile | null;
   initialDevices: Device[];
+  initialPastSeasons: Season[];
 };
 
 const DEVICE_LIMIT = 2;
@@ -52,11 +62,12 @@ function formatDateTime(value?: string | null) {
   return date.toLocaleString();
 }
 
-export default function SettingsClient({ initialProfile, initialDevices }: Props) {
+export default function SettingsClient({ initialProfile, initialDevices, initialPastSeasons }: Props) {
   const router = useRouter();
   const { toast } = useToast();
   const [profile, setProfile] = useState<Profile | null>(initialProfile);
   const [devices, setDevices] = useState<Device[]>(initialDevices);
+  const [pastSeasons] = useState<Season[]>(initialPastSeasons);
   const [name, setName] = useState(initialProfile?.name ?? "");
   const [initialLoading, setInitialLoading] = useState(!initialProfile);
   const [checkedSession, setCheckedSession] = useState(Boolean(initialProfile));
@@ -412,6 +423,40 @@ export default function SettingsClient({ initialProfile, initialDevices }: Props
             </div>
           )}
 
+        </section>
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-bold text-slate-900">Past Seasons</h2>
+            <span className="text-xs font-semibold text-slate-600">
+              {pastSeasons.length}
+            </span>
+          </div>
+
+          <p className="mt-2 text-sm text-slate-600">View previous seasons.</p>
+
+          <div className="mt-4 divide-y divide-slate-200">
+            {pastSeasons.length === 0 && (
+              <div className="py-3 text-sm text-slate-500">No past seasons yet.</div>
+            )}
+
+            {pastSeasons.map((season) => (
+              <div key={season.id} className="flex items-center justify-between py-3">
+                <div>
+                  <div className="text-sm font-semibold text-slate-900">{season.name}</div>
+                  <div className="text-xs text-slate-500">
+                    Created: {formatDate(season.created_at)}
+                  </div>
+                </div>
+                <Link
+                  href={`/gifts?season=${season.id}`}
+                  className="rounded-lg border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700 transition hover:border-slate-300"
+                >
+                  View
+                </Link>
+              </div>
+            ))}
+          </div>
         </section>
 
         <section className="rounded-2xl border border-rose-200 bg-rose-50/50 p-6 shadow-sm">

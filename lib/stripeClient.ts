@@ -19,9 +19,9 @@ async function openStripeUrl(path: string, accessToken: string, errorMessage: st
 }
 
 export async function openStripeCheckout(accessToken: string) {
-  return openStripeUrl("/api/stripe/checkout", accessToken, "Failed to open checkout");
+  return openStripeUrl("/api/billing/checkout", accessToken, "Failed to open checkout");
 }
 
 export async function openStripePortal(accessToken: string) {
-  return openStripeUrl("/api/stripe/portal", accessToken, "Failed to open billing portal");
+  return openStripeUrl("/api/billing/portal", accessToken, "Failed to open billing portal");
 }

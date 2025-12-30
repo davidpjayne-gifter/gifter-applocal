@@ -1,23 +1,38 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { getOrCreateCurrentList } from "@/lib/currentList";
 
-export async function POST(req: Request) {
+function getAccessToken(req: NextRequest) {
+  const authHeader = req.headers.get("authorization") || "";
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  if (token) return token;
+  return req.cookies.get("sb-access-token")?.value ?? null;
+}
+
+export async function POST(req: NextRequest) {
   try {
+    const token = getAccessToken(req);
+    if (!token) {
+      return NextResponse.json({ error: "Missing auth token" }, { status: 401 });
+    }
+
+    const { data: userData, error: userErr } = await supabaseAdmin.auth.getUser(token);
+    if (userErr || !userData?.user) {
+      return NextResponse.json({ error: "Invalid auth token" }, { status: 401 });
+    }
+
     const body = await req.json().catch(() => ({}));
 
     const recipient_key =
       (typeof body?.recipientKey === "string" ? body.recipientKey : "").trim().toLowerCase();
 
-    const list_id = (typeof body?.listId === "string" ? body.listId : "").trim();
-
     if (!recipient_key) {
       return NextResponse.json({ error: "Missing recipientKey" }, { status: 400 });
     }
 
-    if (!list_id) {
-      return NextResponse.json({ error: "Missing listId" }, { status: 400 });
-    }
+    const currentList = await getOrCreateCurrentList(userData.user.id);
+    const list_id = currentList.id;
 
     const share_token = crypto.randomBytes(16).toString("hex");
     const created_at = new Date().toISOString();

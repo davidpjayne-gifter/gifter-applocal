@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/app/components/ui/toast";
+import { supabase } from "@/lib/supabase";
 
 function money(n: number) {
   return n.toLocaleString(undefined, { style: "currency", currency: "USD" });
@@ -75,9 +76,15 @@ export default function SeasonBudgetPill({ seasonId, totalSpent, initialBudget }
 
     setSaving(true);
     try {
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (!token) {
+        throw new Error("Please sign in first.");
+      }
+
       const res = await fetch(`/api/seasons/${safeSeasonId}/budget`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ budget: next }),
       });
 

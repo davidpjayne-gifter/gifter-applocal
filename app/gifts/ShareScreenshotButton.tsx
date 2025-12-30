@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useToast } from "@/app/components/ui/toast";
+import { supabase } from "@/lib/supabase";
 
 export default function ShareScreenshotButton() {
   const { toast } = useToast();
@@ -12,7 +13,19 @@ export default function ShareScreenshotButton() {
     setLoading(true);
     setLink("");
 
-    const res = await fetch("/api/share/create", { method: "POST" });
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+
+    if (!token) {
+      setLoading(false);
+      toast.error("Please sign in first.");
+      return;
+    }
+
+    const res = await fetch("/api/share/create", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    });
     const json = await res.json();
 
     if (!res.ok || !json.ok) {

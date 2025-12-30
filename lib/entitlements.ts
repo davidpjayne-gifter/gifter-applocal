@@ -31,6 +31,12 @@ export function isPro(profile: ProfileEntitlements | null) {
   return profile.subscription_status === "active" || profile.is_pro === true;
 }
 
+function makeLimitError() {
+  const err = new Error(FREE_LIMIT_MESSAGE);
+  err.name = "LIMIT_REACHED";
+  return err;
+}
+
 export async function assertCanAddRecipient(params: {
   userId: string;
   seasonId: string;
@@ -64,7 +70,7 @@ export async function assertCanAddRecipient(params: {
   const isNewRecipient = nextKey.length > 0 && !distinct.has(nextKey);
 
   if (isNewRecipient && distinct.size >= FREE_RECIPIENT_LIMIT) {
-    throw new Error(FREE_LIMIT_MESSAGE);
+    throw makeLimitError();
   }
 }
 
@@ -87,6 +93,6 @@ export async function assertCanAddGift(params: {
   }
 
   if ((count ?? 0) >= FREE_GIFT_LIMIT) {
-    throw new Error(FREE_LIMIT_MESSAGE);
+    throw makeLimitError();
   }
 }

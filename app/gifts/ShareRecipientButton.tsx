@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Toast from "@/app/components/Toast";
+import { supabase } from "@/lib/supabase";
 
 export default function ShareRecipientButton({
   recipientKey,
@@ -76,9 +77,20 @@ export default function ShareRecipientButton({
       return;
     }
 
+    const { data } = await supabase.auth.getSession();
+    const accessToken = data.session?.access_token;
+
+    if (!accessToken) {
+      setToast("Please sign in first.");
+      return;
+    }
+
     const res = await fetch("/api/share", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
       body: JSON.stringify({ recipientKey: rk, listId: lid }),
     });
 
@@ -97,14 +109,14 @@ export default function ShareRecipientButton({
       return;
     }
 
-    const token = json?.token;
-    if (!token) {
+    const shareToken = json?.token;
+    if (!shareToken) {
       console.error("Share API missing token:", { raw, json });
       setToast("Share failed. Try again.");
       return;
     }
 
-    const shareUrl = `${window.location.origin}/share/${token}`;
+    const shareUrl = `${window.location.origin}/share/${shareToken}`;
 
     if (navigator?.share) {
       try {
@@ -132,7 +144,7 @@ export default function ShareRecipientButton({
     }
 
     if (!isProbablyMobile()) {
-      window.open(`/share/${token}`, "_blank");
+      window.open(`/share/${shareToken}`, "_blank");
     }
   }
 

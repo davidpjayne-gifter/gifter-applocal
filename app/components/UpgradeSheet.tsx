@@ -26,7 +26,7 @@ export default function UpgradeSheet({ open, onClose }: Props) {
       return;
     }
 
-    const res = await fetch("/api/stripe/checkout", {
+    const res = await fetch("/api/billing/checkout", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
