@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
+
 export default function ShareRecipientButton({
   recipientKey,
   listId,
@@ -7,6 +9,56 @@ export default function ShareRecipientButton({
   recipientKey: string;
   listId: string;
 }) {
+  const [copied, setCopied] = useState(false);
+  const resetTimer = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (resetTimer.current) window.clearTimeout(resetTimer.current);
+    };
+  }, []);
+
+  function showCopied() {
+    setCopied(true);
+    if (resetTimer.current) window.clearTimeout(resetTimer.current);
+    resetTimer.current = window.setTimeout(() => setCopied(false), 1600);
+  }
+
+  function isProbablyMobile() {
+    if (typeof navigator === "undefined") return false;
+    return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  }
+
+  async function copyToClipboard(text: string) {
+    if (navigator?.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.top = "0";
+    textarea.style.left = "0";
+    textarea.style.opacity = "0";
+    textarea.style.pointerEvents = "none";
+    document.body.appendChild(textarea);
+    textarea.select();
+    textarea.setSelectionRange(0, textarea.value.length);
+
+    let ok = false;
+    try {
+      ok = document.execCommand("copy");
+    } catch {
+      ok = false;
+    } finally {
+      document.body.removeChild(textarea);
+    }
+
+    return ok;
+  }
+
   async function handleClick() {
     const rk = (recipientKey || "").trim().toLowerCase();
     const lid = (listId || "").trim();
@@ -50,7 +102,31 @@ export default function ShareRecipientButton({
       return;
     }
 
-    window.open(`/share/${token}`, "_blank");
+    const shareUrl = `${window.location.origin}/share/${token}`;
+
+    if (navigator?.share) {
+      try {
+        await navigator.share({
+          title: "Gift list",
+          text: "Share this list",
+          url: shareUrl,
+        });
+        return;
+      } catch {
+        // Fall through to clipboard for unsupported or canceled shares.
+      }
+    }
+
+    try {
+      const ok = await copyToClipboard(shareUrl);
+      if (ok) showCopied();
+    } catch {
+      // No-op; copying failed.
+    }
+
+    if (!isProbablyMobile()) {
+      window.open(`/share/${token}`, "_blank");
+    }
   }
 
   return (
@@ -66,9 +142,12 @@ export default function ShareRecipientButton({
         fontWeight: 800,
         color: "#334155",
         cursor: "pointer",
+        pointerEvents: "auto",
+        position: "relative",
+        zIndex: 1,
       }}
     >
-      Share this list
+      {copied ? "Link copied" : "Share this list"}
     </button>
   );
 }
