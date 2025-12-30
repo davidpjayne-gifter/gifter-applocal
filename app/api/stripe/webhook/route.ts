@@ -38,8 +38,11 @@ function isProStatus(status: string | null | undefined) {
   return status === "active" || status === "trialing";
 }
 
-async function handleCheckoutCompleted(params: { session: Stripe.Checkout.Session }) {
-  const { session } = params;
+async function handleCheckoutCompleted(params: {
+  stripe: Stripe;
+  session: Stripe.Checkout.Session;
+}) {
+  const { stripe, session } = params;
 
   const userId =
     (typeof session.client_reference_id === "string" && session.client_reference_id) ||
@@ -243,6 +246,7 @@ export async function POST(req: NextRequest) {
 
     if (eventType === "checkout.session.completed") {
       const result = await handleCheckoutCompleted({
+        stripe,
         session: obj as Stripe.Checkout.Session,
       });
 

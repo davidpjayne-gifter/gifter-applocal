@@ -1,19 +1,19 @@
 import "server-only";
 import Stripe from "stripe";
 
-let stripeInstance: Stripe | null = null;
+let stripe: Stripe | null = null;
 
 export function getStripe() {
-  if (stripeInstance) return stripeInstance;
+  if (stripe) return stripe;
 
-  const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-  if (!stripeSecretKey) {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) {
     throw new Error("Missing STRIPE_SECRET_KEY");
   }
 
-  stripeInstance = new Stripe(stripeSecretKey, {
+  stripe = new Stripe(key, {
     apiVersion: "2025-12-15.clover",
   });
 
-  return stripeInstance;
+  return stripe;
 }
