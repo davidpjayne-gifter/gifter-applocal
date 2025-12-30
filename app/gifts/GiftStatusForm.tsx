@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import ConfirmDialog from "@/app/components/ui/ConfirmDialog";
 
 type ShippingStatus = "unknown" | "in_transit" | "arrived";
 
@@ -25,11 +26,15 @@ function statusButtonStyle(active: boolean): React.CSSProperties {
 }
 
 export default function GiftStatusForm({ giftId, isWrapped, shippingStatus, updateGiftStatus }: Props) {
+  const [confirmOpen, setConfirmOpen] = React.useState(false);
+  const [pendingStatus, setPendingStatus] = React.useState<ShippingStatus | null>(null);
+
   function handle(nextStatus: ShippingStatus | "wrapped") {
     // Confirm only when unwrapping
     if (isWrapped && nextStatus !== "wrapped") {
-      const ok = window.confirm("This gift is marked as Wrapped. Mark it as NOT wrapped?");
-      if (!ok) return;
+      setPendingStatus(nextStatus as ShippingStatus);
+      setConfirmOpen(true);
+      return;
     }
 
     const fd = new FormData();
@@ -39,35 +44,70 @@ export default function GiftStatusForm({ giftId, isWrapped, shippingStatus, upda
     updateGiftStatus(fd);
   }
 
+  function handleConfirmUnwrap() {
+    if (!pendingStatus) {
+      setConfirmOpen(false);
+      return;
+    }
+
+    const fd = new FormData();
+    fd.set("giftId", giftId);
+    fd.set("status", pendingStatus);
+
+    updateGiftStatus(fd);
+    setConfirmOpen(false);
+    setPendingStatus(null);
+  }
+
   return (
-    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
-      <button
-        type="button"
-        onClick={() => handle("unknown")}
-        style={statusButtonStyle(!isWrapped && shippingStatus === "unknown")}
-      >
-        Storebought
-      </button>
+    <>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
+        <button
+          type="button"
+          onClick={() => handle("unknown")}
+          style={statusButtonStyle(!isWrapped && shippingStatus === "unknown")}
+        >
+          Storebought
+        </button>
 
-      <button
-        type="button"
-        onClick={() => handle("in_transit")}
-        style={statusButtonStyle(!isWrapped && shippingStatus === "in_transit")}
-      >
-        In Transit
-      </button>
+        <button
+          type="button"
+          onClick={() => handle("in_transit")}
+          style={statusButtonStyle(!isWrapped && shippingStatus === "in_transit")}
+        >
+          In Transit
+        </button>
 
-      <button
-        type="button"
-        onClick={() => handle("arrived")}
-        style={statusButtonStyle(!isWrapped && shippingStatus === "arrived")}
-      >
-        Arrived
-      </button>
+        <button
+          type="button"
+          onClick={() => handle("arrived")}
+          style={statusButtonStyle(!isWrapped && shippingStatus === "arrived")}
+        >
+          Arrived
+        </button>
 
-      <button type="button" onClick={() => handle("wrapped")} style={statusButtonStyle(isWrapped)}>
-        Wrapped 🎁
-      </button>
-    </div>
+        <button
+          type="button"
+          onClick={() => handle("wrapped")}
+          style={statusButtonStyle(isWrapped)}
+        >
+          Wrapped 🎁
+        </button>
+      </div>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Mark as not wrapped?"
+        description="This will remove the wrapped status for this gift."
+        confirmText="Mark not wrapped"
+        cancelText="Keep wrapped"
+        variant="default"
+        onCancel={() => {
+          setConfirmOpen(false);
+          setPendingStatus(null);
+        }}
+        onConfirm={handleConfirmUnwrap}
+      />
+    </>
   );
 }

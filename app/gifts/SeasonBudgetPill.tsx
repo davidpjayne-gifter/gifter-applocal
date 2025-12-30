@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/app/components/ui/toast";
 
 function money(n: number) {
   return n.toLocaleString(undefined, { style: "currency", currency: "USD" });
@@ -19,6 +20,7 @@ type Props = {
 
 export default function SeasonBudgetPill({ seasonId, totalSpent, initialBudget }: Props) {
   const router = useRouter();
+  const { toast } = useToast();
 
   const safeSeasonId = (typeof seasonId === "string" ? seasonId : "").trim();
   const seasonIdValid =
@@ -59,14 +61,14 @@ export default function SeasonBudgetPill({ seasonId, totalSpent, initialBudget }
   async function save(next: number | null) {
     // 🔒 Absolute guard: never call the API unless we have a real UUID
     if (!seasonIdValid) {
-      alert(`Season ID missing/invalid.\n\nReceived: "${String(seasonId)}"\nTrimmed: "${safeSeasonId}"`);
+      toast.error("Season ID missing or invalid. Please refresh and try again.");
       return;
     }
 
     // validate budget if not clearing
     if (next !== null) {
       if (!Number.isFinite(next) || next < 0) {
-        alert("Please enter a valid budget (0 or higher).");
+        toast.error("Please enter a valid budget (0 or higher).");
         return;
       }
     }
@@ -83,9 +85,10 @@ export default function SeasonBudgetPill({ seasonId, totalSpent, initialBudget }
       if (!res.ok || !json.ok) throw new Error(json.error || "Failed to save budget");
 
       setEditing(false);
+      toast.success("Budget saved.");
       router.refresh();
     } catch (e: any) {
-      alert(e?.message ?? "Failed to save budget");
+      toast.error(e?.message ?? "Failed to save budget");
     } finally {
       setSaving(false);
     }
@@ -97,7 +100,7 @@ export default function SeasonBudgetPill({ seasonId, totalSpent, initialBudget }
         <button
           onClick={() => {
             if (!seasonIdValid) {
-              alert(`Season ID missing/invalid.\n\nReceived: "${String(seasonId)}"\nTrimmed: "${safeSeasonId}"`);
+              toast.error("Season ID missing or invalid. Please refresh and try again.");
               return;
             }
             setEditing(true);

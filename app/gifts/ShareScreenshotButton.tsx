@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useToast } from "@/app/components/ui/toast";
 
 export default function ShareScreenshotButton() {
+  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [link, setLink] = useState("");
 
@@ -15,13 +17,14 @@ export default function ShareScreenshotButton() {
 
     if (!res.ok || !json.ok) {
       setLoading(false);
-      alert(json.error || "Could not create share link");
+      toast.error(json.error || "Could not create share link");
       return;
     }
 
     const url = `${window.location.origin}/share/${json.token}`;
     setLink(url);
     window.open(url, "_blank"); // open screenshot page
+    toast.success("Share link opened.");
     setLoading(false);
   }
 

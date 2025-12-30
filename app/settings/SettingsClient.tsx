@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 
 import { supabase } from "@/lib/supabase";
 import { openStripeCheckout, openStripePortal } from "@/lib/stripeClient";
+import ConfirmDialog from "@/app/components/ui/ConfirmDialog";
+import { useToast } from "@/app/components/ui/toast";
 
 type Profile = {
   id: string;
@@ -52,6 +54,7 @@ function formatDateTime(value?: string | null) {
 
 export default function SettingsClient({ initialProfile, initialDevices }: Props) {
   const router = useRouter();
+  const { toast } = useToast();
   const [profile, setProfile] = useState<Profile | null>(initialProfile);
   const [devices, setDevices] = useState<Device[]>(initialDevices);
   const [name, setName] = useState(initialProfile?.name ?? "");
@@ -66,10 +69,10 @@ export default function SettingsClient({ initialProfile, initialDevices }: Props
 
   const [accountError, setAccountError] = useState("");
   const [billingError, setBillingError] = useState("");
-  const [devicesError, setDevicesError] = useState("");
   const [dangerError, setDangerError] = useState("");
 
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [revokeTarget, setRevokeTarget] = useState<Device | null>(null);
 
   const planLabel = useMemo(() => {
     if (!profile) return "Free";
@@ -199,18 +202,18 @@ export default function SettingsClient({ initialProfile, initialDevices }: Props
 
   async function handleRevokeDevice(deviceId: string) {
     setDeviceLoadingId(deviceId);
-    setDevicesError("");
 
     const { error } = await supabase.from("user_devices").delete().eq("id", deviceId);
 
     if (error) {
       setDeviceLoadingId(null);
-      setDevicesError(error.message || "Unable to revoke device.");
+      toast.error(error.message || "Unable to revoke device.");
       return;
     }
 
     setDevices((prev) => prev.filter((device) => device.id !== deviceId));
     setDeviceLoadingId(null);
+    toast.success("Device revoked.");
   }
 
   async function handleSignOut() {
@@ -393,7 +396,7 @@ export default function SettingsClient({ initialProfile, initialDevices }: Props
 
                 <button
                   type="button"
-                  onClick={() => handleRevokeDevice(device.id)}
+                  onClick={() => setRevokeTarget(device)}
                   disabled={deviceLoadingId === device.id}
                   className="rounded-lg border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700 transition hover:border-slate-300 disabled:cursor-not-allowed disabled:bg-slate-100"
                 >
@@ -409,9 +412,6 @@ export default function SettingsClient({ initialProfile, initialDevices }: Props
             </div>
           )}
 
-          {devicesError && (
-            <div className="mt-3 text-sm text-rose-600">{devicesError}</div>
-          )}
         </section>
 
         <section className="rounded-2xl border border-rose-200 bg-rose-50/50 p-6 shadow-sm">
@@ -428,7 +428,7 @@ export default function SettingsClient({ initialProfile, initialDevices }: Props
 
             <button
               type="button"
-              onClick={() => setShowDeleteModal(true)}
+              onClick={() => setConfirmDeleteOpen(true)}
               className="rounded-xl border border-rose-300 bg-rose-600 px-4 py-2 text-sm font-semibold text-white"
             >
               Delete account
@@ -441,36 +441,38 @@ export default function SettingsClient({ initialProfile, initialDevices }: Props
         </section>
       </div>
 
-      {showDeleteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-lg">
-            <h3 className="text-lg font-bold text-slate-900">Delete your account?</h3>
-            <p className="mt-2 text-sm text-slate-600">
-              This permanently deletes your profile, devices, and access. This action cannot
-              be undone.
-            </p>
+      <ConfirmDialog
+        open={confirmDeleteOpen}
+        title="Delete your account?"
+        description="This permanently deletes your profile, devices, and access. This action can’t be undone."
+        confirmText="Delete account"
+        cancelText="Cancel"
+        variant="danger"
+        loading={deleteLoading}
+        onCancel={() => setConfirmDeleteOpen(false)}
+        onConfirm={handleDeleteAccount}
+      />
 
-            <div className="mt-5 flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setShowDeleteModal(false)}
-                className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700"
-                disabled={deleteLoading}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleDeleteAccount}
-                disabled={deleteLoading}
-                className="rounded-lg bg-rose-600 px-3 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-rose-300"
-              >
-                {deleteLoading ? "Deleting..." : "Confirm delete"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={Boolean(revokeTarget)}
+        title="Revoke device?"
+        description={
+          revokeTarget
+            ? `Remove access for ${revokeTarget.device_label || "this device"}?`
+            : undefined
+        }
+        confirmText="Revoke"
+        cancelText="Cancel"
+        variant="danger"
+        loading={Boolean(revokeTarget && deviceLoadingId === revokeTarget.id)}
+        onCancel={() => setRevokeTarget(null)}
+        onConfirm={() => {
+          if (revokeTarget) {
+            handleRevokeDevice(revokeTarget.id);
+            setRevokeTarget(null);
+          }
+        }}
+      />
     </div>
   );
 }

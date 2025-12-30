@@ -9,8 +9,8 @@ import RecipientWrapUpButton from "./RecipientWrapUpButton";
 import SeasonBudgetPill from "./SeasonBudgetPill";
 import SignOutButton from "./SignOutButton";
 import GiftRow from "./GiftRow";
+import SignInBanner from "./SignInBanner";
 
-import AuthSessionSync from "@/app/components/AuthSessionSync";
 import { supabase } from "@/lib/supabase";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
@@ -252,7 +252,7 @@ export default async function GiftsPage() {
 
   return (
       <main style={{ padding: 16, maxWidth: 520, margin: "0 auto" }}>
-      <AuthSessionSync />
+      <SignInBanner />
       <div style={{ marginBottom: 14 }}>
         <div style={{ fontSize: 22, fontWeight: 900, textAlign: "center" }}>My GIFTs</div>
 
@@ -305,77 +305,53 @@ export default async function GiftsPage() {
           const { total, wrappedCount, unwrappedCount, spend, hasAnyCost } = recipientSummary(list);
           const isWrappedUp = wrapupSet.has(key);
 
-          const sectionShell: CSSProperties = {
-            border: "1px solid #e2e8f0",
-            borderRadius: 18,
-            overflow: "hidden",
-            background: "#fff",
-            boxShadow: "0 1px 0 rgba(15, 23, 42, 0.03)",
-          };
-
-          const headerRow: CSSProperties = {
-            padding: 14,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "flex-start",
-            gap: 10,
-          };
-
-          const summaryRow: CSSProperties = {
-            marginTop: 6,
-            display: "flex",
-            gap: 8,
-            flexWrap: "wrap",
-            fontSize: 12,
-            opacity: 0.85,
-          };
-
-          const summaryPill: CSSProperties = {
-            padding: "3px 8px",
-            borderRadius: 999,
-            border: "1px solid #e2e8f0",
-            background: "#fff",
-            fontWeight: 800,
-          };
-
           if (isWrappedUp) {
             return (
-              <section key={key} style={{ ...sectionShell, opacity: 0.95 }}>
-                <form action={reopenRecipient} style={{ margin: 0 }}>
+              <section
+                key={key}
+                className="overflow-hidden rounded-2xl border border-blue-200 bg-white shadow-sm"
+              >
+                <form action={reopenRecipient} className="m-0">
                   <input type="hidden" name="recipientKey" value={key} />
                   <input type="hidden" name="listId" value={listIdForClient} />
                   <input type="hidden" name="seasonId" value={seasonIdForClient} />
 
                   <button
                     type="submit"
-                    style={{
-                      width: "100%",
-                      textAlign: "left",
-                      border: "none",
-                      background: "white",
-                      cursor: "pointer",
-                    }}
+                    className="w-full cursor-pointer text-left"
                     title="Click to reopen"
                   >
-                    <div style={headerRow}>
-                      <div style={{ minWidth: 0 }}>
-                        <h2 style={{ fontSize: 18, fontWeight: 900, margin: 0 }}>{displayName}</h2>
+                    <div className="border-b border-blue-700/70 bg-gradient-to-br from-blue-600/25 via-blue-600/20 to-blue-600/10 px-4 py-4 sm:px-5">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="min-w-0">
+                          <h2 className="text-lg font-black text-slate-900 sm:text-xl">
+                            {displayName}
+                          </h2>
 
-                        <div style={summaryRow}>
-                          <span style={summaryPill}>
+                          <div className="mt-2 flex flex-wrap gap-2 text-xs font-semibold text-slate-900">
+                            <span className="rounded-full border border-blue-200 bg-white/80 px-2.5 py-1">
                             {wrappedCount}/{total} wrapped
-                          </span>
-                          <span style={summaryPill}>{total} gifts</span>
-                          {hasAnyCost && <span style={summaryPill}>{money(spend)}</span>}
-                          <span style={{ ...summaryPill, borderColor: "#bbf7d0" }}>done GIFTing</span>
+                            </span>
+                            <span className="rounded-full border border-blue-200 bg-white/80 px-2.5 py-1">
+                              {total} gifts
+                            </span>
+                            {hasAnyCost && (
+                              <span className="rounded-full border border-blue-200 bg-white/80 px-2.5 py-1">
+                                {money(spend)}
+                              </span>
+                            )}
+                            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-emerald-800">
+                              all wrapped
+                            </span>
+                          </div>
+
+                          <div className="mt-2 text-xs text-slate-600">
+                            Wrapped up — click to reopen
+                          </div>
                         </div>
 
-                        <div style={{ marginTop: 10, fontSize: 12, opacity: 0.7 }}>
-                          ✅ Wrapped up — click to reopen
-                        </div>
+                        <div className="text-sm font-semibold text-slate-700">Ready ✅</div>
                       </div>
-
-                      <div style={{ fontWeight: 900, whiteSpace: "nowrap" }}>🎁 ✅</div>
                     </div>
                   </button>
                 </form>
@@ -384,48 +360,61 @@ export default async function GiftsPage() {
           }
 
           return (
-            <section key={key} style={sectionShell}>
-              <div style={headerRow}>
-                <div style={{ minWidth: 0 }}>
-                  <h2 style={{ fontSize: 18, fontWeight: 900, margin: 0 }}>{displayName}</h2>
+            <section
+              key={key}
+              className="overflow-hidden rounded-2xl border border-blue-200 bg-white shadow-sm"
+            >
+              <div className="border-b border-blue-700/70 bg-gradient-to-br from-blue-600/25 via-blue-600/20 to-blue-600/10 px-4 py-4 sm:px-5">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <h2 className="text-lg font-black text-slate-900 sm:text-xl">{displayName}</h2>
 
-                  <div style={summaryRow}>
-                    <span style={summaryPill}>
-                      {wrappedCount}/{total} wrapped
-                    </span>
-                    <span style={summaryPill}>{total} gifts</span>
-                    {hasAnyCost && <span style={summaryPill}>{money(spend)}</span>}
-
-                    {unwrappedCount > 0 ? (
-                      <span style={{ ...summaryPill, borderColor: "#fecaca" }}>
-                        {unwrappedCount} left
+                    <div className="mt-2 flex flex-wrap gap-2 text-xs font-semibold text-slate-900">
+                      <span className="rounded-full border border-blue-200 bg-white/80 px-2.5 py-1">
+                        {wrappedCount}/{total} wrapped
                       </span>
-                    ) : (
-                      <span style={{ ...summaryPill, borderColor: "#bbf7d0" }}>all wrapped</span>
-                    )}
+                      <span className="rounded-full border border-blue-200 bg-white/80 px-2.5 py-1">
+                        {total} gifts
+                      </span>
+                      {hasAnyCost && (
+                        <span className="rounded-full border border-blue-200 bg-white/80 px-2.5 py-1">
+                          {money(spend)}
+                        </span>
+                      )}
+
+                      {unwrappedCount > 0 ? (
+                        <span className="rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-rose-800">
+                          {unwrappedCount} left
+                        </span>
+                      ) : (
+                        <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-emerald-800">
+                          all wrapped
+                        </span>
+                      )}
+                    </div>
+
+                    {/* ✅ RESTORED: Add gift for THIS recipient */}
+                    <div className="mt-3">
+                      <RefreshAfterAdd
+                        listId={listIdForClient}
+                        seasonId={seasonIdForClient}
+                        recipientName={key === "unassigned" ? null : displayName}
+                      />
+                    </div>
                   </div>
 
-                  {/* ✅ RESTORED: Add gift for THIS recipient */}
-                  <div style={{ marginTop: 10 }}>
-                    <RefreshAfterAdd
-                      listId={listIdForClient}
-                      seasonId={seasonIdForClient}
-                      recipientName={key === "unassigned" ? null : displayName}
+                  <form action={markRecipientWrappedUp} className="m-0">
+                    <input type="hidden" name="recipientKey" value={key} />
+                    <input type="hidden" name="listId" value={listIdForClient} />
+                    <input type="hidden" name="seasonId" value={seasonIdForClient} />
+
+                    <RecipientWrapUpButton
+                      disabled={list.length === 0}
+                      label="Mark All Wrapped Up"
+                      confirmText={`Wrap up ${displayName}?\n\nThis will mark all gifts as wrapped and collapse this section (you can reopen it anytime).`}
                     />
-                  </div>
+                  </form>
                 </div>
-
-                <form action={markRecipientWrappedUp} style={{ margin: 0 }}>
-                  <input type="hidden" name="recipientKey" value={key} />
-                  <input type="hidden" name="listId" value={listIdForClient} />
-                  <input type="hidden" name="seasonId" value={seasonIdForClient} />
-
-                  <RecipientWrapUpButton
-                    disabled={list.length === 0}
-                    label="Mark All Wrapped Up"
-                    confirmText={`Wrap up ${displayName}?\n\nThis will mark all gifts as wrapped and collapse this section (you can reopen it anytime).`}
-                  />
-                </form>
               </div>
 
               <div style={{ padding: "0 14px 14px 14px" }}>
