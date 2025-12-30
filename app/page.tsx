@@ -10,7 +10,6 @@ export default function HomePage() {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<null | "sent" | "error">(null);
   const [errorMessage, setErrorMessage] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [redirectTo, setRedirectTo] = useState<string | null>(null);
   const [showBookmarkHelp, setShowBookmarkHelp] = useState(false);
@@ -53,10 +52,10 @@ export default function HomePage() {
   function clearMessages() {
     setStatus(null);
     setErrorMessage("");
-    setSuccessMessage("");
   }
 
   async function handleSendLink() {
+    if (loading) return;
     const nextEmail = email.trim();
     if (!nextEmail) {
       setStatus("error");
@@ -85,7 +84,6 @@ export default function HomePage() {
     }
 
     setStatus("sent");
-    setSuccessMessage("Check your email for a sign-in link.");
   }
 
   return (
@@ -95,7 +93,13 @@ export default function HomePage() {
         A simple web app for keeping track of gifts, budgets, and who’s wrapped up.
       </p>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 12, alignItems: "center" }}>
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          handleSendLink();
+        }}
+        style={{ display: "flex", flexDirection: "column", gap: 12, alignItems: "center" }}
+      >
         <input
           type="email"
           value={email}
@@ -112,8 +116,7 @@ export default function HomePage() {
         />
 
         <button
-          type="button"
-          onClick={handleSendLink}
+          type="submit"
           disabled={loading}
           style={{
             padding: "10px 14px",
@@ -129,16 +132,14 @@ export default function HomePage() {
         </button>
 
         {status === "sent" && (
-          <div style={{ fontSize: 13, fontWeight: 700 }}>Check your email for the sign-in link.</div>
+          <div style={{ fontSize: 13, fontWeight: 700 }}>Check your email for a sign-in link.</div>
         )}
-        {successMessage && <div style={{ fontSize: 13, fontWeight: 700 }}>{successMessage}</div>}
         {(status === "error" || errorMessage) && (
           <div style={{ fontSize: 12, color: "#b91c1c" }}>{errorMessage}</div>
         )}
         {status === "sent" && (
           <button
-            type="button"
-            onClick={handleSendLink}
+            type="submit"
             disabled={loading}
             style={{
               marginTop: 6,
@@ -155,7 +156,7 @@ export default function HomePage() {
           </button>
         )}
 
-      </div>
+      </form>
 
       <div style={{ marginTop: 16 }}>
         <Link
