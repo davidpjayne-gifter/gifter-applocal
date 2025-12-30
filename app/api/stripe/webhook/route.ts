@@ -240,7 +240,6 @@ export async function POST(req: NextRequest) {
 
   try {
     const eventType = event.type;
-    const obj = event.data?.object as Stripe.Checkout.Session | Stripe.Subscription;
 
     let stripeCustomerId: string | null = null;
     let stripeSubscriptionId: string | null = null;
@@ -248,37 +247,49 @@ export async function POST(req: NextRequest) {
     let userId: string | null = null;
     let handledCheckoutSession = false;
 
-    if (eventType === "checkout.session.completed") {
-      const result = await handleCheckoutCompleted({
-        stripe,
-        session: obj as Stripe.Checkout.Session,
-      });
+    switch (event.type) {
+      case "checkout.session.completed": {
+        const session = event.data.object as Stripe.Checkout.Session;
+        const result = await handleCheckoutCompleted({
+          stripe,
+          session,
+        });
 
-      handledCheckoutSession = result.handled;
-      userId = result.userId;
-      stripeCustomerId = result.stripeCustomerId;
-      stripeSubscriptionId = result.stripeSubscriptionId;
-      subscription = result.subscription;
-    }
+        handledCheckoutSession = result.handled;
+        userId = result.userId;
+        stripeCustomerId = result.stripeCustomerId;
+        stripeSubscriptionId = result.stripeSubscriptionId;
+        subscription = result.subscription;
+        break;
+      }
 
-    if (
-      eventType === "customer.subscription.created" ||
-      eventType === "customer.subscription.updated" ||
-      eventType === "customer.subscription.deleted"
-    ) {
-      subscription = obj as Stripe.Subscription;
-      stripeCustomerId = typeof subscription.customer === "string" ? subscription.customer : null;
-      stripeSubscriptionId = subscription.id ?? null;
-    }
+      case "customer.subscription.created":
+      case "customer.subscription.updated":
+      case "customer.subscription.deleted": {
+        const sub = event.data.object as Stripe.Subscription;
+        subscription = sub;
+        stripeCustomerId =
+          typeof sub.customer === "string" ? sub.customer : sub.customer?.id ?? null;
+        stripeSubscriptionId = sub.id ?? null;
+        break;
+      }
 
-    if (eventType === "invoice.payment_failed") {
-      const invoice = obj as Stripe.Invoice;
-      stripeCustomerId =
-        typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id ?? null;
-      stripeSubscriptionId =
-        typeof invoice.subscription === "string"
-          ? invoice.subscription
-          : invoice.subscription?.id ?? null;
+      case "invoice.payment_failed": {
+        const invoice = event.data.object as Stripe.Invoice & {
+          subscription?: Stripe.Subscription | string | null;
+        };
+        stripeCustomerId =
+          typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id ?? null;
+        stripeSubscriptionId =
+          typeof invoice.subscription === "string"
+            ? invoice.subscription
+            : invoice.subscription?.id ?? null;
+        break;
+      }
+
+      default: {
+        break;
+      }
     }
 
     if (!userId && (stripeCustomerId || stripeSubscriptionId)) {
