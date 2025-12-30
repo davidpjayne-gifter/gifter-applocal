@@ -61,30 +61,30 @@ export default function PricingPage() {
 
   return (
     <main className="mx-auto w-full max-w-4xl px-4 py-10">
-      <h1 className="text-2xl font-black text-slate-900">Pricing</h1>
-      <p className="mt-2 text-sm text-slate-600">
+      <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100">Pricing</h1>
+      <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
         Go Pro to unlock unlimited gifting.
       </p>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-bold text-slate-900">Free</h2>
-          <div className="mt-2 text-2xl font-black text-slate-900">$0</div>
-          <p className="mt-3 text-sm text-slate-600">
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Free</h2>
+          <div className="mt-2 text-2xl font-black text-slate-900 dark:text-slate-100">$0</div>
+          <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
             Free includes up to 2 people + 3 gifts per season.
           </p>
-          <ul className="mt-4 space-y-2 text-sm text-slate-700">
+          <ul className="mt-4 space-y-2 text-sm text-slate-700 dark:text-slate-300">
             <li>Up to 2 people per season</li>
             <li>Up to 3 gifts per season</li>
             <li>Basic tracking + wrapping</li>
           </ul>
         </section>
 
-        <section className="rounded-2xl border border-blue-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-bold text-slate-900">Pro</h2>
-          <div className="mt-2 text-3xl font-black text-slate-900">$9</div>
-          <div className="text-sm font-semibold text-slate-600">per year</div>
-          <ul className="mt-4 space-y-2 text-sm text-slate-700">
+        <section className="rounded-2xl border border-blue-200 bg-white p-6 shadow-sm dark:border-blue-900 dark:bg-zinc-950">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Pro</h2>
+          <div className="mt-2 text-3xl font-black text-slate-900 dark:text-slate-100">$9</div>
+          <div className="text-sm font-semibold text-slate-600 dark:text-slate-300">per year</div>
+          <ul className="mt-4 space-y-2 text-sm text-slate-700 dark:text-slate-300">
             {features.map((feature) => (
               <li key={feature}>{feature}</li>
             ))}

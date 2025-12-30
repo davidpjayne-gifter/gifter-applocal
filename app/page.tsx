@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import SeasonalGiftIcon from "@/app/components/SeasonalGiftIcon";
 
 export default function HomePage() {
   const router = useRouter();
@@ -86,6 +87,7 @@ export default function HomePage() {
 
   return (
     <main style={{ padding: 24, maxWidth: 520, margin: "0 auto", textAlign: "center" }}>
+      <SeasonalGiftIcon />
       <h1 style={{ fontSize: 24, fontWeight: 900, marginBottom: 10 }}>Welcome to GIFTer</h1>
       <p style={{ opacity: 0.8, marginBottom: 16 }}>
         A simple web app for keeping track of gifts, budgets, and who’s wrapped up.

@@ -291,9 +291,11 @@ export default function SettingsClient({ initialProfile, initialDevices, initial
   if (initialLoading) {
     return (
       <div className="mx-auto w-full max-w-3xl px-4 py-10">
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h1 className="text-xl font-black text-slate-900">Settings</h1>
-          <p className="mt-2 text-sm text-slate-600">Loading your settings...</p>
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+          <h1 className="text-xl font-black text-slate-900 dark:text-slate-100">Settings</h1>
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+            Loading your settings...
+          </p>
         </div>
       </div>
     );
@@ -302,12 +304,12 @@ export default function SettingsClient({ initialProfile, initialDevices, initial
   if (!profile && checkedSession) {
     return (
       <div className="mx-auto w-full max-w-3xl px-4 py-10">
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h1 className="text-xl font-black text-slate-900">Settings</h1>
-          <p className="mt-2 text-sm text-slate-600">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+          <h1 className="text-xl font-black text-slate-900 dark:text-slate-100">Settings</h1>
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
             Please sign in to view your settings.
           </p>
-          <SignInCtaButton className="mt-4 inline-flex items-center justify-center rounded-xl border border-blue-300 bg-white px-3 py-2 text-xs font-semibold text-slate-900 transition hover:border-blue-400">
+          <SignInCtaButton className="mt-4 inline-flex items-center justify-center rounded-xl border border-blue-300 bg-white px-3 py-2 text-xs font-semibold text-slate-900 transition hover:border-blue-400 dark:border-blue-700 dark:bg-zinc-900 dark:text-slate-100">
             Go to sign in
           </SignInCtaButton>
         </div>
@@ -317,33 +319,33 @@ export default function SettingsClient({ initialProfile, initialDevices, initial
 
   return (
     <div className="mx-auto w-full max-w-4xl px-4 py-10">
-      <h1 className="text-2xl font-black text-slate-900">Settings</h1>
-      <p className="mt-1 text-sm text-slate-600">
+      <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100">Settings</h1>
+      <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
         Manage your account, billing, and devices.
       </p>
 
       <div className="mt-8 grid gap-6">
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-slate-900">Account</h2>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Account</h2>
           </div>
 
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <label className="text-sm text-slate-700">
+            <label className="text-sm text-slate-700 dark:text-slate-300">
               Email
               <input
                 value={profile?.email ?? ""}
                 readOnly
-                className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700"
+                className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-slate-100"
               />
             </label>
 
-            <label className="text-sm text-slate-700">
+            <label className="text-sm text-slate-700 dark:text-slate-300">
               Name
               <input
                 value={name}
                 onChange={(event) => setName(event.target.value)}
-                className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-slate-400 focus:outline-none"
+                className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-slate-400 focus:outline-none dark:border-zinc-800 dark:bg-zinc-900 dark:text-slate-100"
                 placeholder="Your name"
               />
             </label>
@@ -363,15 +365,15 @@ export default function SettingsClient({ initialProfile, initialDevices, initial
           </button>
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-lg font-bold text-slate-900">Plan & Billing</h2>
-            <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-700">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Plan & Billing</h2>
+            <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-slate-300">
               {planLabel}
             </span>
           </div>
 
-          <div className="mt-4 text-sm text-slate-700">
+          <div className="mt-4 text-sm text-slate-700 dark:text-slate-300">
             Renewal date: <span className="font-semibold">{formatDate(profile?.current_period_end)}</span>
           </div>
 
@@ -392,7 +394,7 @@ export default function SettingsClient({ initialProfile, initialDevices, initial
                 type="button"
                 onClick={handleManageBilling}
                 disabled={portalLoading}
-                className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition disabled:cursor-not-allowed disabled:bg-slate-100"
+                className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition disabled:cursor-not-allowed disabled:bg-slate-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-slate-100"
               >
                 {portalLoading ? "Opening portal..." : "Manage Billing"}
               </button>
@@ -403,31 +405,35 @@ export default function SettingsClient({ initialProfile, initialDevices, initial
             <div className="mt-3 text-sm text-rose-600">{billingError}</div>
           )}
 
-          <div className="mt-4 text-xs text-slate-500">Billing powered by Stripe.</div>
+          <div className="mt-4 text-xs text-slate-500 dark:text-slate-400">
+            Billing powered by Stripe.
+          </div>
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-slate-900">Devices</h2>
-            <span className="text-xs font-semibold text-slate-600">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Devices</h2>
+            <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
               {devices.length}/{DEVICE_LIMIT}
             </span>
           </div>
 
-          <p className="mt-2 text-sm text-slate-600">Active devices (2 max).</p>
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+            Active devices (2 max).
+          </p>
 
-          <div className="mt-4 divide-y divide-slate-200">
+          <div className="mt-4 divide-y divide-slate-200 dark:divide-zinc-800">
             {devices.length === 0 && (
-              <div className="py-3 text-sm text-slate-500">No devices found.</div>
+              <div className="py-3 text-sm text-slate-500 dark:text-slate-400">No devices found.</div>
             )}
 
             {devices.map((device) => (
               <div key={device.id} className="flex items-center justify-between py-3">
                 <div>
-                  <div className="text-sm font-semibold text-slate-900">
+                  <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                     {device.device_label || "Unknown device"}
                   </div>
-                  <div className="text-xs text-slate-500">
+                  <div className="text-xs text-slate-500 dark:text-slate-400">
                     Last seen: {formatDateTime(device.last_seen_at || device.created_at)}
                   </div>
                 </div>
@@ -436,7 +442,7 @@ export default function SettingsClient({ initialProfile, initialDevices, initial
                   type="button"
                   onClick={() => setRevokeTarget(device)}
                   disabled={deviceLoadingId === device.id}
-                  className="rounded-lg border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700 transition hover:border-slate-300 disabled:cursor-not-allowed disabled:bg-slate-100"
+                  className="rounded-lg border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700 transition hover:border-slate-300 disabled:cursor-not-allowed disabled:bg-slate-100 dark:border-zinc-800 dark:text-slate-300 dark:hover:border-zinc-700"
                 >
                   {deviceLoadingId === device.id ? "Revoking..." : "Revoke"}
                 </button>
@@ -445,39 +451,43 @@ export default function SettingsClient({ initialProfile, initialDevices, initial
           </div>
 
           {devices.length >= DEVICE_LIMIT && (
-            <div className="mt-3 text-xs text-slate-500">
+            <div className="mt-3 text-xs text-slate-500 dark:text-slate-400">
               You have reached the device limit. Revoke one to add another.
             </div>
           )}
 
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-slate-900">Past Seasons</h2>
-            <span className="text-xs font-semibold text-slate-600">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Past Seasons</h2>
+            <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
               {pastSeasons.length}
             </span>
           </div>
 
-          <p className="mt-2 text-sm text-slate-600">View previous seasons.</p>
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">View previous seasons.</p>
 
-          <div className="mt-4 divide-y divide-slate-200">
+          <div className="mt-4 divide-y divide-slate-200 dark:divide-zinc-800">
             {pastSeasons.length === 0 && (
-              <div className="py-3 text-sm text-slate-500">No past seasons yet.</div>
+              <div className="py-3 text-sm text-slate-500 dark:text-slate-400">
+                No past seasons yet.
+              </div>
             )}
 
             {pastSeasons.map((season) => (
               <div key={season.id} className="flex items-center justify-between py-3">
                 <div>
-                  <div className="text-sm font-semibold text-slate-900">{season.name}</div>
-                  <div className="text-xs text-slate-500">
+                  <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                    {season.name}
+                  </div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">
                     Created: {formatDate(season.created_at)}
                   </div>
                 </div>
                 <Link
                   href={`/gifts?season=${season.id}`}
-                  className="rounded-lg border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700 transition hover:border-slate-300"
+                  className="rounded-lg border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700 transition hover:border-slate-300 dark:border-zinc-800 dark:text-slate-300 dark:hover:border-zinc-700"
                 >
                   View
                 </Link>
@@ -486,14 +496,14 @@ export default function SettingsClient({ initialProfile, initialDevices, initial
           </div>
         </section>
 
-        <section className="rounded-2xl border border-rose-200 bg-rose-50/50 p-6 shadow-sm">
-          <h2 className="text-lg font-bold text-rose-700">Danger Zone</h2>
+        <section className="rounded-2xl border border-rose-200 bg-rose-50/50 p-6 shadow-sm dark:border-rose-900 dark:bg-rose-950/30">
+          <h2 className="text-lg font-bold text-rose-700 dark:text-rose-300">Danger Zone</h2>
 
           <div className="mt-4 flex flex-wrap gap-3">
             <button
               type="button"
               onClick={handleSignOut}
-              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800"
+              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 dark:border-zinc-700 dark:bg-zinc-900 dark:text-slate-100"
             >
               Sign out
             </button>

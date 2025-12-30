@@ -30,7 +30,7 @@ export default function RecipientWrapUpButton({ disabled, label, confirmText }: 
           if (disabled) return;
           setConfirmOpen(true);
         }}
-        className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 transition hover:border-slate-300 disabled:cursor-not-allowed disabled:bg-slate-100"
+        className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 transition hover:border-slate-300 disabled:cursor-not-allowed disabled:bg-slate-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-slate-100 dark:hover:border-zinc-700 dark:disabled:bg-zinc-900"
         title={disabled ? "Add a gift first" : "Wrap all gifts + collapse this person"}
       >
         {label}

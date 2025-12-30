@@ -55,7 +55,7 @@ export default function LoginForm({ nextPath }: LoginFormProps) {
       onSubmit={handleSubmit}
       className="flex flex-col gap-4 rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-600/10 via-blue-600/5 to-blue-600/0 px-5 py-6"
     >
-      <label className="text-xs font-semibold text-slate-600" htmlFor="email">
+      <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="email">
         Email address
       </label>
       <input
@@ -64,7 +64,7 @@ export default function LoginForm({ nextPath }: LoginFormProps) {
         value={email}
         onChange={(event) => setEmail(event.target.value)}
         placeholder="you@example.com"
-        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
+        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
       />
       <button
         type="submit"
@@ -75,7 +75,7 @@ export default function LoginForm({ nextPath }: LoginFormProps) {
       </button>
 
       {status === "sent" && (
-        <div className="text-sm font-semibold text-slate-900">
+        <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
           {message || "Check your email for a sign-in link."}
         </div>
       )}

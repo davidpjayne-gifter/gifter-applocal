@@ -11,6 +11,7 @@ import SeasonBudgetPill from "./SeasonBudgetPill";
 import SignOutButton from "./SignOutButton";
 import GiftRow from "./GiftRow";
 import SignInBanner from "./SignInBanner";
+import SeasonalGiftIcon from "@/app/components/SeasonalGiftIcon";
 
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { FREE_GIFT_LIMIT, FREE_RECIPIENT_LIMIT, getProfileForUser, isPro } from "@/lib/entitlements";
@@ -251,15 +252,17 @@ export default async function GiftsPage(props: {
           <div style={{ fontSize: 22, fontWeight: 900, textAlign: "center" }}>My GIFTs</div>
         </div>
         <div
+          className="text-slate-600 dark:text-slate-300"
           style={{
             border: "1px dashed #cbd5e1",
             borderRadius: 14,
             padding: 16,
             textAlign: "center",
-            color: "#475569",
           }}
         >
-          <div style={{ fontWeight: 700, color: "#0f172a" }}>Sign in to see your list</div>
+          <div className="text-slate-900 dark:text-slate-100" style={{ fontWeight: 700 }}>
+            Sign in to see your list
+          </div>
           <div style={{ marginTop: 6, fontSize: 13 }}>
             GIFTer is a web app. We’ll email you a sign-in link so you can pick up on any device.
           </div>
@@ -299,9 +302,11 @@ export default async function GiftsPage(props: {
   }
 
   const upgradedBanner = upgraded ? (
-    <div className="mb-4 rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-600/20 via-blue-600/10 to-blue-600/5 px-4 py-3 text-sm text-slate-900">
+    <div className="mb-4 rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-600/20 via-blue-600/10 to-blue-600/5 px-4 py-3 text-sm text-slate-900 dark:text-slate-100">
       <div className="font-extrabold">You’re Pro 🎉 Thanks for upgrading!</div>
-      <div className="mt-1 text-xs text-slate-700">Your Pro plan is active. Enjoy unlimited GIFTing.</div>
+      <div className="mt-1 text-xs text-slate-700 dark:text-slate-300">
+        Your Pro plan is active. Enjoy unlimited GIFTing.
+      </div>
     </div>
   ) : null;
 
@@ -369,9 +374,9 @@ export default async function GiftsPage(props: {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-600/15 via-blue-600/10 to-blue-600/5 px-4 py-4 text-slate-900">
+        <div className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-600/15 via-blue-600/10 to-blue-600/5 px-4 py-4 text-slate-900 dark:text-slate-100">
           <div className="text-base font-black">Start your first season</div>
-          <div className="mt-1 text-sm text-slate-700">
+          <div className="mt-1 text-sm text-slate-700 dark:text-slate-300">
             Create a season to start adding gifts.
           </div>
         </div>
@@ -449,6 +454,7 @@ export default async function GiftsPage(props: {
     <main style={{ padding: 16, maxWidth: 520, margin: "0 auto" }}>
       <SignInBanner />
       {upgradedBanner}
+      <SeasonalGiftIcon />
       <div style={{ marginBottom: 14 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ flex: 1 }} />
@@ -511,7 +517,7 @@ export default async function GiftsPage(props: {
       </div>
 
       {gifts.length === 0 ? (
-        <div className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-600/15 via-blue-600/10 to-blue-600/5 px-4 py-4 text-slate-900">
+        <div className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-600/15 via-blue-600/10 to-blue-600/5 px-4 py-4 text-slate-900 dark:text-slate-100">
           <div className="text-sm font-semibold text-center">
             😕 You don&apos;t have any GIFTs yet! Add one here
           </div>
@@ -558,7 +564,7 @@ export default async function GiftsPage(props: {
                       <div className="border-b border-blue-700/70 bg-gradient-to-br from-blue-600/25 via-blue-600/20 to-blue-600/10 px-4 py-4 sm:px-5">
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                           <div className="min-w-0">
-                            <h2 className="text-lg font-black text-slate-900 sm:text-xl">
+                            <h2 className="text-lg font-black text-slate-900 dark:text-slate-100 sm:text-xl">
                               {displayName}
                             </h2>
 
@@ -579,12 +585,14 @@ export default async function GiftsPage(props: {
                               </span>
                             </div>
 
-                            <div className="mt-2 text-xs text-slate-600">
+                            <div className="mt-2 text-xs text-slate-600 dark:text-slate-400">
                               Wrapped up — click to reopen
                             </div>
                           </div>
 
-                          <div className="text-sm font-semibold text-slate-700">Ready ✅</div>
+                          <div className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                            Ready ✅
+                          </div>
                         </div>
                       </div>
                     </button>
@@ -601,7 +609,9 @@ export default async function GiftsPage(props: {
                 <div className="border-b border-blue-700/70 bg-gradient-to-br from-blue-600/25 via-blue-600/20 to-blue-600/10 px-4 py-4 sm:px-5">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
-                      <h2 className="text-lg font-black text-slate-900 sm:text-xl">{displayName}</h2>
+                      <h2 className="text-lg font-black text-slate-900 dark:text-slate-100 sm:text-xl">
+                        {displayName}
+                      </h2>
 
                       <div className="mt-2 flex flex-wrap gap-2 text-xs font-semibold text-slate-900">
                         <span className="rounded-full border border-blue-200 bg-white/80 px-2.5 py-1">

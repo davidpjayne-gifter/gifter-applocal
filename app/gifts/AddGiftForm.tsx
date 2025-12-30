@@ -378,7 +378,7 @@ export default function AddGiftForm({
                 <span>You’re a Pro</span> ✅
               </p>
             ) : (
-              <p className="mt-1 text-center text-sm text-slate-600">
+              <p className="mt-1 text-center text-sm text-slate-600 dark:text-slate-300">
                 Free includes up to <span className="font-semibold">2 people</span> +{" "}
                 <span className="font-semibold">3 gifts</span> per season.
               </p>

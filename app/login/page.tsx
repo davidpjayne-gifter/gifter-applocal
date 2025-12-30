@@ -32,20 +32,23 @@ export default async function LoginPage(props: {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-col gap-6 px-6 py-10 text-slate-900">
+    <main className="mx-auto flex w-full max-w-md flex-col gap-6 px-6 py-10 text-slate-900 dark:text-slate-100">
       <div>
-        <Link href="/" className="text-xs font-semibold text-blue-700 hover:text-blue-800">
+        <Link
+          href="/"
+          className="text-xs font-semibold text-blue-700 hover:text-blue-800 dark:text-blue-300 dark:hover:text-blue-200"
+        >
           ← Back to home
         </Link>
         <h1 className="mt-3 text-2xl font-black">Sign in</h1>
-        <p className="mt-2 text-sm text-slate-600">
+        <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
           GIFTer is a web app. Enter your email and we’ll send a sign-in link.
         </p>
       </div>
 
       <LoginForm nextPath={nextPath} />
 
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-slate-500 dark:text-slate-400">
         Tip: bookmark this page after you’re signed in for quick access next time.
       </p>
     </main>

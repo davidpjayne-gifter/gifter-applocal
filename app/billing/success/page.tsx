@@ -38,9 +38,9 @@ export default async function BillingSuccessPage(props: {
 
   if (!sessionId) {
     return (
-      <main className="mx-auto w-full max-w-md px-6 py-12 text-center text-slate-900">
+      <main className="mx-auto w-full max-w-md px-6 py-12 text-center text-slate-900 dark:text-slate-100">
         <h1 className="text-2xl font-black">You’re all set</h1>
-        <p className="mt-3 text-sm text-slate-600">
+        <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
           Your checkout completed. Return to your GIFTs to get started.
         </p>
         {returnLink}
@@ -51,9 +51,9 @@ export default async function BillingSuccessPage(props: {
   const userId = await getUserIdFromCookie();
   if (!userId) {
     return (
-      <main className="mx-auto w-full max-w-md px-6 py-12 text-center text-slate-900">
+      <main className="mx-auto w-full max-w-md px-6 py-12 text-center text-slate-900 dark:text-slate-100">
         <h1 className="text-2xl font-black">Checkout complete</h1>
-        <p className="mt-3 text-sm text-slate-600">
+        <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
           Please sign in to access your upgraded plan.
         </p>
         <Link
@@ -103,9 +103,9 @@ export default async function BillingSuccessPage(props: {
     redirect("/gifts?upgraded=1");
   } catch {
     return (
-      <main className="mx-auto w-full max-w-md px-6 py-12 text-center text-slate-900">
+      <main className="mx-auto w-full max-w-md px-6 py-12 text-center text-slate-900 dark:text-slate-100">
         <h1 className="text-2xl font-black">Checkout complete</h1>
-        <p className="mt-3 text-sm text-slate-600">
+        <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
           Your payment went through. You can return to your GIFTs now.
         </p>
         {returnLink}
