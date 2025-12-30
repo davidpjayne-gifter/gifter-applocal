@@ -87,9 +87,9 @@ export default function SettingsClient({ initialProfile, initialDevices, initial
 
   const planLabel = useMemo(() => {
     if (!profile) return "Free";
-    if (profile.subscription_status === "past_due") return "Past due";
-    if (profile.is_pro) return "Pro";
-    if (profile.subscription_status === "canceled") return "Canceled";
+    if (profile?.subscription_status === "past_due") return "Past due";
+    if (profile?.is_pro) return "Pro";
+    if (profile?.subscription_status === "canceled") return "Canceled";
     return "Free";
   }, [profile]);
 
@@ -305,7 +305,7 @@ export default function SettingsClient({ initialProfile, initialDevices, initial
             <label className="text-sm text-slate-700">
               Email
               <input
-                value={profile.email ?? ""}
+                value={profile?.email ?? ""}
                 readOnly
                 className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700"
               />
@@ -345,7 +345,7 @@ export default function SettingsClient({ initialProfile, initialDevices, initial
           </div>
 
           <div className="mt-4 text-sm text-slate-700">
-            Renewal date: <span className="font-semibold">{formatDate(profile.current_period_end)}</span>
+            Renewal date: <span className="font-semibold">{formatDate(profile?.current_period_end)}</span>
           </div>
 
           <div className="mt-4 flex flex-wrap gap-3">
