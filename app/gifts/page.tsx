@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 
 import RefreshAfterAdd from "./RefreshAfterAdd";
@@ -13,6 +14,7 @@ import SignInBanner from "./SignInBanner";
 
 import { supabase } from "@/lib/supabase";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { FREE_GIFT_LIMIT, FREE_RECIPIENT_LIMIT, getProfileForUser, isPro } from "@/lib/entitlements";
 
 /* ---------------- TYPES ---------------- */
 
@@ -193,6 +195,17 @@ async function reopenRecipient(formData: FormData) {
 /* ---------------- PAGE ---------------- */
 
 export default async function GiftsPage() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("sb-access-token")?.value ?? null;
+  let userId: string | null = null;
+
+  if (token) {
+    const { data: userData, error: userErr } = await supabaseAdmin.auth.getUser(token);
+    if (!userErr && userData?.user?.id) {
+      userId = userData.user.id;
+    }
+  }
+
   const { data: activeSeason, error: seasonErr } = await supabase
     .from("seasons")
     .select("id,name,list_id,is_active,budget")
@@ -222,6 +235,26 @@ export default async function GiftsPage() {
   }));
 
   const totalSpent = seasonTotalSpent(gifts);
+  const giftsUsed = gifts.length;
+  const existingRecipientKeys = Array.from(
+    new Set(
+      gifts
+        .map((g) => (g.recipient_name ?? "").trim())
+        .filter(Boolean)
+        .map((name) => name.toLowerCase())
+    )
+  );
+  const recipientsUsed = existingRecipientKeys.length;
+
+  let profile = null;
+  if (userId) {
+    try {
+      profile = await getProfileForUser(userId);
+    } catch {
+      profile = null;
+    }
+  }
+  const userIsPro = profile ? isPro(profile) : false;
 
   const grouped = gifts.reduce<Record<string, Gift[]>>((acc, gift) => {
     const key = (gift.recipient_name?.trim() || "unassigned").toLowerCase();
@@ -399,6 +432,12 @@ export default async function GiftsPage() {
                         listId={listIdForClient}
                         seasonId={seasonIdForClient}
                         recipientName={key === "unassigned" ? null : displayName}
+                        isPro={userIsPro}
+                        giftsUsed={giftsUsed}
+                        recipientsUsed={recipientsUsed}
+                        freeGiftLimit={FREE_GIFT_LIMIT}
+                        freeRecipientLimit={FREE_RECIPIENT_LIMIT}
+                        existingRecipientKeys={existingRecipientKeys}
                       />
                     </div>
                   </div>
@@ -437,7 +476,17 @@ export default async function GiftsPage() {
 
       {/* ✅ Keep bottom “unassigned” add too */}
       <div style={{ marginTop: 16 }}>
-        <RefreshAfterAdd listId={listIdForClient} seasonId={seasonIdForClient} recipientName={null} />
+        <RefreshAfterAdd
+          listId={listIdForClient}
+          seasonId={seasonIdForClient}
+          recipientName={null}
+          isPro={userIsPro}
+          giftsUsed={giftsUsed}
+          recipientsUsed={recipientsUsed}
+          freeGiftLimit={FREE_GIFT_LIMIT}
+          freeRecipientLimit={FREE_RECIPIENT_LIMIT}
+          existingRecipientKeys={existingRecipientKeys}
+        />
       </div>
 
       <div style={{ marginTop: 16 }}>

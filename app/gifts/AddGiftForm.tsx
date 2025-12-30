@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { MAX_FREE_GIFTS } from "@/lib/limits";
 import UpgradeSheet from "@/app/components/UpgradeSheet";
 import Toast from "@/app/components/Toast";
 
@@ -10,16 +9,13 @@ type Props = {
   listId: string;
   seasonId: string;
   recipientName?: string | null;
+  isPro: boolean;
+  giftsUsed: number;
+  recipientsUsed: number;
+  freeGiftLimit: number;
+  freeRecipientLimit: number;
+  existingRecipientKeys: string[];
   onAdded?: () => void;
-};
-
-type LimitState =
-  | { ok: true; giftsUsed: number; recipientsUsed: number }
-  | { ok: false; reason: "gifts" | "recipients"; giftsUsed: number; recipientsUsed: number };
-
-const FREE_LIMITS = {
-  maxRecipients: 2,
-  maxGifts: MAX_FREE_GIFTS,
 };
 
 function moneyToNumber(input: string) {
@@ -37,6 +33,12 @@ export default function AddGiftForm({
   listId,
   seasonId,
   recipientName = null,
+  isPro,
+  giftsUsed,
+  recipientsUsed,
+  freeGiftLimit,
+  freeRecipientLimit,
+  existingRecipientKeys,
   onAdded,
 }: Props) {
   const [open, setOpen] = useState(false);
@@ -53,8 +55,6 @@ export default function AddGiftForm({
 
   // Upgrade sheet
   const [showUpgrade, setShowUpgrade] = useState(false);
-  const [isPro, setIsPro] = useState(false);
-  const [profileChecked, setProfileChecked] = useState(false);
 
   useEffect(() => {
     if (!toast) return;
@@ -63,127 +63,75 @@ export default function AddGiftForm({
   }, [toast]);
 
   useEffect(() => {
-    let mounted = true;
-
-    async function loadProfile() {
-      const { data } = await supabase.auth.getSession();
-      const userId = data.session?.user?.id;
-
-      if (!userId) {
-        if (mounted) {
-          setIsPro(false);
-          setProfileChecked(true);
-        }
-        return;
-      }
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("is_pro")
-        .eq("id", userId)
-        .maybeSingle();
-
-      if (!mounted) return;
-      setIsPro(Boolean(profile?.is_pro));
-      setProfileChecked(true);
-    }
-
-    loadProfile();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  useEffect(() => {
     if (!open) return;
     setRecipient(recipientName ?? "");
   }, [open, recipientName]);
 
+  const recipientKey = normalizeRecipientKey(recipient);
+  const willAddNewRecipient =
+    recipientKey.length > 0 &&
+    recipientKey !== "unassigned" &&
+    !existingRecipientKeys.includes(recipientKey);
+
+  const hitsGiftLimit = !isPro && giftsUsed >= freeGiftLimit;
+  const hitsRecipientLimit = !isPro && willAddNewRecipient && recipientsUsed >= freeRecipientLimit;
+
   const canSubmit = useMemo(
-    () => title.trim().length > 0 && recipient.trim().length > 0 && !submitting,
-    [title, recipient, submitting]
+    () =>
+      title.trim().length > 0 &&
+      recipient.trim().length > 0 &&
+      !submitting &&
+      !(hitsGiftLimit || hitsRecipientLimit),
+    [title, recipient, submitting, hitsGiftLimit, hitsRecipientLimit]
   );
-
-  async function computeFreeLimits(nextRecipientName: string): Promise<LimitState> {
-    const { count: giftsUsed, error: giftsErr } = await supabase
-      .from("gifts")
-      .select("id", { count: "exact", head: true })
-      .eq("list_id", listId)
-      .eq("season_id", seasonId);
-
-    if (giftsErr) {
-      console.error(giftsErr);
-      return { ok: true, giftsUsed: 0, recipientsUsed: 0 };
-    }
-
-    const { data: recRows, error: recErr } = await supabase
-      .from("gifts")
-      .select("recipient_name")
-      .eq("list_id", listId)
-      .eq("season_id", seasonId);
-
-    if (recErr) {
-      console.error(recErr);
-      return { ok: true, giftsUsed: giftsUsed ?? 0, recipientsUsed: 0 };
-    }
-
-    const distinct = new Set(
-      (recRows ?? [])
-        .map((r: any) => (r.recipient_name ?? "").trim())
-        .filter(Boolean)
-        .map(normalizeRecipientKey)
-    );
-
-    const recipientsUsed = distinct.size;
-    const nextKey = normalizeRecipientKey(nextRecipientName);
-    const isNewRecipient = nextKey.length > 0 && !distinct.has(nextKey);
-
-    if ((giftsUsed ?? 0) >= FREE_LIMITS.maxGifts) {
-      return { ok: false, reason: "gifts", giftsUsed: giftsUsed ?? 0, recipientsUsed };
-    }
-    if (isNewRecipient && recipientsUsed >= FREE_LIMITS.maxRecipients) {
-      return { ok: false, reason: "recipients", giftsUsed: giftsUsed ?? 0, recipientsUsed };
-    }
-
-    return { ok: true, giftsUsed: giftsUsed ?? 0, recipientsUsed };
-  }
 
   async function handleSubmit() {
     if (!canSubmit) return;
-    if (!profileChecked) return;
 
     setSubmitting(true);
     setSubmitError("");
 
-    if (!isPro) {
-      const limits = await computeFreeLimits(recipient);
-
-      if (!limits.ok) {
-        setSubmitting(false);
-        setShowUpgrade(true);
-        return;
-      }
+    if (!isPro && (hitsGiftLimit || hitsRecipientLimit)) {
+      setSubmitting(false);
+      setShowUpgrade(true);
+      return;
     }
 
     const costNumber = moneyToNumber(cost);
 
-    const { error } = await supabase.from("gifts").insert([
-      {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
+
+    setSubmitting(false);
+
+    if (!token) {
+      setSubmitError("Please sign in first.");
+      return;
+    }
+
+    const res = await fetch("/api/gifts", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
         title: title.trim(),
         recipient_name: recipient.trim(),
         cost: costNumber,
         list_id: listId,
         season_id: seasonId,
-        wrapped: false,
-      },
-    ]);
+      }),
+    });
 
-    setSubmitting(false);
+    const json = await res.json().catch(() => null);
 
-    if (error) {
-      console.error(error);
-      setSubmitError("Couldn’t save that gift. Try again.");
+    if (!res.ok || !json?.ok) {
+      if (json?.code === "LIMIT_REACHED") {
+        setShowUpgrade(true);
+        return;
+      }
+      setSubmitError(json?.message || "Couldn’t save that gift. Try again.");
       return;
     }
 
@@ -360,8 +308,16 @@ export default function AddGiftForm({
               <div style={{ fontSize: 12, color: "#b91c1c", textAlign: "center" }}>{submitError}</div>
             )}
 
-            <div style={{ fontSize: 12, color: "#64748b", textAlign: "center", marginTop: 4 }}>
-              Free includes up to {FREE_LIMITS.maxRecipients} people + {FREE_LIMITS.maxGifts} gifts per season.
+            <div
+              style={{
+                fontSize: 12,
+                color: hitsGiftLimit || hitsRecipientLimit ? "#0f172a" : "#64748b",
+                textAlign: "center",
+                marginTop: 4,
+                fontWeight: hitsGiftLimit || hitsRecipientLimit ? 700 : 500,
+              }}
+            >
+              Free includes up to {freeRecipientLimit} people + {freeGiftLimit} gifts per season.
             </div>
           </div>
         </div>

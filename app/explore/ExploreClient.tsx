@@ -42,12 +42,14 @@ export default function ExploreClient({ items }: { items: Item[] }) {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("is_pro")
+        .select("is_pro,subscription_status")
         .eq("id", userId)
         .maybeSingle();
 
       if (!mounted) return;
-      setIsPro(Boolean(profile?.is_pro));
+      const pro =
+        profile?.subscription_status === "active" || Boolean(profile?.is_pro);
+      setIsPro(pro);
       setProfileChecked(true);
     }
 
@@ -92,24 +94,41 @@ export default function ExploreClient({ items }: { items: Item[] }) {
       return;
     }
 
-    const { error } = await supabase.from("gifts").insert([
-      {
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) {
+      setSavingId(null);
+      setToast("Please sign in first.");
+      return;
+    }
+
+    const res = await fetch("/api/gifts", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
         title: item.title,
         recipient_name: null,
         list_id: season.list_id,
         season_id: season.id,
-        wrapped: false,
-      },
-    ]);
+      }),
+    });
 
-    setSavingId(null);
+    const json = await res.json().catch(() => null);
 
-    if (error) {
-      console.error(error);
-      setToast("Couldn’t save gift — try again.");
+    if (!res.ok || !json?.ok) {
+      setSavingId(null);
+      if (json?.code === "LIMIT_REACHED") {
+        setShowUpgrade(true);
+        return;
+      }
+      setToast(json?.message || "Couldn’t save gift — try again.");
       return;
     }
 
+    setSavingId(null);
     setToast("Saved to My GIFTs.");
   }
 
