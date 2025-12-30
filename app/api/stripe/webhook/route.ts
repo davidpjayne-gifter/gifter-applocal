@@ -77,7 +77,8 @@ async function handleCheckoutCompleted(params: {
   if (stripeSubscriptionId) {
     subscription = await stripe.subscriptions.retrieve(stripeSubscriptionId);
     subscriptionStatus = subscription.status;
-    currentPeriodEnd = new Date(subscription.current_period_end * 1000).toISOString();
+    const cpe = (subscription as any).current_period_end;
+    currentPeriodEnd = typeof cpe === "number" ? new Date(cpe * 1000).toISOString() : null;
   }
 
   const { error } = await supabaseAdmin
