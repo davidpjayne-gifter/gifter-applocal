@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 
 import { supabase } from "@/lib/supabase";
 import SignInCtaButton from "@/app/components/SignInCtaButton";
-import { openStripeCheckout, openStripePortal } from "@/lib/stripeClient";
+import { openStripePortal } from "@/lib/stripeClient";
 import ConfirmDialog from "@/app/components/ui/ConfirmDialog";
 import { useToast } from "@/app/components/ui/toast";
 
@@ -187,7 +187,25 @@ export default function SettingsClient({ initialProfile, initialDevices, initial
     }
 
     try {
-      await openStripeCheckout(token);
+      const res = await fetch("/api/billing/checkout", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        setBillingError(json?.error || "Unable to start checkout.");
+        setBillingLoading(false);
+        return;
+      }
+
+      if (json?.url) {
+        window.location.href = json.url;
+        return;
+      }
+
+      setBillingError("Stripe did not return a checkout URL.");
+      setBillingLoading(false);
     } catch (err: any) {
       setBillingError(err?.message || "Unable to start checkout.");
       setBillingLoading(false);

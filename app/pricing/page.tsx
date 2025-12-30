@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { openStripeCheckout } from "@/lib/stripeClient";
 
 export default function PricingPage() {
   const router = useRouter();
@@ -30,12 +29,30 @@ export default function PricingPage() {
 
     if (!token) {
       setLoading(false);
-      router.push("/?redirect=/pricing");
+      router.push("/login?next=/pricing");
       return;
     }
 
     try {
-      await openStripeCheckout(token);
+      const res = await fetch("/api/billing/checkout", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        setErrorMessage(json?.error || "Unable to start checkout.");
+        setLoading(false);
+        return;
+      }
+
+      if (json?.url) {
+        window.location.href = json.url;
+        return;
+      }
+
+      setErrorMessage("Stripe did not return a checkout URL.");
+      setLoading(false);
     } catch (err: any) {
       setErrorMessage(err?.message || "Unable to start checkout.");
       setLoading(false);

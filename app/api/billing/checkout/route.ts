@@ -4,6 +4,17 @@ import { getStripe } from "@/lib/stripe";
 
 export const runtime = "nodejs";
 
+// Local verify:
+// curl -i http://localhost:3000/api/billing/checkout
+// curl -i -X POST http://localhost:3000/api/billing/checkout
+
+function getOrigin(req: NextRequest) {
+  const proto = req.headers.get("x-forwarded-proto");
+  const host = req.headers.get("host");
+  if (proto && host) return `${proto}://${host}`;
+  return process.env.NEXT_PUBLIC_APP_URL || "";
+}
+
 function getAccessToken(req: NextRequest) {
   const authHeader = req.headers.get("authorization") || "";
   const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
@@ -11,11 +22,10 @@ function getAccessToken(req: NextRequest) {
   return req.cookies.get("sb-access-token")?.value ?? null;
 }
 
-function getAppUrl(req: NextRequest) {
-  return (
-    process.env.NEXT_PUBLIC_APP_URL ||
-    req.headers.get("origin") ||
-    "http://localhost:3000"
+export async function GET() {
+  return NextResponse.json(
+    { error: "Method not allowed. Use POST to create a checkout session." },
+    { status: 405 }
   );
 }
 
@@ -25,19 +35,25 @@ export async function POST(req: NextRequest) {
     const priceId = process.env.STRIPE_PRICE_ID_YEARLY;
 
     if (!stripeSecret || !priceId) {
-      return NextResponse.json({ error: "Stripe is not configured" }, { status: 500 });
+      return NextResponse.json(
+        {
+          error:
+            "Stripe is not configured. Missing STRIPE_SECRET_KEY or STRIPE_PRICE_ID_YEARLY.",
+        },
+        { status: 500 }
+      );
     }
 
     const stripe = getStripe();
 
     const token = getAccessToken(req);
     if (!token) {
-      return NextResponse.json({ error: "Missing auth token" }, { status: 401 });
+      return NextResponse.json({ error: "Missing auth token." }, { status: 401 });
     }
 
     const { data: userData, error: userErr } = await supabaseAdmin.auth.getUser(token);
     if (userErr || !userData?.user) {
-      return NextResponse.json({ error: "Invalid auth token" }, { status: 401 });
+      return NextResponse.json({ error: "Invalid auth token." }, { status: 401 });
     }
 
     const userId = userData.user.id;
@@ -50,7 +66,7 @@ export async function POST(req: NextRequest) {
       .maybeSingle();
 
     if (profileErr) {
-      return NextResponse.json({ error: "Failed to load profile" }, { status: 500 });
+      return NextResponse.json({ error: "Failed to load profile." }, { status: 500 });
     }
 
     let stripeCustomerId = profile?.stripe_customer_id ?? null;
@@ -73,22 +89,39 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const appUrl = getAppUrl(req);
+    const origin = getOrigin(req);
+    if (!origin) {
+      return NextResponse.json(
+        { error: "Missing app URL configuration." },
+        { status: 500 }
+      );
+    }
 
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       customer: stripeCustomerId,
       allow_promotion_codes: true,
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${appUrl}/billing/success`,
-      cancel_url: `${appUrl}/pricing`,
+      success_url: `${origin}/billing/success`,
+      cancel_url: `${origin}/gifts`,
       client_reference_id: userId,
       metadata: { userId, supabase_user_id: userId },
     });
 
+    if (!session.url) {
+      console.error("Checkout error: missing session url");
+      return NextResponse.json(
+        { error: "Stripe did not return a checkout URL." },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json({ url: session.url });
   } catch (err: any) {
     console.error("Checkout error:", err?.message ?? err);
-    return NextResponse.json({ error: "Checkout failed" }, { status: 500 });
+    return NextResponse.json(
+      { error: err?.message || "Checkout failed." },
+      { status: 500 }
+    );
   }
 }
