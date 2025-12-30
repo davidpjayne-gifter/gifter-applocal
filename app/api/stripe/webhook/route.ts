@@ -1,12 +1,165 @@
-export const runtime = "nodejs";
-
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
+export const runtime = "nodejs"; // REQUIRED
+export const dynamic = "force-dynamic"; // REQUIRED
+
+async function hasProcessedEvent(eventId: string) {
+  const { data, error } = await supabaseAdmin
+    .from("stripe_events")
+    .select("event_id")
+    .eq("event_id", eventId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return Boolean(data?.event_id);
+}
+
+async function markEventProcessed(eventId: string) {
+  // Insert; if it already exists, ignore (idempotent)
+  const { error } = await supabaseAdmin
+    .from("stripe_events")
+    .insert({ event_id: eventId });
+
+  // If a duplicate slipped in due to race, Postgres will throw unique violation.
+  // Supabase returns an error object; treat unique violation as "already processed".
+  if (error) {
+    // Postgres unique violation is 23505; Supabase may expose it as `code`
+    const code = (error as any).code;
+    if (code === "23505") return;
+    throw error;
+  }
+}
+
 function isProStatus(status: string | null | undefined) {
   return status === "active" || status === "trialing";
+}
+
+async function handleCheckoutCompleted(params: {
+  stripe: Stripe;
+  session: Stripe.Checkout.Session;
+}) {
+  const { stripe, session } = params;
+
+  const userId =
+    (typeof session.client_reference_id === "string" && session.client_reference_id) ||
+    (typeof session.metadata?.userId === "string" && session.metadata.userId) ||
+    null;
+
+  if (!userId) {
+    console.error("❌ checkout.session.completed missing userId", {
+      sessionId: session.id,
+    });
+
+    return {
+      handled: true,
+      userId: null,
+      stripeCustomerId: null,
+      stripeSubscriptionId: null,
+      subscription: null,
+    };
+  }
+
+  const stripeCustomerId =
+    typeof session.customer === "string" ? session.customer : session.customer?.id ?? null;
+  const stripeSubscriptionId =
+    typeof session.subscription === "string"
+      ? session.subscription
+      : session.subscription?.id ?? null;
+
+  let subscription: Stripe.Subscription | null = null;
+  let subscriptionStatus: string | null = null;
+  let currentPeriodEnd: string | null = null;
+
+  if (stripeSubscriptionId) {
+    subscription = await stripe.subscriptions.retrieve(stripeSubscriptionId);
+    subscriptionStatus = subscription.status;
+    currentPeriodEnd = new Date(subscription.current_period_end * 1000).toISOString();
+  }
+
+  const { error } = await supabaseAdmin
+    .from("profiles")
+    .update({
+      stripe_customer_id: stripeCustomerId,
+      stripe_subscription_id: stripeSubscriptionId,
+      subscription_status: subscriptionStatus ?? "active",
+      current_period_end: currentPeriodEnd,
+    })
+    .eq("id", userId);
+
+  if (error) {
+    console.error("❌ Supabase update failed", {
+      userId,
+      error,
+    });
+  } else {
+    console.log("✅ Subscription activated", {
+      userId,
+      stripeCustomerId,
+      stripeSubscriptionId,
+    });
+  }
+
+  return {
+    handled: true,
+    userId,
+    stripeCustomerId,
+    stripeSubscriptionId,
+    subscription,
+  };
+}
+
+async function handleSubscriptionLifecycle(params: {
+  eventType: string;
+  subscription: Stripe.Subscription;
+  stripeCustomerId: string | null;
+  stripeSubscriptionId: string | null;
+  userId: string | null;
+}) {
+  const { eventType, subscription, stripeCustomerId, stripeSubscriptionId, userId } = params;
+
+  if (!userId) return null;
+
+  if (eventType === "customer.subscription.deleted") {
+    const { error } = await supabaseAdmin
+      .from("profiles")
+      .update({
+        stripe_customer_id: stripeCustomerId ?? undefined,
+        stripe_subscription_id: stripeSubscriptionId ?? undefined,
+        subscription_status: subscription.status ?? "canceled",
+        is_pro: false,
+        pro_expires_at: null,
+      })
+      .eq("id", userId);
+
+    if (error) {
+      return NextResponse.json({ error: "Failed to update profile" }, { status: 500 });
+    }
+
+    return null;
+  }
+
+  const { error } = await supabaseAdmin
+    .from("profiles")
+    .update({
+      stripe_customer_id: stripeCustomerId ?? undefined,
+      stripe_subscription_id: stripeSubscriptionId ?? undefined,
+      subscription_status: subscription.status ?? null,
+      is_pro: isProStatus(subscription.status),
+      pro_expires_at:
+        typeof (subscription as any).current_period_end === "number"
+          ? new Date((subscription as any).current_period_end * 1000).toISOString()
+          : null,
+    })
+    .eq("id", userId);
+
+  if (error) {
+    return NextResponse.json({ error: "Failed to update profile" }, { status: 500 });
+  }
+
+  return null;
 }
 
 async function resolveProfileId(params: {
@@ -38,7 +191,7 @@ async function resolveProfileId(params: {
   return null;
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   const stripeSecret = process.env.STRIPE_SECRET_KEY;
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
@@ -46,44 +199,63 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Stripe is not configured" }, { status: 500 });
   }
 
-  const signature = req.headers.get("stripe-signature") || "";
-  const rawBody = await req.text();
+  const signature = req.headers.get("stripe-signature");
+  const rawBody = await req.text(); // RAW body (DO NOT use req.json)
 
-  const stripe = new Stripe(stripeSecret);
+  if (!signature) {
+    return NextResponse.json({ error: "Missing Stripe signature" }, { status: 400 });
+  }
+
+  const stripe = new Stripe(stripeSecret, {
+    apiVersion: "2023-10-16",
+  });
 
   let event: Stripe.Event;
   try {
     event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
-  } catch {
-    return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+  } catch (err: any) {
+    console.error("❌ Webhook signature verification failed:", err.message);
+    return NextResponse.json(
+      { error: "Webhook signature verification failed" },
+      { status: 400 }
+    );
   }
 
+  // ---- Idempotency guard ----
   try {
-    const { data: existing } = await supabaseAdmin
-      .from("billing_events")
-      .select("stripe_event_id")
-      .eq("stripe_event_id", event.id)
-      .maybeSingle();
-
-    if (existing?.stripe_event_id) {
+    const already = await hasProcessedEvent(event.id);
+    if (already) {
+      console.log("↩️ Duplicate Stripe event ignored:", event.id);
       return NextResponse.json({ received: true });
     }
 
+  } catch (e) {
+    console.error("❌ Idempotency check failed:", e);
+    // Return 500 so Stripe retries; better than silently losing events
+    return NextResponse.json({ error: "Idempotency failure" }, { status: 500 });
+  }
+
+  try {
     const eventType = event.type;
     const obj = event.data?.object as Stripe.Checkout.Session | Stripe.Subscription;
 
     let stripeCustomerId: string | null = null;
     let stripeSubscriptionId: string | null = null;
     let subscription: Stripe.Subscription | null = null;
+    let userId: string | null = null;
+    let handledCheckoutSession = false;
 
     if (eventType === "checkout.session.completed") {
-      const session = obj as Stripe.Checkout.Session;
-      stripeCustomerId = typeof session.customer === "string" ? session.customer : null;
-      stripeSubscriptionId = typeof session.subscription === "string" ? session.subscription : null;
+      const result = await handleCheckoutCompleted({
+        stripe,
+        session: obj as Stripe.Checkout.Session,
+      });
 
-      if (stripeSubscriptionId) {
-        subscription = await stripe.subscriptions.retrieve(stripeSubscriptionId);
-      }
+      handledCheckoutSession = result.handled;
+      userId = result.userId;
+      stripeCustomerId = result.stripeCustomerId;
+      stripeSubscriptionId = result.stripeSubscriptionId;
+      subscription = result.subscription;
     }
 
     if (
@@ -96,50 +268,27 @@ export async function POST(req: Request) {
       stripeSubscriptionId = subscription.id ?? null;
     }
 
-    let userId: string | null = null;
-
-    if (stripeCustomerId || stripeSubscriptionId) {
+    if (!userId && (stripeCustomerId || stripeSubscriptionId)) {
       userId = await resolveProfileId({
         stripeCustomerId,
         stripeSubscriptionId,
       });
     }
 
-    if (userId && (stripeCustomerId || stripeSubscriptionId || subscription)) {
-      if (eventType === "customer.subscription.deleted" && subscription) {
-        const { error } = await supabaseAdmin
-          .from("profiles")
-          .update({
-            stripe_customer_id: stripeCustomerId ?? undefined,
-            stripe_subscription_id: stripeSubscriptionId ?? undefined,
-            subscription_status: subscription.status ?? "canceled",
-            is_pro: false,
-            pro_expires_at: null,
-          })
-          .eq("id", userId);
+    if (
+      !handledCheckoutSession &&
+      userId &&
+      (stripeCustomerId || stripeSubscriptionId || subscription)
+    ) {
+      const response = await handleSubscriptionLifecycle({
+        eventType,
+        subscription: subscription as Stripe.Subscription,
+        stripeCustomerId,
+        stripeSubscriptionId,
+        userId,
+      });
 
-        if (error) {
-          return NextResponse.json({ error: "Failed to update profile" }, { status: 500 });
-        }
-      } else if (subscription) {
-        const { error } = await supabaseAdmin
-          .from("profiles")
-          .update({
-            stripe_customer_id: stripeCustomerId ?? undefined,
-            stripe_subscription_id: stripeSubscriptionId ?? undefined,
-            subscription_status: subscription.status ?? null,
-            is_pro: isProStatus(subscription.status),
-            pro_expires_at:
-              typeof (subscription as any).current_period_end === "number"
-                ? new Date((subscription as any).current_period_end * 1000).toISOString()
-                : null,
-          })
-          .eq("id", userId);
-
-        if (error) {
-          return NextResponse.json({ error: "Failed to update profile" }, { status: 500 });
-        }
-      }
+      if (response) return response;
     }
 
     const { error: insertError } = await supabaseAdmin.from("billing_events").insert({
@@ -153,6 +302,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Failed to record billing event" }, { status: 500 });
     }
 
+    await markEventProcessed(event.id);
     return NextResponse.json({ received: true });
   } catch {
     return NextResponse.json({ error: "Unable to process webhook" }, { status: 500 });

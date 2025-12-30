@@ -3,23 +3,35 @@
 import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { openStripePortal } from "@/lib/stripeClient";
 
 export default function UpgradeClient() {
   const searchParams = useSearchParams();
   const canceled = useMemo(() => searchParams?.get("canceled") === "1", [searchParams]);
   const [loading, setLoading] = useState(false);
+  const [portalLoading, setPortalLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+
+  async function getAccessToken() {
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+
+    if (!token) {
+      setErrorMessage("Please sign in first.");
+      return null;
+    }
+
+    return token;
+  }
 
   async function handleUpgrade() {
     setLoading(true);
     setErrorMessage("");
 
-    const { data } = await supabase.auth.getSession();
-    const token = data.session?.access_token;
+    const token = await getAccessToken();
 
     if (!token) {
       setLoading(false);
-      setErrorMessage("Please sign in first.");
       return;
     }
 
@@ -39,6 +51,24 @@ export default function UpgradeClient() {
     }
 
     window.location.href = json.url;
+  }
+
+  async function handleManageBilling() {
+    setPortalLoading(true);
+    setErrorMessage("");
+
+    const token = await getAccessToken();
+    if (!token) {
+      setPortalLoading(false);
+      return;
+    }
+
+    try {
+      await openStripePortal(token);
+    } catch (err: any) {
+      setPortalLoading(false);
+      setErrorMessage(err?.message || "Unable to open billing portal.");
+    }
   }
 
   return (
@@ -81,6 +111,25 @@ export default function UpgradeClient() {
           }}
         >
           {loading ? "Opening checkout..." : "Upgrade for $9/year"}
+        </button>
+
+        <button
+          type="button"
+          onClick={handleManageBilling}
+          disabled={portalLoading}
+          style={{
+            marginTop: 10,
+            padding: "10px 14px",
+            borderRadius: 12,
+            border: "1px solid #0f172a",
+            background: portalLoading ? "#e2e8f0" : "#fff",
+            color: "#0f172a",
+            fontWeight: 900,
+            cursor: portalLoading ? "not-allowed" : "pointer",
+            width: "100%",
+          }}
+        >
+          {portalLoading ? "Opening billing portal..." : "Manage billing"}
         </button>
 
         {canceled && (

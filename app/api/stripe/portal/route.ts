@@ -4,16 +4,26 @@ import Stripe from "stripe";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2023-10-16",
 });
 
+function getOrigin(req: NextRequest) {
+  return req.headers.get("origin") ?? "http://localhost:3000";
+}
+
 export async function POST(req: NextRequest) {
   try {
-    const origin = req.headers.get("origin") ?? "http://localhost:3000";
+    const stripeSecret = process.env.STRIPE_SECRET_KEY;
+    if (!stripeSecret) {
+      return NextResponse.json({ error: "Stripe is not configured" }, { status: 500 });
+    }
 
-    // ---- 1) AUTH TOKEN (your route already does this conceptually) ----
+    const origin = getOrigin(req);
+
+    // ---- AUTH (Bearer token) ----
     const authHeader = req.headers.get("authorization") || "";
     const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
@@ -21,19 +31,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing auth token" }, { status: 401 });
     }
 
-    // ---- 2) GET USER FROM SUPABASE USING TOKEN ----
     const { data: userData, error: userErr } = await supabaseAdmin.auth.getUser(token);
     if (userErr || !userData?.user) {
       return NextResponse.json({ error: "Invalid auth token" }, { status: 401 });
     }
 
     const userId = userData.user.id;
-    const email = userData.user.email ?? null;
+    const email = userData.user.email ?? undefined;
 
-    // ---- 3) LOOK UP YOUR PROFILE ROW (stores stripe_customer_id) ----
+    // ---- Load stripe_customer_id ----
     const { data: profile, error: profileErr } = await supabaseAdmin
       .from("profiles")
-      .select("id, stripe_customer_id")
+      .select("stripe_customer_id")
       .eq("id", userId)
       .maybeSingle();
 
@@ -41,47 +50,36 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Failed to load profile" }, { status: 500 });
     }
 
-    // ---- 4) GET/CREATE STRIPE CUSTOMER ----
     let stripeCustomerId = profile?.stripe_customer_id ?? null;
 
+    // Optional: if missing, create one (keeps portal from breaking for edge cases)
     if (!stripeCustomerId) {
       const customer = await stripe.customers.create({
-        email: email ?? undefined,
+        email,
         metadata: { userId },
       });
-
       stripeCustomerId = customer.id;
 
-      // Persist customer id for next time
       const { error: updErr } = await supabaseAdmin
         .from("profiles")
         .update({ stripe_customer_id: stripeCustomerId })
         .eq("id", userId);
 
       if (updErr) {
-        // non-fatal: checkout can still proceed, but log it
+        // Not fatal—portal can still work, but log it.
         console.error("Failed to persist stripe_customer_id:", updErr);
       }
     }
 
-    // ---- 5) CREATE CHECKOUT SESSION (yearly price + origin urls) ----
-    const session = await stripe.checkout.sessions.create({
-      mode: "subscription",
+    // ---- Create portal session ----
+    const portalSession = await stripe.billingPortal.sessions.create({
       customer: stripeCustomerId,
-
-      line_items: [{ price: process.env.STRIPE_PRICE_ID_YEARLY!, quantity: 1 }],
-
-      success_url: `${origin}/upgrade/success`,
-      cancel_url: `${origin}/upgrade`,
-
-      // 🔑 THIS is the missing link to Supabase user:
-      client_reference_id: userId,
-      metadata: { userId },
+      return_url: `${origin}/upgrade`, // change to wherever you want them to land after
     });
 
-    return NextResponse.json({ url: session.url });
+    return NextResponse.json({ url: portalSession.url });
   } catch (err: any) {
-    console.error("Checkout error:", err?.message ?? err);
-    return NextResponse.json({ error: "Checkout failed" }, { status: 500 });
+    console.error("Portal error:", err?.message ?? err);
+    return NextResponse.json({ error: "Unable to create portal session" }, { status: 500 });
   }
 }

@@ -26,6 +26,7 @@ export default function SignOutButton() {
 
   async function handleSignOut() {
     await supabase.auth.signOut();
+    await fetch("/api/auth/session", { method: "DELETE" });
     window.location.href = "/";
   }
 

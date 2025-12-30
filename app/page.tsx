@@ -1,13 +1,37 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
 export default function HomePage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<null | "sent" | "error">(null);
   const [errorMessage, setErrorMessage] = useState("");
+
+  useEffect(() => {
+    let mounted = true;
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (!mounted) return;
+      if (data.session) {
+        router.push("/gifts");
+      }
+    });
+
+    const { data: authSub } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        router.push("/gifts");
+      }
+    });
+
+    return () => {
+      mounted = false;
+      authSub?.subscription?.unsubscribe();
+    };
+  }, [router]);
 
   async function handleSendLink() {
     const nextEmail = email.trim();

@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import Link from "next/link";
 import { revalidatePath } from "next/cache";
 
 import RefreshAfterAdd from "./RefreshAfterAdd";
@@ -9,6 +10,7 @@ import SeasonBudgetPill from "./SeasonBudgetPill";
 import SignOutButton from "./SignOutButton";
 import GiftRow from "./GiftRow";
 
+import AuthSessionSync from "@/app/components/AuthSessionSync";
 import { supabase } from "@/lib/supabase";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
@@ -250,6 +252,7 @@ export default async function GiftsPage() {
 
   return (
       <main style={{ padding: 16, maxWidth: 520, margin: "0 auto" }}>
+      <AuthSessionSync />
       <div style={{ marginBottom: 14 }}>
         <div style={{ fontSize: 22, fontWeight: 900, textAlign: "center" }}>My GIFTs</div>
 
@@ -257,7 +260,22 @@ export default async function GiftsPage() {
           <span style={pillStyle()}>Season: {activeSeason.name}</span>
         </div>
 
-        <div style={{ marginTop: 8, display: "flex", justifyContent: "flex-end" }}>
+        <div style={{ marginTop: 8, display: "flex", justifyContent: "flex-end", gap: 8 }}>
+          <Link
+            href="/settings"
+            style={{
+              padding: "6px 10px",
+              borderRadius: 10,
+              border: "1px solid #cbd5e1",
+              background: "#fff",
+              fontSize: 12,
+              fontWeight: 800,
+              color: "#334155",
+              textDecoration: "none",
+            }}
+          >
+            Settings
+          </Link>
           <SignOutButton />
         </div>
 
