@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import UpgradeSheet from "@/app/components/UpgradeSheet";
 import Toast from "@/app/components/Toast";
+import SignInCtaButton from "@/app/components/SignInCtaButton";
 
 type Props = {
   listId: string;
@@ -161,6 +162,7 @@ export default function AddGiftForm({
 
   const showUpgradeCta =
     !isPro && (hitsGiftLimit || hitsRecipientLimit || submitError.includes("Free includes"));
+  const needsSignIn = submitError === "Please sign in first.";
 
   return (
     <>
@@ -352,6 +354,23 @@ export default function AddGiftForm({
 
             {submitError && (
               <div style={{ fontSize: 12, color: "#b91c1c", textAlign: "center" }}>{submitError}</div>
+            )}
+            {needsSignIn && (
+              <SignInCtaButton
+                style={{
+                  marginTop: 6,
+                  width: "100%",
+                  padding: "10px 12px",
+                  borderRadius: 12,
+                  border: "1px solid #0f172a",
+                  background: "#fff",
+                  color: "#0f172a",
+                  fontWeight: 900,
+                  cursor: "pointer",
+                }}
+              >
+                Go to sign in
+              </SignInCtaButton>
             )}
 
             <div

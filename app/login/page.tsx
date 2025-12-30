@@ -2,7 +2,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { supabase } from "@/lib/supabase";
 import { safeNext } from "@/lib/safeNext";
 import LoginForm from "./LoginForm";
 
@@ -25,8 +25,8 @@ export default async function LoginPage(props: {
   const token = await getAccessTokenFromCookies();
 
   if (token) {
-    const { data: userData, error: userErr } = await supabaseAdmin.auth.getUser(token);
-    if (!userErr && userData?.user) {
+    const { data, error } = await supabase.auth.getUser(token);
+    if (!error && data?.user) {
       redirect(nextPath);
     }
   }

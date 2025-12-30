@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
+import SignInCtaButton from "@/app/components/SignInCtaButton";
 
 type Props = {
   open: boolean;
@@ -123,6 +124,23 @@ export default function UpgradeSheet({ open, onClose }: Props) {
 
           {errorMessage && (
             <div style={{ marginTop: 10, fontSize: 12, color: "#b91c1c" }}>{errorMessage}</div>
+          )}
+          {errorMessage === "Please sign in first." && (
+            <SignInCtaButton
+              style={{
+                marginTop: 10,
+                width: "100%",
+                padding: "10px 12px",
+                borderRadius: 12,
+                border: "1px solid #0f172a",
+                background: "#fff",
+                color: "#0f172a",
+                fontWeight: 900,
+                cursor: "pointer",
+              }}
+            >
+              Go to sign in
+            </SignInCtaButton>
           )}
         </div>
       </div>

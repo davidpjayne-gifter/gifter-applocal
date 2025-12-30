@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { supabase } from "@/lib/supabase";
+import SignInCtaButton from "@/app/components/SignInCtaButton";
 import { openStripeCheckout, openStripePortal } from "@/lib/stripeClient";
 import ConfirmDialog from "@/app/components/ui/ConfirmDialog";
 import { useToast } from "@/app/components/ui/toast";
@@ -283,6 +284,9 @@ export default function SettingsClient({ initialProfile, initialDevices, initial
           <p className="mt-2 text-sm text-slate-600">
             Please sign in to view your settings.
           </p>
+          <SignInCtaButton className="mt-4 inline-flex items-center justify-center rounded-xl border border-blue-300 bg-white px-3 py-2 text-xs font-semibold text-slate-900 transition hover:border-blue-400">
+            Go to sign in
+          </SignInCtaButton>
         </div>
       </div>
     );

@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { openStripePortal } from "@/lib/stripeClient";
+import SignInCtaButton from "@/app/components/SignInCtaButton";
 
 export default function UpgradeClient() {
   const searchParams = useSearchParams();
@@ -139,7 +140,26 @@ export default function UpgradeClient() {
         )}
 
         {errorMessage && (
-          <div style={{ marginTop: 10, fontSize: 12, color: "#b91c1c" }}>{errorMessage}</div>
+          <div style={{ marginTop: 10, fontSize: 12, color: "#b91c1c" }}>
+            {errorMessage}
+          </div>
+        )}
+        {errorMessage === "Please sign in first." && (
+          <SignInCtaButton
+            style={{
+              marginTop: 10,
+              width: "100%",
+              padding: "10px 12px",
+              borderRadius: 12,
+              border: "1px solid #0f172a",
+              background: "#fff",
+              color: "#0f172a",
+              fontWeight: 900,
+              cursor: "pointer",
+            }}
+          >
+            Go to sign in
+          </SignInCtaButton>
         )}
       </section>
     </>
