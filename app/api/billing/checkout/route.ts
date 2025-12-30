@@ -68,26 +68,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Failed to load profile." }, { status: 500 });
     }
 
-    let stripeCustomerId = profile?.stripe_customer_id ?? null;
-
-    if (!stripeCustomerId) {
-      const customer = await stripe.customers.create({
-        email: email ?? undefined,
-        metadata: { supabase_user_id: userId },
-      });
-
-      stripeCustomerId = customer.id;
-
-      const { error: updErr } = await supabaseAdmin
-        .from("profiles")
-        .update({ stripe_customer_id: stripeCustomerId })
-        .eq("id", userId);
-
-      if (updErr) {
-        console.error("Failed to persist stripe_customer_id:", updErr);
-      }
-    }
-
     const origin = getOrigin(req);
     if (!origin) {
       return NextResponse.json(
@@ -96,16 +76,70 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const session = await stripe.checkout.sessions.create({
-      mode: "subscription",
-      customer: stripeCustomerId,
+    const sessionParams = {
+      mode: "subscription" as const,
       allow_promotion_codes: true,
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${origin}/billing/success`,
       cancel_url: `${origin}/gifts`,
       client_reference_id: userId,
       metadata: { userId, supabase_user_id: userId },
-    });
+    };
+
+    const storedCustomerId = profile?.stripe_customer_id ?? null;
+
+    async function createCustomer() {
+      const customer = await stripe.customers.create({
+        email: email ?? undefined,
+        metadata: { supabase_user_id: userId },
+      });
+
+      const { error: updErr } = await supabaseAdmin
+        .from("profiles")
+        .update({ stripe_customer_id: customer.id })
+        .eq("id", userId);
+
+      if (updErr) {
+        console.error("Failed to persist stripe_customer_id:", updErr);
+      }
+
+      return customer.id;
+    }
+
+    let stripeCustomerId = storedCustomerId;
+
+    if (!stripeCustomerId) {
+      stripeCustomerId = await createCustomer();
+    }
+
+    let session;
+
+    try {
+      session = await stripe.checkout.sessions.create({
+        ...sessionParams,
+        customer: stripeCustomerId,
+      });
+    } catch (err: any) {
+      const message = err?.message ?? "";
+      if (message.includes("No such customer")) {
+        const { error: clearErr } = await supabaseAdmin
+          .from("profiles")
+          .update({ stripe_customer_id: null })
+          .eq("id", userId);
+
+        if (clearErr) {
+          console.error("Failed to clear stripe_customer_id:", clearErr);
+        }
+
+        const newCustomerId = await createCustomer();
+        session = await stripe.checkout.sessions.create({
+          ...sessionParams,
+          customer: newCustomerId,
+        });
+      } else {
+        throw err;
+      }
+    }
 
     if (!session.url) {
       console.error("Checkout error: missing session url");
