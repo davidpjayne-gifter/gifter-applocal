@@ -97,7 +97,6 @@ export default async function BillingSuccessPage(props: {
         subscription_status: subscriptionStatus ?? "active",
         is_pro: isProStatus(subscriptionStatus ?? "active"),
         current_period_end: currentPeriodEnd,
-        plan: "yearly",
       })
       .eq("id", userId);
 

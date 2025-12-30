@@ -12,6 +12,7 @@ type Props = {
 export default function UpgradeSheet({ open, onClose }: Props) {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [syncLoading, setSyncLoading] = useState(false);
 
   async function handleUpgrade() {
     if (loading) return;
@@ -43,6 +44,38 @@ export default function UpgradeSheet({ open, onClose }: Props) {
     }
 
     window.location.href = json.url;
+  }
+
+  async function handleSyncAccess() {
+    if (syncLoading) return;
+    setSyncLoading(true);
+    setErrorMessage("");
+
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+
+    if (!token) {
+      setSyncLoading(false);
+      setErrorMessage("Please sign in first.");
+      return;
+    }
+
+    const res = await fetch("/api/billing/sync", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    const json = await res.json().catch(() => null);
+
+    if (!res.ok || !json?.ok) {
+      setSyncLoading(false);
+      setErrorMessage(json?.error || "Unable to sync access.");
+      return;
+    }
+
+    window.location.reload();
   }
 
   if (!open) return null;
@@ -103,6 +136,25 @@ export default function UpgradeSheet({ open, onClose }: Props) {
             }}
           >
             {loading ? "Opening checkout..." : "Upgrade for $9/year"}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleSyncAccess}
+            disabled={syncLoading}
+            style={{
+              marginTop: 10,
+              width: "100%",
+              padding: "10px 12px",
+              borderRadius: 12,
+              border: "1px solid #e2e8f0",
+              background: syncLoading ? "#e2e8f0" : "#fff",
+              color: "#0f172a",
+              fontWeight: 900,
+              cursor: syncLoading ? "not-allowed" : "pointer",
+            }}
+          >
+            {syncLoading ? "Syncing access..." : "I already paid — Sync Access"}
           </button>
 
           <button

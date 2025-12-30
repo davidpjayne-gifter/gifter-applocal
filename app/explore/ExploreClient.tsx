@@ -48,7 +48,9 @@ export default function ExploreClient({ items, listId }: { items: Item[]; listId
 
       if (!mounted) return;
       const pro =
-        profile?.subscription_status === "active" || Boolean(profile?.is_pro);
+        profile?.subscription_status === "active" ||
+        profile?.subscription_status === "trialing" ||
+        Boolean(profile?.is_pro);
       setIsPro(pro);
       setProfileChecked(true);
     }

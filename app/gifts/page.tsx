@@ -233,11 +233,13 @@ export default async function GiftsPage(props: {
   const cookieStore = await cookies();
   const token = cookieStore.get("sb-access-token")?.value ?? null;
   let userId: string | null = null;
+  let userEmail: string | null = null;
 
   if (token) {
     const { data: userData, error: userErr } = await supabaseAdmin.auth.getUser(token);
     if (!userErr && userData?.user?.id) {
       userId = userData.user.id;
+      userEmail = userData.user.email ?? null;
     }
   }
 
@@ -448,7 +450,24 @@ export default async function GiftsPage(props: {
       <SignInBanner />
       {upgradedBanner}
       <div style={{ marginBottom: 14 }}>
-        <div style={{ fontSize: 22, fontWeight: 900, textAlign: "center" }}>My GIFTs</div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ flex: 1 }} />
+          <div style={{ fontSize: 22, fontWeight: 900, textAlign: "center", flex: 1 }}>
+            My GIFTs
+          </div>
+          <div style={{ flex: 1, display: "flex", justifyContent: "flex-end" }}>
+            {userEmail === "davidpjayne@gmail.com" && (
+              <a
+                href="/api/debug/subscription"
+                target="_blank"
+                rel="noreferrer"
+                className="text-xs underline opacity-70 hover:opacity-100"
+              >
+                Debug
+              </a>
+            )}
+          </div>
+        </div>
 
         <div style={{ marginTop: 6, display: "flex", justifyContent: "center" }}>
           <span style={pillStyle()}>Season: {activeSeason.name}</span>

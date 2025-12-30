@@ -89,7 +89,6 @@ async function handleCheckoutCompleted(params: {
       subscription_status: subscriptionStatus ?? "active",
       is_pro: isProStatus(subscriptionStatus ?? "active"),
       current_period_end: currentPeriodEnd,
-      plan: "yearly",
     })
     .eq("id", userId);
 
@@ -135,7 +134,6 @@ async function handleSubscriptionLifecycle(params: {
         subscription_status: subscription.status ?? "canceled",
         is_pro: false,
         pro_expires_at: null,
-        plan: null,
       })
       .eq("id", userId);
 
@@ -157,7 +155,6 @@ async function handleSubscriptionLifecycle(params: {
         typeof (subscription as any).current_period_end === "number"
           ? new Date((subscription as any).current_period_end * 1000).toISOString()
           : null,
-      plan: isProStatus(subscription.status) ? "yearly" : null,
     })
     .eq("id", userId);
 
@@ -308,7 +305,6 @@ export async function POST(req: NextRequest) {
             stripe_subscription_id: stripeSubscriptionId ?? undefined,
             subscription_status: "past_due",
             is_pro: false,
-            plan: null,
           })
           .eq("id", userId);
 

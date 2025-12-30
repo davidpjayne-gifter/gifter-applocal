@@ -89,13 +89,18 @@ export default function SettingsClient({ initialProfile, initialDevices, initial
   const planLabel = useMemo(() => {
     if (!profile) return "Free";
     if (profile?.subscription_status === "past_due") return "Past due";
+    if (profile?.subscription_status === "trialing") return "Trialing";
+    if (profile?.subscription_status === "active") return "Pro";
     if (profile?.is_pro) return "Pro";
     if (profile?.subscription_status === "canceled") return "Canceled";
     return "Free";
   }, [profile]);
 
   const showManageBilling =
-    profile?.is_pro || profile?.subscription_status === "past_due";
+    profile?.is_pro ||
+    profile?.subscription_status === "active" ||
+    profile?.subscription_status === "trialing" ||
+    profile?.subscription_status === "past_due";
 
   useEffect(() => {
     if (profile) {

@@ -6,7 +6,6 @@ export const FREE_LIMIT_MESSAGE = "Free includes up to 2 people + 3 gifts per se
 
 export type ProfileEntitlements = {
   id: string;
-  tier: string | null;
   is_pro: boolean | null;
   subscription_status: string | null;
   current_period_end: string | null;
@@ -15,11 +14,16 @@ export type ProfileEntitlements = {
 export async function getProfileForUser(userId: string) {
   const { data, error } = await supabaseAdmin
     .from("profiles")
-    .select("id,tier,is_pro,subscription_status,current_period_end")
+    .select("id,is_pro,subscription_status,current_period_end")
     .eq("id", userId)
     .maybeSingle();
 
   if (error) {
+    if (error.message.includes("does not exist") || error.message.includes("column")) {
+      const err = new Error("Entitlements misconfigured. Run Sync Access.");
+      err.name = "ENTITLEMENTS_MISCONFIGURED";
+      throw err;
+    }
     throw new Error(error.message);
   }
 
@@ -28,7 +32,11 @@ export async function getProfileForUser(userId: string) {
 
 export function isPro(profile: ProfileEntitlements | null) {
   if (!profile) return false;
-  return profile.subscription_status === "active" || profile.is_pro === true;
+  return (
+    profile.subscription_status === "active" ||
+    profile.subscription_status === "trialing" ||
+    profile.is_pro === true
+  );
 }
 
 function makeLimitError() {
