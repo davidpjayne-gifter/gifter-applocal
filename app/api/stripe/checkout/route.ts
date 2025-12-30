@@ -1,16 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import Stripe from "stripe";
-
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { getStripe } from "@/lib/stripe";
 
 export const runtime = "nodejs";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2023-10-16",
-});
-
 export async function POST(req: NextRequest) {
   try {
+    const stripe = getStripe();
     const origin = req.headers.get("origin") ?? "http://localhost:3000";
 
     // ---- 1) AUTH TOKEN (your route already does this conceptually) ----

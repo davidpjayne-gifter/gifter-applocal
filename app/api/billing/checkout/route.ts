@@ -1,13 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import Stripe from "stripe";
-
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { getStripe } from "@/lib/stripe";
 
 export const runtime = "nodejs";
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2023-10-16",
-});
 
 function getAccessToken(req: NextRequest) {
   const authHeader = req.headers.get("authorization") || "";
@@ -32,6 +27,8 @@ export async function POST(req: NextRequest) {
     if (!stripeSecret || !priceId) {
       return NextResponse.json({ error: "Stripe is not configured" }, { status: 500 });
     }
+
+    const stripe = getStripe();
 
     const token = getAccessToken(req);
     if (!token) {

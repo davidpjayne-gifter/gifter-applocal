@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import Stripe from "stripe";
+import type Stripe from "stripe";
 
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { getStripe } from "@/lib/stripe";
 
 export const runtime = "nodejs"; // REQUIRED
 export const dynamic = "force-dynamic"; // REQUIRED
@@ -37,11 +38,8 @@ function isProStatus(status: string | null | undefined) {
   return status === "active" || status === "trialing";
 }
 
-async function handleCheckoutCompleted(params: {
-  stripe: Stripe;
-  session: Stripe.Checkout.Session;
-}) {
-  const { stripe, session } = params;
+async function handleCheckoutCompleted(params: { session: Stripe.Checkout.Session }) {
+  const { session } = params;
 
   const userId =
     (typeof session.client_reference_id === "string" && session.client_reference_id) ||
@@ -193,12 +191,13 @@ async function resolveProfileId(params: {
 }
 
 export async function POST(req: NextRequest) {
-  const stripeSecret = process.env.STRIPE_SECRET_KEY;
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
-  if (!stripeSecret || !webhookSecret) {
+  if (!webhookSecret) {
     return NextResponse.json({ error: "Stripe is not configured" }, { status: 500 });
   }
+
+  const stripe = getStripe();
 
   const signature = req.headers.get("stripe-signature");
   const rawBody = await req.text(); // RAW body (DO NOT use req.json)
@@ -206,10 +205,6 @@ export async function POST(req: NextRequest) {
   if (!signature) {
     return NextResponse.json({ error: "Missing Stripe signature" }, { status: 400 });
   }
-
-  const stripe = new Stripe(stripeSecret, {
-    apiVersion: "2023-10-16",
-  });
 
   let event: Stripe.Event;
   try {
@@ -248,7 +243,6 @@ export async function POST(req: NextRequest) {
 
     if (eventType === "checkout.session.completed") {
       const result = await handleCheckoutCompleted({
-        stripe,
         session: obj as Stripe.Checkout.Session,
       });
 

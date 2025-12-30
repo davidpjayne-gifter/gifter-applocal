@@ -1,14 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import Stripe from "stripe";
-
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { getStripe } from "@/lib/stripe";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2023-10-16",
-});
 
 function getOrigin(req: NextRequest) {
   return req.headers.get("origin") ?? "http://localhost:3000";
@@ -20,6 +15,8 @@ export async function POST(req: NextRequest) {
     if (!stripeSecret) {
       return NextResponse.json({ error: "Stripe is not configured" }, { status: 500 });
     }
+
+    const stripe = getStripe();
 
     const origin = getOrigin(req);
 
