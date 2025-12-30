@@ -2,6 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { MAX_FREE_GIFTS } from "@/lib/limits";
+import UpgradeSheet from "@/app/components/UpgradeSheet";
+import Toast from "@/app/components/Toast";
 
 type Props = {
   listId: string;
@@ -16,7 +19,7 @@ type LimitState =
 
 const FREE_LIMITS = {
   maxRecipients: 2,
-  maxGifts: 3,
+  maxGifts: MAX_FREE_GIFTS,
 };
 
 function moneyToNumber(input: string) {
@@ -43,19 +46,54 @@ export default function AddGiftForm({
   const [cost, setCost] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   // iOS toast
   const [toast, setToast] = useState<string | null>(null);
 
   // Upgrade sheet
   const [showUpgrade, setShowUpgrade] = useState(false);
-  const [limitState, setLimitState] = useState<LimitState | null>(null);
+  const [isPro, setIsPro] = useState(false);
+  const [profileChecked, setProfileChecked] = useState(false);
 
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(null), 2200);
     return () => clearTimeout(t);
   }, [toast]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadProfile() {
+      const { data } = await supabase.auth.getSession();
+      const userId = data.session?.user?.id;
+
+      if (!userId) {
+        if (mounted) {
+          setIsPro(false);
+          setProfileChecked(true);
+        }
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("is_pro")
+        .eq("id", userId)
+        .maybeSingle();
+
+      if (!mounted) return;
+      setIsPro(Boolean(profile?.is_pro));
+      setProfileChecked(true);
+    }
+
+    loadProfile();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -113,16 +151,19 @@ export default function AddGiftForm({
 
   async function handleSubmit() {
     if (!canSubmit) return;
+    if (!profileChecked) return;
 
     setSubmitting(true);
+    setSubmitError("");
 
-    const limits = await computeFreeLimits(recipient);
-    setLimitState(limits);
+    if (!isPro) {
+      const limits = await computeFreeLimits(recipient);
 
-    if (!limits.ok) {
-      setSubmitting(false);
-      setShowUpgrade(true);
-      return;
+      if (!limits.ok) {
+        setSubmitting(false);
+        setShowUpgrade(true);
+        return;
+      }
     }
 
     const costNumber = moneyToNumber(cost);
@@ -142,7 +183,7 @@ export default function AddGiftForm({
 
     if (error) {
       console.error(error);
-      setToast("Couldn’t add gift — try again.");
+      setSubmitError("Couldn’t save that gift. Try again.");
       return;
     }
 
@@ -190,26 +231,7 @@ export default function AddGiftForm({
       </button>
 
       {/* Toast */}
-      {toast && (
-        <div
-          style={{
-            position: "fixed",
-            left: "50%",
-            bottom: 90,
-            transform: "translateX(-50%)",
-            padding: "10px 14px",
-            borderRadius: 999,
-            background: "rgba(15,23,42,0.95)",
-            color: "white",
-            fontWeight: 800,
-            fontSize: 13,
-            boxShadow: "0 10px 30px rgba(0,0,0,0.18)",
-            zIndex: 60,
-          }}
-        >
-          {toast}
-        </div>
-      )}
+      <Toast message={toast ?? ""} onClose={() => setToast(null)} />
 
       {/* Backdrop */}
       {open && (
@@ -334,6 +356,10 @@ export default function AddGiftForm({
               {submitting ? "Adding…" : "Add gift"}
             </button>
 
+            {submitError && (
+              <div style={{ fontSize: 12, color: "#b91c1c", textAlign: "center" }}>{submitError}</div>
+            )}
+
             <div style={{ fontSize: 12, color: "#64748b", textAlign: "center", marginTop: 4 }}>
               Free includes up to {FREE_LIMITS.maxRecipients} people + {FREE_LIMITS.maxGifts} gifts per season.
             </div>
@@ -341,73 +367,7 @@ export default function AddGiftForm({
         </div>
       </div>
 
-      {/* Upgrade sheet (simple placeholder for now) */}
-      {showUpgrade && (
-        <>
-          <div
-            onClick={() => setShowUpgrade(false)}
-            style={{
-              position: "fixed",
-              inset: 0,
-              background: "rgba(15,23,42,0.45)",
-              backdropFilter: "blur(6px)",
-              zIndex: 70,
-            }}
-          />
-          <div
-            style={{
-              position: "fixed",
-              left: 0,
-              right: 0,
-              bottom: 0,
-              zIndex: 80,
-            }}
-          >
-            <div
-              style={{
-                maxWidth: 520,
-                margin: "0 auto",
-                background: "#fff",
-                borderTopLeftRadius: 26,
-                borderTopRightRadius: 26,
-                border: "1px solid #e2e8f0",
-                boxShadow: "0 -10px 40px rgba(0,0,0,0.12)",
-                padding: 16,
-              }}
-            >
-              <div style={{ fontSize: 16, fontWeight: 900 }}>Upgrade to keep going</div>
-              <div style={{ marginTop: 8, color: "#334155", fontSize: 13, lineHeight: 1.35 }}>
-                {limitState?.ok === false && limitState.reason === "gifts" ? (
-                  <>
-                    Free plan includes <b>3 gifts</b> per season. Upgrade to add unlimited gifts.
-                  </>
-                ) : (
-                  <>
-                    Free plan includes <b>2 people</b> per season. Upgrade to add unlimited people.
-                  </>
-                )}
-              </div>
-
-              <button
-                onClick={() => setShowUpgrade(false)}
-                style={{
-                  marginTop: 12,
-                  width: "100%",
-                  padding: "12px 14px",
-                  borderRadius: 16,
-                  border: "1px solid #0f172a",
-                  background: "#0f172a",
-                  color: "#fff",
-                  fontWeight: 900,
-                  cursor: "pointer",
-                }}
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </>
-      )}
+      <UpgradeSheet open={showUpgrade} onClose={() => setShowUpgrade(false)} />
     </>
   );
 }

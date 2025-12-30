@@ -3,12 +3,11 @@ import { revalidatePath } from "next/cache";
 
 import RefreshAfterAdd from "./RefreshAfterAdd";
 import NewSeasonSheet from "./NewSeasonSheet";
-import CopyButton from "./CopyButton";
-import GiftStatusForm from "./GiftStatusForm";
 import ShareRecipientButton from "./ShareRecipientButton";
 import RecipientWrapUpButton from "./RecipientWrapUpButton";
 import SeasonBudgetPill from "./SeasonBudgetPill";
 import SignOutButton from "./SignOutButton";
+import GiftRow from "./GiftRow";
 
 import { supabase } from "@/lib/supabase";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
@@ -57,17 +56,6 @@ function toTitleCase(str: string) {
 function normalizeStatus(status: any): ShippingStatus {
   if (status === "arrived" || status === "in_transit" || status === "unknown") return status;
   return "unknown";
-}
-
-function statusLabel(status: ShippingStatus) {
-  switch (status) {
-    case "arrived":
-      return "Arrived";
-    case "in_transit":
-      return "In Transit";
-    default:
-      return "Unknown";
-  }
 }
 
 function pillStyle(): CSSProperties {
@@ -424,33 +412,9 @@ export default async function GiftsPage() {
 
               <div style={{ padding: "0 14px 14px 14px" }}>
                 <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-                  {list.map((gift) => {
-                    const shipping = gift.shipping_status ?? "unknown";
-                    const isWrapped = gift.wrapped === true;
-
-                    return (
-                      <li key={gift.id} style={{ padding: "12px 0", borderTop: "1px solid #f1f5f9" }}>
-                        <div style={{ fontWeight: 800 }}>{gift.title}</div>
-
-                        <GiftStatusForm
-                          giftId={gift.id}
-                          isWrapped={isWrapped}
-                          shippingStatus={shipping}
-                          updateGiftStatus={updateGiftStatus}
-                        />
-
-                        <div style={{ fontSize: 12, marginTop: 6, opacity: 0.75 }}>
-                          Status: {isWrapped ? "Wrapped" : statusLabel(shipping)}
-                        </div>
-
-                        {gift.tracking_number && (
-                          <div style={{ fontSize: 12, marginTop: 6 }}>
-                            Tracking: {gift.tracking_number} <CopyButton text={gift.tracking_number} />
-                          </div>
-                        )}
-                      </li>
-                    );
-                  })}
+                  {list.map((gift) => (
+                    <GiftRow key={gift.id} gift={gift} updateGiftStatus={updateGiftStatus} />
+                  ))}
                 </ul>
 
                 {list.length > 0 && (

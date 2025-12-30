@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Toast from "@/app/components/Toast";
 
 export default function ShareRecipientButton({
   recipientKey,
@@ -10,6 +11,7 @@ export default function ShareRecipientButton({
   listId: string;
 }) {
   const [copied, setCopied] = useState(false);
+  const [toast, setToast] = useState("");
   const resetTimer = useRef<number | null>(null);
 
   useEffect(() => {
@@ -65,12 +67,12 @@ export default function ShareRecipientButton({
 
     if (!rk) {
       console.error("ShareRecipientButton missing recipientKey prop:", recipientKey);
-      alert("Share failed: recipient key is missing.");
+      setToast("Share failed. Try again.");
       return;
     }
     if (!lid) {
       console.error("ShareRecipientButton missing listId prop:", listId);
-      alert("Share failed: list id is missing.");
+      setToast("Share failed. Try again.");
       return;
     }
 
@@ -91,14 +93,14 @@ export default function ShareRecipientButton({
     if (!res.ok) {
       console.error("Share API error status:", res.status);
       console.error("Share API raw:", raw);
-      alert((json && json.error) || `Share failed (${res.status}).`);
+      setToast((json && json.error) || "Share failed. Try again.");
       return;
     }
 
     const token = json?.token;
     if (!token) {
       console.error("Share API missing token:", { raw, json });
-      alert("Share failed: token missing.");
+      setToast("Share failed. Try again.");
       return;
     }
 
@@ -119,9 +121,14 @@ export default function ShareRecipientButton({
 
     try {
       const ok = await copyToClipboard(shareUrl);
-      if (ok) showCopied();
+      if (ok) {
+        showCopied();
+        setToast("Link copied");
+      } else {
+        setToast("Couldn’t share. Try again.");
+      }
     } catch {
-      // No-op; copying failed.
+      setToast("Couldn’t share. Try again.");
     }
 
     if (!isProbablyMobile()) {
@@ -130,6 +137,7 @@ export default function ShareRecipientButton({
   }
 
   return (
+    <>
     <button
       type="button"
       onClick={handleClick}
@@ -149,5 +157,8 @@ export default function ShareRecipientButton({
     >
       {copied ? "Link copied" : "Share this list"}
     </button>
+
+    <Toast message={toast} onClose={() => setToast("")} />
+    </>
   );
 }

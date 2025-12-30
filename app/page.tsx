@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 
@@ -8,24 +8,6 @@ export default function HomePage() {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<null | "sent" | "error">(null);
   const [errorMessage, setErrorMessage] = useState("");
-
-  useEffect(() => {
-    let mounted = true;
-
-    supabase.auth.getSession().then(({ data }) => {
-      if (!mounted) return;
-      if (data.session) window.location.href = "/gifts";
-    });
-
-    const { data: authSub } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_IN") window.location.href = "/gifts";
-    });
-
-    return () => {
-      mounted = false;
-      authSub?.subscription?.unsubscribe();
-    };
-  }, []);
 
   async function handleSendLink() {
     const nextEmail = email.trim();
