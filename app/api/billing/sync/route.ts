@@ -108,9 +108,10 @@ export async function POST(req: NextRequest) {
     const best = pickBestSubscription(subscriptions.data);
     const subscriptionStatus = best?.status ?? null;
     const isPro = isPaidStatus(subscriptionStatus);
+    const bestAny = best as unknown as { current_period_end?: number | null };
     const currentPeriodEnd =
-      typeof best?.current_period_end === "number"
-        ? new Date(best.current_period_end * 1000).toISOString()
+      typeof bestAny?.current_period_end === "number"
+        ? new Date(bestAny.current_period_end * 1000).toISOString()
         : null;
 
     const { error: updateError } = await supabaseAdmin
