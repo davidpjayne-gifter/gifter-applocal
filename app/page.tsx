@@ -15,13 +15,9 @@ export default function HomePage() {
   const [showBookmarkHelp, setShowBookmarkHelp] = useState(false);
 
   const origin = useMemo(() => {
-    if (typeof window === "undefined") return "";
-    return window.location.origin;
+    if (typeof window !== "undefined") return window.location.origin;
+    return process.env.NEXT_PUBLIC_APP_URL || "";
   }, []);
-
-  const appUrl = useMemo(() => {
-    return process.env.NEXT_PUBLIC_APP_URL || origin || "http://localhost:3000";
-  }, [origin]);
 
   useEffect(() => {
     let mounted = true;
@@ -66,13 +62,15 @@ export default function HomePage() {
     clearMessages();
     setLoading(true);
 
+    const emailRedirectOrigin =
+      typeof window !== "undefined"
+        ? window.location.origin
+        : process.env.NEXT_PUBLIC_APP_URL;
+    const emailRedirectTo = `${emailRedirectOrigin}/auth/callback`;
+
     const { error } = await supabase.auth.signInWithOtp({
       email: nextEmail,
-      options: {
-        emailRedirectTo: `${appUrl}/auth/callback?redirect=${encodeURIComponent(
-          redirectTo ?? "/gifts"
-        )}`,
-      },
+      options: { emailRedirectTo },
     });
 
     setLoading(false);
