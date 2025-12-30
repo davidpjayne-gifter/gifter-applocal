@@ -260,7 +260,7 @@ export default async function GiftsPage(props: {
             textAlign: "center",
           }}
         >
-          <div className="text-slate-900 dark:text-slate-100" style={{ fontWeight: 700 }}>
+          <div className="text-slate-900" style={{ fontWeight: 700 }}>
             Sign in to see your list
           </div>
           <div style={{ marginTop: 6, fontSize: 13 }}>
@@ -302,9 +302,9 @@ export default async function GiftsPage(props: {
   }
 
   const upgradedBanner = upgraded ? (
-    <div className="mb-4 rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-600/20 via-blue-600/10 to-blue-600/5 px-4 py-3 text-sm text-slate-900 dark:text-slate-100">
+    <div className="mb-4 rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-600/20 via-blue-600/10 to-blue-600/5 px-4 py-3 text-sm text-slate-900">
       <div className="font-extrabold">You’re Pro 🎉 Thanks for upgrading!</div>
-      <div className="mt-1 text-xs text-slate-700 dark:text-slate-300">
+      <div className="mt-1 text-xs text-slate-700">
         Your Pro plan is active. Enjoy unlimited GIFTing.
       </div>
     </div>
@@ -374,9 +374,9 @@ export default async function GiftsPage(props: {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-600/15 via-blue-600/10 to-blue-600/5 px-4 py-4 text-slate-900 dark:text-slate-100">
+        <div className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-600/15 via-blue-600/10 to-blue-600/5 px-4 py-4 text-slate-900">
           <div className="text-base font-black">Start your first season</div>
-          <div className="mt-1 text-sm text-slate-700 dark:text-slate-300">
+          <div className="mt-1 text-sm text-slate-700">
             Create a season to start adding gifts.
           </div>
         </div>
@@ -476,7 +476,9 @@ export default async function GiftsPage(props: {
         </div>
 
         <div style={{ marginTop: 6, display: "flex", justifyContent: "center" }}>
-          <span style={pillStyle()}>Season: {activeSeason.name}</span>
+          <span className="text-slate-900" style={pillStyle()}>
+            Season: {activeSeason.name}
+          </span>
         </div>
 
         <div style={{ marginTop: 8, display: "flex", justifyContent: "flex-end", gap: 8 }}>
@@ -499,11 +501,11 @@ export default async function GiftsPage(props: {
         </div>
 
         <div style={{ marginTop: 8, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-          <span style={{ ...pillStyle(), opacity: 0.9 }}>
+          <span className="text-slate-900" style={{ ...pillStyle(), opacity: 0.9 }}>
             Recipients: {sortedRecipientKeys.length}
           </span>
 
-          <span style={{ ...pillStyle(), borderColor: "#cbd5e1" }}>
+          <span className="text-slate-900" style={{ ...pillStyle(), borderColor: "#cbd5e1" }}>
             Total Spent: {money(totalSpent)}
           </span>
 
@@ -517,7 +519,7 @@ export default async function GiftsPage(props: {
       </div>
 
       {gifts.length === 0 ? (
-        <div className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-600/15 via-blue-600/10 to-blue-600/5 px-4 py-4 text-slate-900 dark:text-slate-100">
+        <div className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-600/15 via-blue-600/10 to-blue-600/5 px-4 py-4 text-slate-900">
           <div className="text-sm font-semibold text-center">
             😕 You don&apos;t have any GIFTs yet! Add one here
           </div>
@@ -564,7 +566,7 @@ export default async function GiftsPage(props: {
                       <div className="border-b border-blue-700/70 bg-gradient-to-br from-blue-600/25 via-blue-600/20 to-blue-600/10 px-4 py-4 sm:px-5">
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                           <div className="min-w-0">
-                            <h2 className="text-lg font-black text-slate-900 dark:text-slate-100 sm:text-xl">
+                            <h2 className="text-lg font-black text-slate-900 sm:text-xl">
                               {displayName}
                             </h2>
 
@@ -590,9 +592,7 @@ export default async function GiftsPage(props: {
                             </div>
                           </div>
 
-                          <div className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                            Ready ✅
-                          </div>
+                          <div className="text-sm font-semibold text-slate-700">Ready ✅</div>
                         </div>
                       </div>
                     </button>
@@ -609,7 +609,7 @@ export default async function GiftsPage(props: {
                 <div className="border-b border-blue-700/70 bg-gradient-to-br from-blue-600/25 via-blue-600/20 to-blue-600/10 px-4 py-4 sm:px-5">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
-                      <h2 className="text-lg font-black text-slate-900 dark:text-slate-100 sm:text-xl">
+                      <h2 className="text-lg font-black text-slate-900 sm:text-xl">
                         {displayName}
                       </h2>
 

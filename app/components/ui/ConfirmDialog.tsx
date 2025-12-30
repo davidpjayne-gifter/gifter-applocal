@@ -98,10 +98,7 @@ export default function ConfirmDialog({
         aria-modal="true"
         aria-labelledby="confirm-dialog-title"
       >
-        <h2
-          id="confirm-dialog-title"
-          className="text-lg font-bold text-slate-900 dark:text-slate-100"
-        >
+        <h2 id="confirm-dialog-title" className="text-lg font-bold text-slate-900">
           {title}
         </h2>
         {description && <p className="mt-2 text-sm text-slate-600">{description}</p>}
@@ -112,7 +109,7 @@ export default function ConfirmDialog({
             type="button"
             onClick={onCancel}
             disabled={loading}
-            className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:bg-slate-100 dark:border-zinc-800 dark:text-slate-300 dark:disabled:bg-zinc-900"
+            className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:bg-slate-100 dark:border-zinc-800 dark:disabled:bg-zinc-900"
           >
             {cancelText}
           </button>

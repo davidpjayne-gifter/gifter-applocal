@@ -112,6 +112,7 @@ export default function SeasonBudgetPill({ seasonId, totalSpent, initialBudget }
             }
             setEditing(true);
           }}
+          className="text-slate-900"
           style={{
             padding: "4px 10px",
             borderRadius: 999,
@@ -128,6 +129,7 @@ export default function SeasonBudgetPill({ seasonId, totalSpent, initialBudget }
         </button>
       ) : (
         <div
+          className="text-slate-900"
           style={{
             padding: "4px 10px",
             borderRadius: 999,

@@ -67,24 +67,24 @@ export default function PricingPage() {
       </p>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-          <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Free</h2>
-          <div className="mt-2 text-2xl font-black text-slate-900 dark:text-slate-100">$0</div>
-          <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-zinc-800">
+          <h2 className="text-lg font-bold text-slate-900">Free</h2>
+          <div className="mt-2 text-2xl font-black text-slate-900">$0</div>
+          <p className="mt-3 text-sm text-slate-600">
             Free includes up to 2 people + 3 gifts per season.
           </p>
-          <ul className="mt-4 space-y-2 text-sm text-slate-700 dark:text-slate-300">
+          <ul className="mt-4 space-y-2 text-sm text-slate-700">
             <li>Up to 2 people per season</li>
             <li>Up to 3 gifts per season</li>
             <li>Basic tracking + wrapping</li>
           </ul>
         </section>
 
-        <section className="rounded-2xl border border-blue-200 bg-white p-6 shadow-sm dark:border-blue-900 dark:bg-zinc-950">
-          <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Pro</h2>
-          <div className="mt-2 text-3xl font-black text-slate-900 dark:text-slate-100">$9</div>
-          <div className="text-sm font-semibold text-slate-600 dark:text-slate-300">per year</div>
-          <ul className="mt-4 space-y-2 text-sm text-slate-700 dark:text-slate-300">
+        <section className="rounded-2xl border border-blue-200 bg-white p-6 shadow-sm dark:border-blue-900">
+          <h2 className="text-lg font-bold text-slate-900">Pro</h2>
+          <div className="mt-2 text-3xl font-black text-slate-900">$9</div>
+          <div className="text-sm font-semibold text-slate-600">per year</div>
+          <ul className="mt-4 space-y-2 text-sm text-slate-700">
             {features.map((feature) => (
               <li key={feature}>{feature}</li>
             ))}

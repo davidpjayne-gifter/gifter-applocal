@@ -19,7 +19,7 @@ function variantStyles(variant: ToastVariant) {
   if (variant === "error") {
     return "border-rose-200 bg-rose-50 text-rose-900";
   }
-  return "border-slate-200 bg-slate-50 text-slate-900 dark:border-zinc-800 dark:bg-zinc-900 dark:text-slate-100";
+  return "border-slate-200 bg-slate-50 text-slate-900 dark:border-zinc-800";
 }
 
 function variantLabel(variant: ToastVariant) {
