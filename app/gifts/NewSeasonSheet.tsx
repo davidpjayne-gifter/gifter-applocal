@@ -128,10 +128,10 @@ export default function NewSeasonSheet({ listId }: { listId: string }) {
         }}
       >
         <div
+          className="bg-white text-gray-900"
           style={{
             maxWidth: 520,
             margin: "0 auto",
-            background: "#fff",
             borderTopLeftRadius: 26,
             borderTopRightRadius: 26,
             border: "1px solid #e2e8f0",
@@ -140,7 +140,9 @@ export default function NewSeasonSheet({ listId }: { listId: string }) {
           }}
         >
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <div style={{ fontSize: 16, fontWeight: 900 }}>Start a new season</div>
+            <div className="text-gray-900" style={{ fontSize: 16, fontWeight: 900 }}>
+              Start a new season
+            </div>
             <button
               onClick={() => setOpen(false)}
               disabled={submitting}
@@ -160,32 +162,36 @@ export default function NewSeasonSheet({ listId }: { listId: string }) {
           {/* Presets */}
           <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
             {PRESETS.map((p) => (
-              <button
-                key={p.label}
-                onClick={() => setName(p.example)}
-                type="button"
-                style={{
-                  padding: "8px 10px",
-                  borderRadius: 999,
-                  border: "1px solid #e2e8f0",
-                  background: "#fff",
-                  fontWeight: 900,
-                  fontSize: 12,
-                  cursor: "pointer",
-                }}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
+                <button
+                  key={p.label}
+                  onClick={() => setName(p.example)}
+                  type="button"
+                  className="text-gray-900"
+                  style={{
+                    padding: "8px 10px",
+                    borderRadius: 999,
+                    border: "1px solid #e2e8f0",
+                    background: "#fff",
+                    fontWeight: 900,
+                    fontSize: 12,
+                    cursor: "pointer",
+                  }}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
 
-          {/* Name input */}
-          <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 6 }}>
-            <div style={{ fontSize: 12, fontWeight: 900, color: "#334155" }}>Season name</div>
+            {/* Name input */}
+            <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 6 }}>
+            <div className="text-gray-900" style={{ fontSize: 12, fontWeight: 900 }}>
+              Season name
+            </div>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g., Mom’s Birthday, Valentine’s, Christmas 2026"
+              className="text-gray-900 placeholder:text-gray-400"
               style={{
                 padding: "12px 12px",
                 borderRadius: 14,
@@ -215,7 +221,10 @@ export default function NewSeasonSheet({ listId }: { listId: string }) {
             {submitting ? "Starting…" : "Start season"}
           </button>
 
-          <div style={{ marginTop: 10, fontSize: 11, color: "#94a3b8", textAlign: "center" }}>
+          <div
+            className="text-gray-500"
+            style={{ marginTop: 10, fontSize: 11, textAlign: "center" }}
+          >
             This will archive your current season and start a fresh one.
           </div>
         </div>
