@@ -252,10 +252,43 @@ export default async function GiftsPage(props: {
             borderRadius: 14,
             padding: 16,
             textAlign: "center",
-            color: "#64748b",
+            color: "#475569",
           }}
         >
-          Sign in to view your gifts.
+          <div style={{ fontWeight: 700, color: "#0f172a" }}>Sign in to see your list</div>
+          <div style={{ marginTop: 6, fontSize: 13 }}>
+            GIFTer is a web app. We’ll email you a sign-in link so you can pick up on any device.
+          </div>
+          <div style={{ marginTop: 12, display: "flex", justifyContent: "center", gap: 10 }}>
+            <Link
+              href="/login?next=/gifts"
+              style={{
+                padding: "10px 14px",
+                borderRadius: 12,
+                border: "1px solid #2563eb",
+                background: "#2563eb",
+                color: "#fff",
+                fontWeight: 900,
+                textDecoration: "none",
+              }}
+            >
+              Sign in with email
+            </Link>
+            <Link
+              href="/"
+              style={{
+                padding: "10px 14px",
+                borderRadius: 12,
+                border: "1px solid #cbd5e1",
+                background: "#fff",
+                color: "#0f172a",
+                fontWeight: 800,
+                textDecoration: "none",
+              }}
+            >
+              Back to home
+            </Link>
+          </div>
         </div>
       </main>
     );

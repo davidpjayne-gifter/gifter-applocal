@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { safeNext } from "@/lib/safeNext";
 
 export default function AuthCallbackPage() {
   const router = useRouter();
@@ -11,6 +12,8 @@ export default function AuthCallbackPage() {
     let isMounted = true;
 
     async function completeSignIn() {
+      const searchParams = new URLSearchParams(window.location.search);
+      const nextPath = safeNext(searchParams.get("next") ?? undefined);
       const hashParams = new URLSearchParams(window.location.hash.slice(1));
       const accessToken = hashParams.get("access_token");
       const refreshToken = hashParams.get("refresh_token");
@@ -22,24 +25,23 @@ export default function AuthCallbackPage() {
         });
 
         if (!error && isMounted) {
-          router.replace("/gifts");
+          router.replace(nextPath);
           return;
         }
       }
 
-      const urlParams = new URLSearchParams(window.location.search);
-      const code = urlParams.get("code");
+      const code = searchParams.get("code");
 
       if (code) {
         const { error } = await supabase.auth.exchangeCodeForSession(code);
         if (!error && isMounted) {
-          router.replace("/gifts");
+          router.replace(nextPath);
           return;
         }
       }
 
       if (isMounted) {
-        router.replace("/gifts");
+        router.replace(`/login?next=${encodeURIComponent(nextPath)}`);
       }
     }
 
