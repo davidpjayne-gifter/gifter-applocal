@@ -222,11 +222,13 @@ async function reopenRecipient(formData: FormData) {
 /* ---------------- PAGE ---------------- */
 
 export default async function GiftsPage(props: {
-  searchParams?: Promise<{ season?: string }> | { season?: string };
+  searchParams?: Promise<{ season?: string; upgraded?: string }> | { season?: string; upgraded?: string };
 }) {
   const searchParams = props.searchParams ? await props.searchParams : undefined;
   const requestedSeasonId =
     typeof searchParams?.season === "string" ? searchParams.season.trim() : "";
+  const upgraded =
+    typeof searchParams?.upgraded === "string" ? searchParams.upgraded.trim() === "1" : false;
 
   const cookieStore = await cookies();
   const token = cookieStore.get("sb-access-token")?.value ?? null;
@@ -294,6 +296,13 @@ export default async function GiftsPage(props: {
     );
   }
 
+  const upgradedBanner = upgraded ? (
+    <div className="mb-4 rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-600/20 via-blue-600/10 to-blue-600/5 px-4 py-3 text-sm text-slate-900">
+      <div className="font-extrabold">You’re Pro 🎉 Thanks for upgrading!</div>
+      <div className="mt-1 text-xs text-slate-700">Your Pro plan is active. Enjoy unlimited GIFTing.</div>
+    </div>
+  ) : null;
+
   let listIdForClient = "";
 
   try {
@@ -302,6 +311,7 @@ export default async function GiftsPage(props: {
   } catch (err: any) {
     return (
       <main style={{ padding: 24, maxWidth: 520, margin: "0 auto" }}>
+        {upgradedBanner}
         <h1 style={{ fontSize: 22, fontWeight: 900 }}>My GIFTs</h1>
         <p style={{ color: "#b91c1c" }}>Failed to load your gift list.</p>
       </main>
@@ -317,6 +327,7 @@ export default async function GiftsPage(props: {
   if (seasonsErr) {
     return (
       <main style={{ padding: 24, maxWidth: 520, margin: "0 auto" }}>
+        {upgradedBanner}
         <h1 style={{ fontSize: 22, fontWeight: 900 }}>My GIFTs</h1>
         <p style={{ color: "#b91c1c" }}>Failed to load seasons.</p>
       </main>
@@ -333,6 +344,7 @@ export default async function GiftsPage(props: {
     return (
       <main style={{ padding: 16, maxWidth: 520, margin: "0 auto" }}>
         <SignInBanner />
+        {upgradedBanner}
         <div style={{ marginBottom: 14 }}>
           <div style={{ fontSize: 22, fontWeight: 900, textAlign: "center" }}>My GIFTs</div>
           <div style={{ marginTop: 8, display: "flex", justifyContent: "flex-end", gap: 8 }}>
@@ -434,6 +446,7 @@ export default async function GiftsPage(props: {
   return (
     <main style={{ padding: 16, maxWidth: 520, margin: "0 auto" }}>
       <SignInBanner />
+      {upgradedBanner}
       <div style={{ marginBottom: 14 }}>
         <div style={{ fontSize: 22, fontWeight: 900, textAlign: "center" }}>My GIFTs</div>
 

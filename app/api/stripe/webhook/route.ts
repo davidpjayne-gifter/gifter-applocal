@@ -46,7 +46,7 @@ async function handleCheckoutCompleted(params: {
 
   const userId =
     (typeof session.client_reference_id === "string" && session.client_reference_id) ||
-    (typeof session.metadata?.userId === "string" && session.metadata.userId) ||
+    (typeof session.metadata?.supabase_user_id === "string" && session.metadata.supabase_user_id) ||
     null;
 
   if (!userId) {
@@ -89,6 +89,7 @@ async function handleCheckoutCompleted(params: {
       subscription_status: subscriptionStatus ?? "active",
       is_pro: isProStatus(subscriptionStatus ?? "active"),
       current_period_end: currentPeriodEnd,
+      plan: "yearly",
     })
     .eq("id", userId);
 
@@ -134,6 +135,7 @@ async function handleSubscriptionLifecycle(params: {
         subscription_status: subscription.status ?? "canceled",
         is_pro: false,
         pro_expires_at: null,
+        plan: null,
       })
       .eq("id", userId);
 
@@ -155,6 +157,7 @@ async function handleSubscriptionLifecycle(params: {
         typeof (subscription as any).current_period_end === "number"
           ? new Date((subscription as any).current_period_end * 1000).toISOString()
           : null,
+      plan: isProStatus(subscription.status) ? "yearly" : null,
     })
     .eq("id", userId);
 
@@ -268,6 +271,16 @@ export async function POST(req: NextRequest) {
       stripeSubscriptionId = subscription.id ?? null;
     }
 
+    if (eventType === "invoice.payment_failed") {
+      const invoice = obj as Stripe.Invoice;
+      stripeCustomerId =
+        typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id ?? null;
+      stripeSubscriptionId =
+        typeof invoice.subscription === "string"
+          ? invoice.subscription
+          : invoice.subscription?.id ?? null;
+    }
+
     if (!userId && (stripeCustomerId || stripeSubscriptionId)) {
       userId = await resolveProfileId({
         stripeCustomerId,
@@ -275,20 +288,33 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    if (
-      !handledCheckoutSession &&
-      userId &&
-      (stripeCustomerId || stripeSubscriptionId || subscription)
-    ) {
-      const response = await handleSubscriptionLifecycle({
-        eventType,
-        subscription: subscription as Stripe.Subscription,
-        stripeCustomerId,
-        stripeSubscriptionId,
-        userId,
-      });
+    if (!handledCheckoutSession && userId) {
+      if (eventType === "invoice.payment_failed") {
+        const { error } = await supabaseAdmin
+          .from("profiles")
+          .update({
+            stripe_customer_id: stripeCustomerId ?? undefined,
+            stripe_subscription_id: stripeSubscriptionId ?? undefined,
+            subscription_status: "past_due",
+            is_pro: false,
+            plan: null,
+          })
+          .eq("id", userId);
 
-      if (response) return response;
+        if (error) {
+          return NextResponse.json({ error: "Failed to update profile" }, { status: 500 });
+        }
+      } else if (stripeCustomerId || stripeSubscriptionId || subscription) {
+        const response = await handleSubscriptionLifecycle({
+          eventType,
+          subscription: subscription as Stripe.Subscription,
+          stripeCustomerId,
+          stripeSubscriptionId,
+          userId,
+        });
+
+        if (response) return response;
+      }
     }
 
     const { error: insertError } = await supabaseAdmin.from("billing_events").insert({

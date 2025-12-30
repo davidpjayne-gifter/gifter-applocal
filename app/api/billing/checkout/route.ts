@@ -80,10 +80,10 @@ export async function POST(req: NextRequest) {
       mode: "subscription" as const,
       allow_promotion_codes: true,
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${origin}/billing/success`,
+      success_url: `${origin}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/gifts`,
       client_reference_id: userId,
-      metadata: { userId, supabase_user_id: userId },
+      metadata: { supabase_user_id: userId },
     };
 
     const storedCustomerId = profile?.stripe_customer_id ?? null;
