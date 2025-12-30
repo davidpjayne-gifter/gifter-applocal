@@ -49,7 +49,7 @@ export async function POST(req: Request) {
   const signature = req.headers.get("stripe-signature") || "";
   const rawBody = await req.text();
 
-  const stripe = new Stripe(stripeSecret, { apiVersion: "2024-11-20" });
+  const stripe = new Stripe(stripeSecret);
 
   let event: Stripe.Event;
   try {
