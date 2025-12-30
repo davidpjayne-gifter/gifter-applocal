@@ -211,7 +211,7 @@ export default async function GiftsPage() {
   if (seasonErr || !activeSeason?.id) {
     return (
       <main style={{ padding: 24, maxWidth: 520, margin: "0 auto" }}>
-        <h1 style={{ fontSize: 22, fontWeight: 900 }}>My Gifts</h1>
+        <h1 style={{ fontSize: 22, fontWeight: 900 }}>My GIFTs</h1>
         <p>No active season.</p>
       </main>
     );
@@ -260,13 +260,15 @@ export default async function GiftsPage() {
   const listIdForClient = String(activeSeason.list_id ?? "").trim();
 
   return (
-    <main style={{ padding: 16, maxWidth: 520, margin: "0 auto" }}>
+      <main style={{ padding: 16, maxWidth: 520, margin: "0 auto" }}>
       <div style={{ marginBottom: 14 }}>
-        <div style={{ fontSize: 22, fontWeight: 900 }}>My Gifts</div>
+        <div style={{ fontSize: 22, fontWeight: 900, textAlign: "center" }}>My GIFTs</div>
 
-        <div style={{ marginTop: 6, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+        <div style={{ marginTop: 6, display: "flex", justifyContent: "center" }}>
           <span style={pillStyle()}>Season: {activeSeason.name}</span>
+        </div>
 
+        <div style={{ marginTop: 8, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
           <span style={{ ...pillStyle(), opacity: 0.9 }}>
             Recipients: {sortedRecipientKeys.length}
           </span>
@@ -282,7 +284,6 @@ export default async function GiftsPage() {
           />
         </div>
 
-        <NewSeasonSheet listId={listIdForClient} />
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -461,6 +462,10 @@ export default async function GiftsPage() {
       {/* ✅ Keep bottom “unassigned” add too */}
       <div style={{ marginTop: 16 }}>
         <RefreshAfterAdd listId={listIdForClient} seasonId={seasonIdForClient} recipientName={null} />
+      </div>
+
+      <div style={{ marginTop: 16 }}>
+        <NewSeasonSheet listId={listIdForClient} />
       </div>
     </main>
   );

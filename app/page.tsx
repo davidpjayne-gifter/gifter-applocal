@@ -2,8 +2,8 @@ import Link from "next/link";
 
 export default function HomePage() {
   return (
-    <main style={{ padding: 24, maxWidth: 520, margin: "0 auto" }}>
-      <h1 style={{ fontSize: 24, fontWeight: 900, marginBottom: 10 }}>Gifter</h1>
+    <main style={{ padding: 24, maxWidth: 520, margin: "0 auto", textAlign: "center" }}>
+      <h1 style={{ fontSize: 24, fontWeight: 900, marginBottom: 10 }}>Welcome to GIFTer!</h1>
       <p style={{ opacity: 0.8, marginBottom: 16 }}>Manage gifts, shipping, and wrapping status.</p>
 
       <Link
@@ -17,7 +17,7 @@ export default function HomePage() {
           textDecoration: "none",
         }}
       >
-        Go to Gifts →
+        My GIFTs →
       </Link>
     </main>
   );
