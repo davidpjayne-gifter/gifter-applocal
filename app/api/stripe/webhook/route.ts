@@ -129,9 +129,10 @@ export async function POST(req: Request) {
             stripe_subscription_id: stripeSubscriptionId ?? undefined,
             subscription_status: subscription.status ?? null,
             is_pro: isProStatus(subscription.status),
-            pro_expires_at: subscription.current_period_end
-              ? new Date(subscription.current_period_end * 1000).toISOString()
-              : null,
+            pro_expires_at:
+              typeof (subscription as any).current_period_end === "number"
+                ? new Date((subscription as any).current_period_end * 1000).toISOString()
+                : null,
           })
           .eq("id", userId);
 
