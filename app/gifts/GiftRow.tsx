@@ -157,7 +157,9 @@ export default function GiftRow({ gift, updateGiftStatus }: Props) {
     <li style={{ padding: "12px 0", borderTop: "1px solid #f1f5f9" }}>
       <div style={{ position: "relative", paddingBottom: 22 }}>
         {!isEditing ? (
-          <div style={{ fontWeight: 800 }}>{localGift.title}</div>
+          <div className="text-slate-900" style={{ fontWeight: 800 }}>
+            {localGift.title}
+          </div>
         ) : (
           <div className="flex flex-col gap-2">
             <label className="text-xs font-semibold text-slate-600">Title</label>
@@ -229,7 +231,7 @@ export default function GiftRow({ gift, updateGiftStatus }: Props) {
         )}
 
         {!isEditing && (
-          <div style={{ fontSize: 12, marginTop: 6, opacity: 0.75 }}>
+          <div className="text-slate-900" style={{ fontSize: 12, marginTop: 6 }}>
             Status: {isWrapped ? "Wrapped" : statusLabel(shipping)}
           </div>
         )}

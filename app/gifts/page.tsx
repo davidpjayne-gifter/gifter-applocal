@@ -451,72 +451,55 @@ export default async function GiftsPage(props: {
   const seasonIdForClient = String(activeSeason.id ?? "").trim();
 
   return (
-    <main style={{ padding: 16, maxWidth: 520, margin: "0 auto" }}>
-      <SignInBanner />
-      {upgradedBanner}
-      <SeasonalGiftIcon />
-      <div style={{ marginBottom: 14 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ flex: 1 }} />
-          <div style={{ fontSize: 22, fontWeight: 900, textAlign: "center", flex: 1 }}>
-            My GIFTs
+    <>
+      <main className="pb-24" style={{ padding: 16, maxWidth: 520, margin: "0 auto" }}>
+        <SignInBanner />
+        {upgradedBanner}
+        <SeasonalGiftIcon />
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ flex: 1 }} />
+            <div style={{ fontSize: 22, fontWeight: 900, textAlign: "center", flex: 1 }}>
+              My GIFTs
+            </div>
+            <div style={{ flex: 1, display: "flex", justifyContent: "flex-end" }}>
+              {userEmail === "davidpjayne@gmail.com" && (
+                <a
+                  href="/api/debug/subscription"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs underline opacity-70 hover:opacity-100"
+                >
+                  Debug
+                </a>
+              )}
+            </div>
           </div>
-          <div style={{ flex: 1, display: "flex", justifyContent: "flex-end" }}>
-            {userEmail === "davidpjayne@gmail.com" && (
-              <a
-                href="/api/debug/subscription"
-                target="_blank"
-                rel="noreferrer"
-                className="text-xs underline opacity-70 hover:opacity-100"
-              >
-                Debug
-              </a>
-            )}
+
+          <div className="mt-3 flex w-full flex-col items-center gap-3">
+            <div className="flex w-full justify-center">
+              <span className="text-slate-900" style={pillStyle()}>
+                Season: {activeSeason.name}
+              </span>
+            </div>
+            <div className="flex w-full justify-center">
+              <span className="text-slate-900" style={{ ...pillStyle(), opacity: 0.9 }}>
+                GIFTee: {sortedRecipientKeys.length}
+              </span>
+            </div>
+            <div className="flex w-full flex-wrap justify-center gap-2">
+              <span className="text-slate-900" style={{ ...pillStyle(), borderColor: "#cbd5e1" }}>
+                Total Spent: {money(totalSpent)}
+              </span>
+
+              <SeasonBudgetPill
+                seasonId={seasonIdForClient}
+                totalSpent={totalSpent}
+                initialBudget={activeSeason.budget ?? null}
+              />
+            </div>
           </div>
         </div>
-
-        <div style={{ marginTop: 6, display: "flex", justifyContent: "center" }}>
-          <span className="text-slate-900" style={pillStyle()}>
-            Season: {activeSeason.name}
-          </span>
-        </div>
-
-        <div style={{ marginTop: 8, display: "flex", justifyContent: "flex-end", gap: 8 }}>
-          <Link
-            href="/settings"
-            style={{
-              padding: "6px 10px",
-              borderRadius: 10,
-              border: "1px solid #cbd5e1",
-              background: "#fff",
-              fontSize: 12,
-              fontWeight: 800,
-              color: "#334155",
-              textDecoration: "none",
-            }}
-          >
-            Settings
-          </Link>
-          <SignOutButton />
-        </div>
-
-        <div style={{ marginTop: 8, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-          <span className="text-slate-900" style={{ ...pillStyle(), opacity: 0.9 }}>
-            Recipients: {sortedRecipientKeys.length}
-          </span>
-
-          <span className="text-slate-900" style={{ ...pillStyle(), borderColor: "#cbd5e1" }}>
-            Total Spent: {money(totalSpent)}
-          </span>
-
-          <SeasonBudgetPill
-            seasonId={seasonIdForClient}
-            totalSpent={totalSpent}
-            initialBudget={activeSeason.budget ?? null}
-          />
-        </div>
-
-      </div>
 
       {gifts.length === 0 ? (
         <div className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-600/15 via-blue-600/10 to-blue-600/5 px-4 py-4 text-slate-900">
@@ -705,6 +688,23 @@ export default async function GiftsPage(props: {
       <div style={{ marginTop: 16 }}>
         <NewSeasonSheet listId={listIdForClient} />
       </div>
-    </main>
+      </main>
+
+      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200 bg-white/90 backdrop-blur sm:static sm:mt-4 sm:border sm:bg-white sm:backdrop-blur-0">
+        <div className="mx-auto w-full max-w-3xl px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-3">
+          <div className="flex gap-3">
+            <Link
+              href="/settings"
+              className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900"
+            >
+              Settings
+            </Link>
+            <div className="flex-1">
+              <SignOutButton className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
   );
 }

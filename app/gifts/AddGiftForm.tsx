@@ -172,7 +172,7 @@ export default function AddGiftForm({
           style={{
             position: "fixed",
             right: 18,
-            bottom: 18,
+            bottom: "calc(5rem + env(safe-area-inset-bottom))",
             width: 54,
             height: 54,
             borderRadius: 18,
@@ -183,7 +183,7 @@ export default function AddGiftForm({
             fontSize: 24,
             boxShadow: "0 10px 30px rgba(0,0,0,0.18)",
             cursor: "pointer",
-            zIndex: 50,
+            zIndex: 60,
           }}
           aria-label="Add gift"
         >

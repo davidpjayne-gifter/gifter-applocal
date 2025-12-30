@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
-export default function SignOutButton() {
+export default function SignOutButton({ className }: { className?: string }) {
   const [hasSession, setHasSession] = useState(false);
 
   useEffect(() => {
@@ -36,16 +36,21 @@ export default function SignOutButton() {
     <button
       type="button"
       onClick={handleSignOut}
-      style={{
-        padding: "6px 10px",
-        borderRadius: 10,
-        border: "1px solid #cbd5e1",
-        background: "#fff",
-        fontSize: 12,
-        fontWeight: 800,
-        color: "#334155",
-        cursor: "pointer",
-      }}
+      className={className}
+      style={
+        className
+          ? undefined
+          : {
+              padding: "6px 10px",
+              borderRadius: 10,
+              border: "1px solid #cbd5e1",
+              background: "#fff",
+              fontSize: 12,
+              fontWeight: 800,
+              color: "#334155",
+              cursor: "pointer",
+            }
+      }
     >
       Sign out
     </button>
