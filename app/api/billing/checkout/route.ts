@@ -32,13 +32,12 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const stripeSecret = process.env.STRIPE_SECRET_KEY;
-    const priceId = process.env.STRIPE_PRICE_ID_YEARLY;
+    const priceId = process.env.STRIPE_PRICE_ID;
 
     if (!stripeSecret || !priceId) {
       return NextResponse.json(
         {
-          error:
-            "Stripe is not configured. Missing STRIPE_SECRET_KEY or STRIPE_PRICE_ID_YEARLY.",
+          error: "Stripe is not configured. Missing STRIPE_SECRET_KEY or STRIPE_PRICE_ID.",
         },
         { status: 500 }
       );
