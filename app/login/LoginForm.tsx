@@ -81,7 +81,9 @@ export default function LoginForm({ nextPath }: LoginFormProps) {
 
   const labelBase = "text-xs font-semibold text-slate-700 dark:text-slate-200";
   const selectBase =
-    `${inputBase} dark:bg-white dark:text-slate-900 dark:border-slate-200`;
+    "w-full rounded-xl border bg-white px-4 py-3 text-base shadow-sm " +
+    "focus:outline-none focus:ring-2 focus:ring-blue-500 " +
+    "border-slate-200 appearance-none";
 
   return (
     <form
@@ -113,10 +115,12 @@ export default function LoginForm({ nextPath }: LoginFormProps) {
           id="gender"
           value={gender}
           onChange={(event) => setGender(event.target.value)}
-          className={selectBase}
+          className={`${selectBase} ${gender ? "text-gray-900" : "text-gray-400"}`}
           required
         >
-          <option value="">Select gender</option>
+          <option value="" disabled>
+            Select gender
+          </option>
           <option value="male">Male</option>
           <option value="female">Female</option>
           <option value="prefer_not_to_say">Prefer not to say</option>
@@ -132,10 +136,12 @@ export default function LoginForm({ nextPath }: LoginFormProps) {
           id="ageRange"
           value={ageRange}
           onChange={(event) => setAgeRange(event.target.value)}
-          className={selectBase}
+          className={`${selectBase} ${ageRange ? "text-gray-900" : "text-gray-400"}`}
           required
         >
-          <option value="">Select age range</option>
+          <option value="" disabled>
+            Select age range
+          </option>
           {AGE_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
               {opt.label}
