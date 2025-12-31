@@ -125,7 +125,12 @@ export default async function SharePage(props: {
         }}
       >
         <div style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: 20, fontWeight: 900, lineHeight: 1.15 }}>Shared list</div>
+          <div
+            className="text-black"
+            style={{ fontSize: 20, fontWeight: 900, lineHeight: 1.15 }}
+          >
+            Shared list
+          </div>
           <div style={{ marginTop: 4, fontSize: 12, color: "#64748b" }}>
             (all GIFTees)
           </div>
@@ -178,7 +183,9 @@ export default async function SharePage(props: {
           </div>
         )}
 
-        <CopyLinkButton sharePath={sharePath} />
+        <div className="hidden sm:flex sm:justify-center">
+          <CopyLinkButton sharePath={sharePath} />
+        </div>
 
         <div
           style={{
@@ -247,7 +254,9 @@ export default async function SharePage(props: {
         </div>
       )}
 
-      <CopyLinkButton sharePath={sharePath} />
+      <div className="hidden sm:flex sm:justify-center">
+        <CopyLinkButton sharePath={sharePath} />
+      </div>
 
       <div
         style={{
