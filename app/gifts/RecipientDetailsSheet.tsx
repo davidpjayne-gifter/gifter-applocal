@@ -62,7 +62,7 @@ export default function RecipientDetailsSheet({
       <button
         type="button"
         onClick={handleOpen}
-        className="text-xs font-semibold text-slate-600 underline underline-offset-2"
+        className="text-xs font-semibold text-slate-700 underline underline-offset-2 hover:text-slate-900"
       >
         Edit details
       </button>
@@ -74,7 +74,7 @@ export default function RecipientDetailsSheet({
       <button
         type="button"
         onClick={handleOpen}
-        className="text-xs font-semibold text-slate-600 underline underline-offset-2"
+        className="text-xs font-semibold text-slate-700 underline underline-offset-2 hover:text-slate-900"
       >
         Edit details
       </button>

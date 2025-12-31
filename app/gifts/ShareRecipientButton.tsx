@@ -5,11 +5,17 @@ import Toast from "@/app/components/Toast";
 import { supabase } from "@/lib/supabase";
 
 export default function ShareRecipientButton({
+  scope,
   recipientKey,
+  recipientName,
   listId,
+  seasonId,
 }: {
-  recipientKey: string;
+  scope: "list" | "giftee";
+  recipientKey?: string;
+  recipientName?: string | null;
   listId: string;
+  seasonId: string;
 }) {
   const [copied, setCopied] = useState(false);
   const [toast, setToast] = useState("");
@@ -65,14 +71,20 @@ export default function ShareRecipientButton({
   async function handleClick() {
     const rk = (recipientKey || "").trim().toLowerCase();
     const lid = (listId || "").trim();
+    const sid = (seasonId || "").trim();
 
-    if (!rk) {
+    if (scope === "giftee" && !rk) {
       console.error("ShareRecipientButton missing recipientKey prop:", recipientKey);
       setToast("Share failed. Try again.");
       return;
     }
     if (!lid) {
       console.error("ShareRecipientButton missing listId prop:", listId);
+      setToast("Share failed. Try again.");
+      return;
+    }
+    if (!sid) {
+      console.error("ShareRecipientButton missing seasonId prop:", seasonId);
       setToast("Share failed. Try again.");
       return;
     }
@@ -91,7 +103,12 @@ export default function ShareRecipientButton({
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
       },
-      body: JSON.stringify({ recipientKey: rk, listId: lid }),
+      body: JSON.stringify({
+        scope,
+        seasonId: sid,
+        recipientKey: scope === "giftee" ? rk : undefined,
+        listId: lid,
+      }),
     });
 
     const raw = await res.text();
@@ -109,20 +126,27 @@ export default function ShareRecipientButton({
       return;
     }
 
-    const shareToken = json?.token;
-    if (!shareToken) {
-      console.error("Share API missing token:", { raw, json });
+    const shareUrl = json?.url
+      ? String(json.url)
+      : json?.token
+        ? `${window.location.origin}/share/${json.token}`
+        : "";
+    if (!shareUrl) {
+      console.error("Share API missing url:", { raw, json });
       setToast("Share failed. Try again.");
       return;
     }
 
-    const shareUrl = `${window.location.origin}/share/${shareToken}`;
+    const shareText =
+      scope === "giftee"
+        ? `Share ${recipientName || "GIFTEE"}'s gifts`
+        : "Share entire list";
 
     if (navigator?.share) {
       try {
         await navigator.share({
           title: "Gift list",
-          text: "Share this list",
+          text: shareText,
           url: shareUrl,
         });
         return;
@@ -144,7 +168,7 @@ export default function ShareRecipientButton({
     }
 
     if (!isProbablyMobile()) {
-      window.open(`/share/${shareToken}`, "_blank");
+      window.open(shareUrl, "_blank");
     }
   }
 
@@ -167,7 +191,11 @@ export default function ShareRecipientButton({
         zIndex: 1,
       }}
     >
-      {copied ? "Link copied" : "Share this list"}
+      {copied
+        ? "Link copied"
+        : scope === "giftee"
+          ? `Share ${recipientName || "GIFTEE"}'s gifts`
+          : "Share entire list"}
     </button>
 
     <Toast message={toast} onClose={() => setToast("")} />

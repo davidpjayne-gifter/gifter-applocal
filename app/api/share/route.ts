@@ -23,12 +23,21 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json().catch(() => ({}));
-
+    const scope = body?.scope === "giftee" ? "giftee" : "list";
+    const season_id = typeof body?.seasonId === "string" ? body.seasonId.trim() : "";
     const recipient_key =
       (typeof body?.recipientKey === "string" ? body.recipientKey : "").trim().toLowerCase();
 
-    if (!recipient_key) {
+    if (!season_id) {
+      return NextResponse.json({ error: "Missing seasonId" }, { status: 400 });
+    }
+
+    if (scope === "giftee" && !recipient_key) {
       return NextResponse.json({ error: "Missing recipientKey" }, { status: 400 });
+    }
+
+    if (scope === "list" && recipient_key) {
+      return NextResponse.json({ error: "recipientKey is not allowed for list scope" }, { status: 400 });
     }
 
     const currentList = await getOrCreateCurrentList(userData.user.id);
@@ -37,13 +46,21 @@ export async function POST(req: NextRequest) {
     const share_token = crypto.randomBytes(16).toString("hex");
     const created_at = new Date().toISOString();
 
-    // 1) Check if a share already exists for this (list_id, recipient_key)
-    const { data: existing, error: findError } = await supabaseAdmin
+    // 1) Check if a share already exists for this scope
+    let findQuery = supabaseAdmin
       .from("gift_shares")
       .select("id")
       .eq("list_id", list_id)
-      .eq("recipient_key", recipient_key)
-      .maybeSingle();
+      .eq("season_id", season_id)
+      .eq("scope", scope);
+
+    if (scope === "giftee") {
+      findQuery = findQuery.eq("recipient_key", recipient_key);
+    } else {
+      findQuery = findQuery.is("recipient_key", null);
+    }
+
+    const { data: existing, error: findError } = await findQuery.maybeSingle();
 
     if (findError) {
       console.error("gift_shares lookup error:", findError);
@@ -78,12 +95,16 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      return NextResponse.json({ token: share_token });
+      const origin = req.headers.get("origin") || "";
+      const url = origin ? `${origin}/share/${share_token}` : `/share/${share_token}`;
+      return NextResponse.json({ url, token: share_token });
     }
 
     const { error: insertError } = await supabaseAdmin.from("gift_shares").insert({
       list_id,
-      recipient_key,
+      season_id,
+      scope,
+      recipient_key: scope === "giftee" ? recipient_key : null,
       share_token,
       created_at,
     });
@@ -101,7 +122,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    return NextResponse.json({ token: share_token });
+    const origin = req.headers.get("origin") || "";
+    const url = origin ? `${origin}/share/${share_token}` : `/share/${share_token}`;
+    return NextResponse.json({ url, token: share_token });
   } catch (err) {
     console.error("POST /api/share error:", err);
     return NextResponse.json({ error: "Unexpected error creating share link" }, { status: 500 });

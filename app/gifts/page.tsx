@@ -767,7 +767,13 @@ export default async function GiftsPage(props: {
 
                   {list.length > 0 && (
                     <div style={bottomActionRowStyle()}>
-                      <ShareRecipientButton recipientKey={key} listId={listIdForClient} />
+                      <ShareRecipientButton
+                        scope="giftee"
+                        recipientKey={key}
+                        recipientName={displayName}
+                        listId={listIdForClient}
+                        seasonId={seasonIdForClient}
+                      />
                     </div>
                   )}
                 </div>
@@ -795,7 +801,11 @@ export default async function GiftsPage(props: {
 
       {sortedRecipientKeys.length > 0 && (
         <div className="mt-4 flex justify-center">
-          <ShareRecipientButton recipientKey={sortedRecipientKeys[0]} listId={listIdForClient} />
+          <ShareRecipientButton
+            scope="list"
+            listId={listIdForClient}
+            seasonId={seasonIdForClient}
+          />
         </div>
       )}
 
