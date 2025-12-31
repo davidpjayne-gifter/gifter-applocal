@@ -205,6 +205,8 @@ export default function AddGiftForm({
         cost: costNumber,
         list_id: listId,
         season_id: seasonId,
+        listId,
+        seasonId,
         tracking: tracking.trim() ? tracking.trim() : null,
       };
 

@@ -25,88 +25,110 @@ type GiftPayload = {
 };
 
 function isUuid(value: string) {
-  return /^[0-9a-f-]{36}$/i.test(value);
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+}
+
+async function withTimeout<T>(promise: Promise<T>, ms: number) {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error("timeout")), ms);
+  });
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
 }
 
 export async function POST(req: NextRequest) {
+  const startedAt = Date.now();
+  let requestId = req.headers.get("x-request-id") || "";
+  const logEnd = (ok: boolean) => {
+    console.log("[api/gifts] end", { requestId, ok, ms: Date.now() - startedAt });
+  };
+
   try {
     const token = getAccessToken(req);
-    const headerRequestId = req.headers.get("x-request-id") || "";
     if (!token) {
-      return NextResponse.json(
-        { ok: false, error: "Missing auth token", requestId: headerRequestId || "unknown" },
-        { status: 401 }
-      );
+      logEnd(false);
+      return NextResponse.json({ ok: false, error: "Missing auth token", requestId }, { status: 401 });
     }
 
     const { data: userData, error: userErr } = await supabaseAdmin.auth.getUser(token);
     if (userErr || !userData?.user) {
-      return NextResponse.json(
-        { ok: false, error: "Invalid auth token", requestId: headerRequestId || "unknown" },
-        { status: 401 }
-      );
+      logEnd(false);
+      return NextResponse.json({ ok: false, error: "Invalid auth token", requestId }, { status: 401 });
     }
 
     const body = (await req.json().catch(() => ({}))) as GiftPayload;
-    const requestId = String(body?.requestId || headerRequestId || crypto.randomUUID());
+    requestId = String(body?.requestId || requestId || crypto.randomUUID());
     const title = String(body?.title ?? "").trim();
-    const recipientName =
-      typeof body?.recipient_name === "string" ? body.recipient_name.trim() : null;
-    const listId = String(body?.list_id ?? "").trim();
-    const seasonId = String(body?.season_id ?? "").trim();
-    const cost = body?.cost ?? null;
-    const trackingRaw =
-      typeof body?.tracking === "string" ? body.tracking.trim() : body?.tracking ?? null;
-    const trackingNumber =
-      trackingRaw === null || trackingRaw === undefined || trackingRaw === ""
-        ? ""
-        : String(trackingRaw);
+    const recipientRaw =
+      typeof body?.recipient_name === "string"
+        ? body.recipient_name
+        : typeof (body as any)?.recipient === "string"
+          ? (body as any).recipient
+          : typeof body?.recipient_key === "string"
+            ? body.recipient_key
+            : "";
+    const recipientName = recipientRaw.trim() || null;
+    const listId = String((body as any)?.listId ?? body?.list_id ?? "").trim();
+    const seasonId = String((body as any)?.seasonId ?? body?.season_id ?? "").trim();
+    const cost =
+      typeof body?.cost === "string" ? Number(body.cost) : (body?.cost ?? null);
+    const trackingNumber: string | null =
+      typeof body?.tracking === "string"
+        ? body.tracking.trim() === ""
+          ? null
+          : body.tracking.trim()
+        : null;
 
-    console.log("[api/gifts] start", requestId);
+    console.log("[api/gifts] start", { requestId, ts: new Date().toISOString() });
 
     if (!title) {
-      return NextResponse.json(
-        { ok: false, error: "Title is required", requestId },
-        { status: 400 }
-      );
+      console.warn("[api/gifts] bad_request", { requestId, missing: ["title"] });
+      logEnd(false);
+      return NextResponse.json({ ok: false, error: "Title is required", requestId }, { status: 400 });
     }
     if (!recipientName) {
+      console.warn("[api/gifts] bad_request", { requestId, missing: ["recipient"] });
+      logEnd(false);
       return NextResponse.json(
         { ok: false, error: "Recipient is required", requestId },
         { status: 400 }
       );
     }
     if (!listId || !isUuid(listId)) {
-      return NextResponse.json(
-        { ok: false, error: "Missing list_id", requestId },
-        { status: 400 }
-      );
+      console.warn("[api/gifts] bad_request", { requestId, missing: ["list_id"] });
+      logEnd(false);
+      return NextResponse.json({ ok: false, error: "Missing list_id", requestId }, { status: 400 });
     }
     if (!seasonId) {
+      console.warn("[api/gifts] bad_request", { requestId, missing: ["season_id"] });
+      logEnd(false);
       return NextResponse.json(
         { ok: false, error: "Missing season_id", requestId },
         { status: 400 }
       );
     }
     if (!isUuid(seasonId)) {
+      console.warn("[api/gifts] bad_request", { requestId, missing: ["season_id"] });
+      logEnd(false);
       return NextResponse.json(
         { ok: false, error: "Invalid season_id", requestId },
         { status: 400 }
       );
     }
     if (typeof cost !== "number" || !Number.isFinite(cost) || cost <= 0) {
-      return NextResponse.json(
-        { ok: false, error: "Invalid cost", requestId },
-        { status: 400 }
-      );
+      console.warn("[api/gifts] bad_request", { requestId, missing: ["cost"] });
+      logEnd(false);
+      return NextResponse.json({ ok: false, error: "Invalid cost", requestId }, { status: 400 });
     }
 
     const currentList = await getOrCreateCurrentList(userData.user.id);
     if (currentList.id !== listId) {
-      return NextResponse.json(
-        { ok: false, error: "Invalid list_id", requestId },
-        { status: 403 }
-      );
+      logEnd(false);
+      return NextResponse.json({ ok: false, error: "Invalid list_id", requestId }, { status: 403 });
     }
 
     const { data: season, error: seasonErr } = await supabaseAdmin
@@ -117,45 +139,67 @@ export async function POST(req: NextRequest) {
       .maybeSingle();
 
     if (seasonErr) {
-      return NextResponse.json(
-        { ok: false, error: seasonErr.message, requestId },
-        { status: 400 }
-      );
+      logEnd(false);
+      return NextResponse.json({ ok: false, error: seasonErr.message, requestId }, { status: 400 });
     }
     if (!season?.id) {
-      return NextResponse.json(
-        { ok: false, error: "Season not found", requestId },
-        { status: 404 }
-      );
+      logEnd(false);
+      return NextResponse.json({ ok: false, error: "Season not found", requestId }, { status: 404 });
     }
 
     try {
-      const gift = await createGift({
-        userId: userData.user.id,
+      console.log("[api/gifts] insert_payload", {
+        requestId,
         listId,
         seasonId,
+        recipient: recipientName,
         title,
-        recipientName,
         cost,
-        trackingNumber,
+        hasTracking: Boolean(trackingNumber),
       });
 
-      console.log("[api/gifts] ok", requestId, gift?.id);
+      const gift = await withTimeout(
+        createGift({
+          userId: userData.user.id,
+          listId,
+          seasonId,
+          title,
+          recipientName,
+          cost,
+          trackingNumber,
+        }),
+        12000
+      );
+
+      console.log("[api/gifts] ok", { requestId, id: gift?.id });
+      logEnd(true);
       return NextResponse.json({ ok: true, gift, requestId });
     } catch (err: any) {
+      if (err?.message === "timeout") {
+        console.error("[api/gifts] timeout", { requestId });
+        logEnd(false);
+        return NextResponse.json(
+          { ok: false, error: "Insert timed out", requestId },
+          { status: 504 }
+        );
+      }
       const message = err?.message || FREE_LIMIT_MESSAGE;
       if (err?.name === "LIMIT_REACHED" || message === FREE_LIMIT_MESSAGE) {
+        logEnd(false);
         return NextResponse.json(
           { ok: false, code: "LIMIT_REACHED", error: message, requestId },
           { status: 403 }
         );
       }
-      console.error("[api/gifts] error", requestId, message);
+      console.error("[api/gifts] error", { requestId, message });
+      logEnd(false);
       return NextResponse.json({ ok: false, error: message, requestId }, { status: 500 });
     }
   } catch (err: any) {
+    console.error("[api/gifts] error", { requestId, message: err?.message ?? "Server error" });
+    logEnd(false);
     return NextResponse.json(
-      { ok: false, error: err?.message ?? "Server error", requestId: "unknown" },
+      { ok: false, error: err?.message ?? "Server error", requestId: requestId || null },
       { status: 500 }
     );
   }

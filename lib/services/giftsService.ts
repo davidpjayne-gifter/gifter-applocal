@@ -52,7 +52,7 @@ export async function createGift(input: CreateGiftInput) {
         title: input.title,
         recipient_name: input.recipientName ?? null,
         cost: input.cost ?? null,
-        tracking_number: input.trackingNumber ?? "",
+        tracking_number: input.trackingNumber ?? null,
         list_id: input.listId,
         season_id: input.seasonId,
         wrapped: false,
