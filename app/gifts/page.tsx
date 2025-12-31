@@ -13,6 +13,7 @@ import GiftRow from "./GiftRow";
 import SignInBanner from "./SignInBanner";
 import ReopenRecipientButton from "./ReopenRecipientButton";
 import HowThisWorks from "./HowThisWorks";
+import AuthRedirectGate from "./AuthRedirectGate";
 import SeasonalGiftIcon from "@/app/components/SeasonalGiftIcon";
 
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
@@ -365,35 +366,11 @@ export default async function GiftsPage(props: {
           }}
         >
           <div className="text-slate-900" style={{ fontWeight: 700 }}>
-            Sign in to see your list
+            Welcome back — logging you in…
           </div>
-          <div style={{ marginTop: 12, display: "flex", justifyContent: "center", gap: 10 }}>
-            <Link
-              href="/login?next=/gifts"
-              style={{
-                padding: "10px 14px",
-                borderRadius: 12,
-                border: "1px solid #2563eb",
-                background: "#2563eb",
-                color: "#fff",
-                fontWeight: 900,
-                textDecoration: "none",
-              }}
-            >
-              Login
-            </Link>
-            <Link
-              href="/"
-              style={{
-                padding: "10px 14px",
-                borderRadius: 12,
-                border: "1px solid #cbd5e1",
-                background: "#fff",
-                color: "#0f172a",
-                fontWeight: 800,
-                textDecoration: "none",
-              }}
-            >
+          <AuthRedirectGate />
+          <div className="mt-3 text-center text-sm text-slate-500 dark:text-slate-400">
+            <Link href="/" className="underline hover:text-slate-600 dark:hover:text-slate-300">
               Back to home
             </Link>
           </div>
