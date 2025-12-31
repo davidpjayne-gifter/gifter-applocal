@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { getOrCreateCurrentList } from "@/lib/currentList";
 
 function getAccessToken(req: NextRequest) {
   const authHeader = req.headers.get("authorization") || "";
@@ -23,25 +22,26 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json().catch(() => ({}));
-    const scope = body?.scope === "giftee" ? "giftee" : "list";
-    const season_id = typeof body?.seasonId === "string" ? body.seasonId.trim() : "";
+    const scope = body?.scope === "recipient" ? "recipient" : "list";
+    const season_id = typeof body?.season_id === "string" ? body.season_id.trim() : "";
+    const list_id = typeof body?.list_id === "string" ? body.list_id.trim() : "";
     const recipient_key =
-      (typeof body?.recipientKey === "string" ? body.recipientKey : "").trim().toLowerCase();
+      (typeof body?.recipient_key === "string" ? body.recipient_key : "").trim().toLowerCase();
 
     if (!season_id) {
-      return NextResponse.json({ error: "Missing seasonId" }, { status: 400 });
+      return NextResponse.json({ error: "Missing season_id" }, { status: 400 });
+    }
+    if (!list_id) {
+      return NextResponse.json({ error: "Missing list_id" }, { status: 400 });
     }
 
-    if (scope === "giftee" && !recipient_key) {
-      return NextResponse.json({ error: "Missing recipientKey" }, { status: 400 });
+    if (scope === "recipient" && !recipient_key) {
+      return NextResponse.json({ error: "Missing recipient_key" }, { status: 400 });
     }
 
     if (scope === "list" && recipient_key) {
-      return NextResponse.json({ error: "recipientKey is not allowed for list scope" }, { status: 400 });
+      return NextResponse.json({ error: "recipient_key is not allowed for list scope" }, { status: 400 });
     }
-
-    const currentList = await getOrCreateCurrentList(userData.user.id);
-    const list_id = currentList.id;
 
     const share_token = crypto.randomBytes(16).toString("hex");
     const created_at = new Date().toISOString();
@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
       .eq("season_id", season_id)
       .eq("scope", scope);
 
-    if (scope === "giftee") {
+    if (scope === "recipient") {
       findQuery = findQuery.eq("recipient_key", recipient_key);
     } else {
       findQuery = findQuery.is("recipient_key", null);
@@ -104,7 +104,7 @@ export async function POST(req: NextRequest) {
       list_id,
       season_id,
       scope,
-      recipient_key: scope === "giftee" ? recipient_key : null,
+      recipient_key: scope === "recipient" ? recipient_key : null,
       share_token,
       created_at,
     });
