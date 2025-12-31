@@ -637,7 +637,7 @@ export default async function GiftsPage(props: {
                               {wrappedCount}/{total} wrapped
                               </span>
                               <span className="rounded-full border border-blue-200 bg-white/80 px-2.5 py-1">
-                                {total} gifts
+                                {total} total
                               </span>
                               {hasAnyCost && (
                                 <span className="rounded-full border border-blue-200 bg-white/80 px-2.5 py-1">
@@ -700,7 +700,7 @@ export default async function GiftsPage(props: {
                           {wrappedCount}/{total} wrapped
                         </span>
                         <span className="rounded-full border border-blue-200 bg-white/80 px-2.5 py-1">
-                          {total} gifts
+                          {total} total
                         </span>
                         {hasAnyCost && (
                           <span className="rounded-full border border-blue-200 bg-white/80 px-2.5 py-1">
@@ -710,7 +710,7 @@ export default async function GiftsPage(props: {
 
                         {unwrappedCount > 0 ? (
                           <span className="rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-rose-800">
-                            {unwrappedCount} left
+                            {unwrappedCount} to wrap
                           </span>
                         ) : (
                           <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-emerald-800">
