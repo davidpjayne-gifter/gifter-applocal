@@ -110,7 +110,9 @@ export default function GiftRow({ gift, updateGiftStatus }: Props) {
   function handleDelete() {
     if (deleting) return;
     const title = localGift.title.trim();
-    const ok = window.confirm(`Are you sure you want to delete “${title || "this gift"}”?`);
+    const ok = window.confirm(
+      `Delete gift?\n\nAre you sure you want to delete “${title || "this gift"}”?`
+    );
     if (!ok) return;
     setDeleting(true);
     setRemoved(true);
