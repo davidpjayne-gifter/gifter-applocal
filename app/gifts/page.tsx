@@ -151,6 +151,17 @@ async function updateGiftStatus(formData: FormData) {
 
   const { id: listId } = await getOrCreateCurrentList(userId);
 
+  const { data: giftRow } = await supabaseAdmin
+    .from("gifts")
+    .select("id,recipient_name,season_id")
+    .eq("id", giftId)
+    .eq("list_id", listId)
+    .maybeSingle();
+
+  const seasonId = String(giftRow?.season_id ?? "").trim();
+  const recipientKey =
+    (giftRow?.recipient_name ?? "").trim().toLowerCase() || "unassigned";
+
   if (status === "wrapped") {
     await supabaseAdmin
       .from("gifts")
@@ -175,6 +186,48 @@ async function updateGiftStatus(formData: FormData) {
       .update({ wrapped: false, shipping_status: "unknown" })
       .eq("id", giftId)
       .eq("list_id", listId);
+  }
+
+  if (seasonId && recipientKey) {
+    const baseQuery = supabaseAdmin
+      .from("gifts")
+      .select("id,wrapped,recipient_name")
+      .eq("list_id", listId)
+      .eq("season_id", seasonId);
+
+    const { data: recipientGifts } =
+      recipientKey === "unassigned"
+        ? await baseQuery.is("recipient_name", null)
+        : await baseQuery.ilike("recipient_name", recipientKey);
+
+    const normalizedGifts = (recipientGifts ?? []).filter((g) => {
+      const nameKey = (g.recipient_name ?? "").trim().toLowerCase() || "unassigned";
+      return nameKey === recipientKey;
+    });
+
+    const total = normalizedGifts.length;
+    const wrappedCount = normalizedGifts.filter((g) => g.wrapped === true).length;
+
+    if (total > 0 && wrappedCount === total) {
+      await supabaseAdmin
+        .from("recipient_wrapups")
+        .upsert(
+          {
+            season_id: seasonId,
+            list_id: listId,
+            recipient_key: recipientKey,
+            wrapped_up_at: new Date().toISOString(),
+          },
+          { onConflict: "season_id,list_id,recipient_key" }
+        );
+    } else {
+      await supabaseAdmin
+        .from("recipient_wrapups")
+        .update({ wrapped_up_at: null })
+        .eq("season_id", seasonId)
+        .eq("list_id", listId)
+        .eq("recipient_key", recipientKey);
+    }
   }
 
   revalidatePath("/gifts");
@@ -590,7 +643,6 @@ export default async function GiftsPage(props: {
 
             const { total, wrappedCount, unwrappedCount, spend, hasAnyCost } = recipientSummary(list);
             const isWrappedUp = wrapupSet.has(key);
-            const shouldAutoWrapUp = total > 0 && wrappedCount === total && !isWrappedUp;
             const details = wrapupsByRecipient.get(key) ?? null;
             const detailsLine = formatRecipientDetails(details?.gender ?? null, details?.age_range ?? null);
 
@@ -600,14 +652,6 @@ export default async function GiftsPage(props: {
                   key={key}
                   className="overflow-hidden rounded-2xl border border-blue-200 bg-white shadow-sm"
                 >
-                  {shouldAutoWrapUp && (
-                    <form action={markRecipientWrappedUp} className="m-0">
-                      <input type="hidden" name="recipientKey" value={key} />
-                      <input type="hidden" name="seasonId" value={seasonIdForClient} />
-                      <button type="submit" style={{ display: "none" }} />
-                    </form>
-                  )}
-
                   {/* Header (NOT inside reopen form, so RecipientDetailsSheet can use its own form) */}
                   <div className="border-b border-blue-700/70 bg-gradient-to-br from-blue-600/25 via-blue-600/20 to-blue-600/10 px-4 py-4 sm:px-5">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -670,13 +714,6 @@ export default async function GiftsPage(props: {
                 key={key}
                 className="overflow-hidden rounded-2xl border border-blue-200 bg-white shadow-sm"
               >
-                {shouldAutoWrapUp && (
-                  <form action={markRecipientWrappedUp} className="m-0">
-                    <input type="hidden" name="recipientKey" value={key} />
-                    <input type="hidden" name="seasonId" value={seasonIdForClient} />
-                    <button type="submit" style={{ display: "none" }} />
-                  </form>
-                )}
                 <div className="border-b border-blue-700/70 bg-gradient-to-br from-blue-600/25 via-blue-600/20 to-blue-600/10 px-4 py-4 sm:px-5">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
