@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { supabase } from "@/lib/supabase";
 import GiftStatusForm from "./GiftStatusForm";
 import CopyButton from "./CopyButton";
+import ConfirmDialog from "@/app/components/ui/ConfirmDialog";
 import { useToast } from "@/app/components/ui/toast";
 
 type ShippingStatus = "unknown" | "in_transit" | "arrived";
@@ -33,6 +34,7 @@ export default function GiftRow({ gift, updateGiftStatus }: Props) {
   const { toast } = useToast();
   const [removed, setRemoved] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [undoOpen, setUndoOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(gift.title);
@@ -107,13 +109,8 @@ export default function GiftRow({ gift, updateGiftStatus }: Props) {
     }
   }
 
-  function handleDelete() {
+  function startDelete() {
     if (deleting) return;
-    const title = localGift.title.trim();
-    const ok = window.confirm(
-      `Delete gift?\n\nAre you sure you want to delete “${title || "this gift"}”?`
-    );
-    if (!ok) return;
     setDeleting(true);
     setRemoved(true);
     setUndoOpen(true);
@@ -122,6 +119,11 @@ export default function GiftRow({ gift, updateGiftStatus }: Props) {
       void finalizeDelete();
       deleteTimerRef.current = null;
     }, 5000);
+  }
+
+  function handleDelete() {
+    if (deleting) return;
+    setConfirmDeleteOpen(true);
   }
 
   async function handleSave() {
@@ -199,13 +201,18 @@ export default function GiftRow({ gift, updateGiftStatus }: Props) {
 
   const shipping = gift.shipping_status ?? "unknown";
   const isWrapped = gift.wrapped === true;
+  const deleteTitle = localGift.title.trim();
+  const deleteMessage = deleteTitle
+    ? `Are you sure you want to delete “${deleteTitle}”?`
+    : "Are you sure you want to delete this gift?";
 
   if (removed) {
     return <>{undoBar}</>;
   }
 
   return (
-    <li style={{ padding: "12px 0", borderTop: "1px solid #f1f5f9" }}>
+    <>
+      <li style={{ padding: "12px 0", borderTop: "1px solid #f1f5f9" }}>
       <div style={{ position: "relative", paddingBottom: 22 }}>
         {!isEditing ? (
           <div className="text-slate-900" style={{ fontWeight: 800 }}>
@@ -313,7 +320,22 @@ export default function GiftRow({ gift, updateGiftStatus }: Props) {
           </div>
         )}
       </div>
-      {undoBar}
-    </li>
+        {undoBar}
+      </li>
+
+      <ConfirmDialog
+        open={confirmDeleteOpen}
+        title="Delete this gift?"
+        description={deleteMessage}
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+        onCancel={() => setConfirmDeleteOpen(false)}
+        onConfirm={() => {
+          setConfirmDeleteOpen(false);
+          startDelete();
+        }}
+      />
+    </>
   );
 }
