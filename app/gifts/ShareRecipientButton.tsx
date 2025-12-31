@@ -133,7 +133,7 @@ export default function ShareRecipientButton({
         ? `${window.location.origin}/share/${(result.json as any).token}`
         : "";
     if (!shareUrl) {
-      console.error("Share API missing url:", { json });
+      console.error("Share API missing url:", { json: result.json });
       setToast("Share failed. Try again.");
       return;
     }
