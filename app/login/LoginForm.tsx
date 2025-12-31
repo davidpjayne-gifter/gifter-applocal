@@ -1,12 +1,21 @@
 "use client";
 
 import { useState } from "react";
-
 import { supabase } from "@/lib/supabase";
 
 type LoginFormProps = {
   nextPath: string;
 };
+
+const AGE_OPTIONS = [
+  { value: "13-17", label: "13–17" },
+  { value: "18-24", label: "18–24" },
+  { value: "25-34", label: "25–34" },
+  { value: "35-44", label: "35–44" },
+  { value: "45-54", label: "45–54" },
+  { value: "55-64", label: "55–64" },
+  { value: "65+", label: "65+" },
+];
 
 export default function LoginForm({ nextPath }: LoginFormProps) {
   const [email, setEmail] = useState("");
@@ -63,78 +72,107 @@ export default function LoginForm({ nextPath }: LoginFormProps) {
     setMessage("Check your email for a sign-in link.");
   }
 
+  const inputBase =
+    "w-full rounded-xl border px-3 py-2 text-sm shadow-sm transition " +
+    "focus:outline-none focus:ring-2 " +
+    "bg-white text-slate-900 border-slate-200 " +
+    "focus:border-blue-400 focus:ring-blue-200 " +
+    "dark:bg-slate-900 dark:text-slate-100 dark:border-slate-700 dark:focus:border-blue-400 dark:focus:ring-blue-900/40";
+
+  const labelBase = "text-xs font-semibold text-slate-700 dark:text-slate-200";
+  const selectBase =
+    `${inputBase} dark:bg-white dark:text-slate-900 dark:border-slate-200`;
+
   return (
     <form
       onSubmit={handleSubmit}
       className="flex flex-col gap-4 rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-600/10 via-blue-600/5 to-blue-600/0 px-5 py-6"
     >
-      <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="email">
-        Email address
-      </label>
-      <input
-        id="email"
-        type="email"
-        value={email}
-        onChange={(event) => setEmail(event.target.value)}
-        placeholder="you@example.com"
-        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200 dark:border-slate-700"
-      />
-      <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="gender">
-        Gender
-      </label>
-      <select
-        id="gender"
-        value={gender}
-        onChange={(event) => setGender(event.target.value)}
-        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200 dark:border-slate-700"
-        required
-      >
-        <option value="">Select gender</option>
-        <option value="male">Male</option>
-        <option value="female">Female</option>
-        <option value="prefer_not_to_say">Prefer not to say</option>
-      </select>
-      <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="ageRange">
-        Age range
-      </label>
-      <select
-        id="ageRange"
-        value={ageRange}
-        onChange={(event) => setAgeRange(event.target.value)}
-        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200 dark:border-slate-700"
-        required
-      >
-        <option value="">Select age range</option>
-        <option value="13-17">13–17</option>
-        <option value="18-24">18–24</option>
-        <option value="25-34">25–34</option>
-        <option value="35-44">35–44</option>
-        <option value="45-54">45–54</option>
-        <option value="55-64">55–64</option>
-        <option value="65+">65+</option>
-        <option value="prefer_not_to_say">Prefer not to say</option>
-      </select>
+      {/* Email */}
+      <div className="grid gap-2">
+        <label className={labelBase} htmlFor="email">
+          Email
+        </label>
+        <input
+          id="email"
+          type="email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          placeholder="you@example.com"
+          autoComplete="email"
+          className={inputBase}
+        />
+      </div>
+
+      {/* Gender */}
+      <div className="grid gap-2">
+        <label className={labelBase} htmlFor="gender">
+          Gender
+        </label>
+        <select
+          id="gender"
+          value={gender}
+          onChange={(event) => setGender(event.target.value)}
+          className={selectBase}
+          required
+        >
+          <option value="">Select gender</option>
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+          <option value="prefer_not_to_say">Prefer not to say</option>
+        </select>
+      </div>
+
+      {/* Age range */}
+      <div className="grid gap-2">
+        <label className={labelBase} htmlFor="ageRange">
+          Age range
+        </label>
+        <select
+          id="ageRange"
+          value={ageRange}
+          onChange={(event) => setAgeRange(event.target.value)}
+          className={selectBase}
+          required
+        >
+          <option value="">Select age range</option>
+          {AGE_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Submit */}
       <button
         type="submit"
         disabled={loading}
-        className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
+        className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300 dark:disabled:bg-blue-500/40"
       >
-        {loading ? "Sending..." : "Send sign-in link"}
+        {loading ? "Sending..." : "Email me a sign-in link"}
       </button>
 
+      {/* Status */}
       {status === "sent" && (
-        <div>
-          <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-            {message || "Check your email for a sign-in link."}
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm dark:border-emerald-900/40 dark:bg-emerald-900/20">
+          <div className="font-semibold text-emerald-900 dark:text-emerald-100">
+            Check your email 📬
           </div>
-          <div className="mt-1 text-xs text-gray-600 dark:text-gray-300">
-            If you don’t see it within a couple minutes, check Spam/Promotions and mark the email
-            as Not Spam so future links arrive.
+          <div className="mt-1 text-sm text-emerald-900/90 dark:text-emerald-100/90">
+            We just sent you a sign-in link. Click it to open GIFTer.
+          </div>
+          <div className="mt-1 text-xs text-emerald-800/80 dark:text-emerald-100/70">
+            If you don’t see it within a couple minutes, check Spam or Promotions and mark the
+            email as “Not Spam” so future links arrive.
           </div>
         </div>
       )}
+
       {status === "error" && (
-        <div className="text-sm font-semibold text-red-600">{message}</div>
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-200">
+          {message}
+        </div>
       )}
     </form>
   );

@@ -48,8 +48,8 @@ export default async function LoginPage(props: {
 
       <LoginForm nextPath={nextPath} />
 
-      <p className="text-xs text-slate-500 dark:text-slate-400">
-        Tip: bookmark this page after you’re signed in for quick access next time.
+      <p className="text-sm text-slate-500 dark:text-slate-400">
+        🔖 Tip: once you’re signed in, bookmark this page for quick access next time.
       </p>
     </main>
   );

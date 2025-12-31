@@ -144,7 +144,6 @@ export default function HomePage() {
           <option value="">Select gender</option>
           <option value="male">Male</option>
           <option value="female">Female</option>
-          <option value="prefer_not_to_say">Prefer not to say</option>
         </select>
         <select
           value={ageRange}
@@ -168,7 +167,6 @@ export default function HomePage() {
           <option value="45-54">45–54</option>
           <option value="55-64">55–64</option>
           <option value="65+">65+</option>
-          <option value="prefer_not_to_say">Prefer not to say</option>
         </select>
 
         <button
