@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ConfirmDialog from "@/app/components/ui/ConfirmDialog";
 
 type Props = {
@@ -47,6 +47,7 @@ export default function RecipientWrapUpButton({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [autoWrapping, setAutoWrapping] = useState(false);
   const [confettiOrigin, setConfettiOrigin] = useState<{ x: number; y: number } | null>(null);
+  const autoWrapTimerRef = useRef<number | null>(null);
 
   function submitForm() {
     const form = btnRef.current?.form;
@@ -54,6 +55,15 @@ export default function RecipientWrapUpButton({
       form.requestSubmit();
     }
   }
+
+  useEffect(() => {
+    return () => {
+      if (autoWrapTimerRef.current) {
+        window.clearTimeout(autoWrapTimerRef.current);
+        autoWrapTimerRef.current = null;
+      }
+    };
+  }, []);
 
   return (
     <>
@@ -69,9 +79,11 @@ export default function RecipientWrapUpButton({
               setConfettiOrigin({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
             }
             setAutoWrapping(true);
-            window.setTimeout(() => {
+            autoWrapTimerRef.current = window.setTimeout(() => {
               submitForm();
               setAutoWrapping(false);
+              setConfettiOrigin(null);
+              autoWrapTimerRef.current = null;
             }, 1500);
             return;
           }
@@ -86,7 +98,10 @@ export default function RecipientWrapUpButton({
       {autoWrapping && confettiOrigin && (
         <div
           className="pointer-events-none fixed left-0 top-0 z-50 h-0 w-0"
-          style={{ transform: `translate(${confettiOrigin.x}px, ${confettiOrigin.y}px)` }}
+          style={{
+            transform: `translate(${confettiOrigin.x}px, ${confettiOrigin.y}px)`,
+            pointerEvents: "none",
+          }}
         >
           <style>{`
             @keyframes gifter-confetti-fall {
