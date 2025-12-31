@@ -367,9 +367,6 @@ export default async function GiftsPage(props: {
           <div className="text-slate-900" style={{ fontWeight: 700 }}>
             Sign in to see your list
           </div>
-          <div style={{ marginTop: 6, fontSize: 13 }}>
-            GIFTer is a web app. We’ll email you a sign-in link so you can pick up on any device.
-          </div>
           <div style={{ marginTop: 12, display: "flex", justifyContent: "center", gap: 10 }}>
             <Link
               href="/login?next=/gifts"
