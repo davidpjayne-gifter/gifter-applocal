@@ -70,8 +70,6 @@ export default function GiftRow({ gift, updateGiftStatus }: Props) {
         )
       : null;
 
-  if (removed) return undoBar;
-
   useEffect(() => {
     setLocalGift(gift);
   }, [gift.id, gift.title, gift.cost, gift.tracking_number, gift.shipping_status, gift.wrapped]);
@@ -196,6 +194,10 @@ export default function GiftRow({ gift, updateGiftStatus }: Props) {
 
   const shipping = gift.shipping_status ?? "unknown";
   const isWrapped = gift.wrapped === true;
+
+  if (removed) {
+    return <>{undoBar}</>;
+  }
 
   return (
     <li style={{ padding: "12px 0", borderTop: "1px solid #f1f5f9" }}>
