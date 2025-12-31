@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import UpgradeSheet from "@/app/components/UpgradeSheet";
@@ -46,6 +46,7 @@ export default function AddGiftForm({
   triggerVariant = "floating",
 }: Props) {
   const [open, setOpen] = useState(false);
+  const sheetRef = useRef<HTMLDivElement | null>(null);
 
   const [title, setTitle] = useState("");
   const [recipient, setRecipient] = useState(recipientName ?? "");
@@ -72,6 +73,12 @@ export default function AddGiftForm({
   useEffect(() => {
     if (!open) return;
     setRecipient(recipientName ?? "");
+    if (!sheetRef.current) return;
+    const node = sheetRef.current;
+    const raf = window.requestAnimationFrame(() => {
+      node.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+    });
+    return () => window.cancelAnimationFrame(raf);
   }, [open, recipientName]);
 
   const parsedCost = useMemo(() => {
@@ -172,7 +179,7 @@ export default function AddGiftForm({
     setTracking("");
     setOpen(false);
 
-    setToast("Gift added ✅");
+    setToast("Added 🎁");
 
     // Refresh after animation for a native feel
     setTimeout(() => {
@@ -243,7 +250,7 @@ export default function AddGiftForm({
       )}
 
       {/* Toast */}
-      <Toast message={toast ?? ""} onClose={() => setToast(null)} />
+      <Toast message={toast ?? ""} onClose={() => setToast(null)} variant="success" />
 
       {/* Backdrop */}
       {open && (
@@ -272,6 +279,7 @@ export default function AddGiftForm({
         }}
       >
         <div
+          ref={sheetRef}
           className="bg-white text-gray-900"
           style={{
             maxWidth: 520,
@@ -352,8 +360,10 @@ export default function AddGiftForm({
                   setCost(e.target.value);
                   setCostError("");
                 }}
+                autoFocus
                 placeholder="$25"
                 inputMode="decimal"
+                pattern="[0-9]*"
                 required
                 className="text-gray-900 placeholder:text-gray-400"
                 style={{
@@ -364,6 +374,7 @@ export default function AddGiftForm({
                   outline: "none",
                 }}
               />
+              <p className="mt-1 text-xs text-gray-500">Required</p>
               {costError && (
                 <span className="text-xs font-semibold text-rose-600">{costError}</span>
               )}
@@ -377,6 +388,9 @@ export default function AddGiftForm({
                 value={tracking}
                 onChange={(e) => setTracking(e.target.value)}
                 placeholder="Tracking number"
+                inputMode="text"
+                autoCapitalize="off"
+                autoCorrect="off"
                 className="text-gray-900 placeholder:text-gray-400"
                 style={{
                   padding: "12px 12px",

@@ -11,6 +11,8 @@ import SeasonBudgetPill from "./SeasonBudgetPill";
 import SignOutButton from "./SignOutButton";
 import GiftRow from "./GiftRow";
 import SignInBanner from "./SignInBanner";
+import HowThisWorks from "./HowThisWorks";
+import RecipientDetailsSheet from "./RecipientDetailsSheet";
 import SeasonalGiftIcon from "@/app/components/SeasonalGiftIcon";
 
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
@@ -45,7 +47,9 @@ type RecipientWrapupRow = {
   season_id: string;
   list_id: string;
   recipient_key: string;
-  wrapped_up_at: string;
+  wrapped_up_at: string | null;
+  gender: string | null;
+  age_range: string | null;
 };
 
 /* ---------------- HELPERS ---------------- */
@@ -101,6 +105,25 @@ function recipientSummary(gifts: Gift[]) {
 
 function seasonTotalSpent(allGifts: Gift[]) {
   return allGifts.reduce((sum, g) => sum + (typeof g.cost === "number" ? g.cost : 0), 0);
+}
+
+function formatRecipientDetails(gender: string | null, ageRange: string | null) {
+  const genderLabel =
+    gender === "male" ? "Male" : gender === "female" ? "Female" : null;
+
+  const ageLabelMap: Record<string, string> = {
+    "13-17": "13–17",
+    "18-24": "18–24",
+    "25-34": "25–34",
+    "35-44": "35–44",
+    "45-54": "45–54",
+    "55-64": "55–64",
+    "65+": "65+",
+  };
+  const ageLabel = ageRange ? ageLabelMap[ageRange] ?? null : null;
+
+  const parts = [genderLabel, ageLabel].filter(Boolean);
+  return parts.length ? parts.join(" · ") : null;
 }
 
 async function getUserIdFromCookie() {
@@ -212,10 +235,39 @@ async function reopenRecipient(formData: FormData) {
 
   await supabaseAdmin
     .from("recipient_wrapups")
-    .delete()
+    .update({ wrapped_up_at: null })
     .eq("season_id", seasonId)
     .eq("list_id", listId)
     .eq("recipient_key", recipientKey);
+
+  revalidatePath("/gifts");
+}
+
+async function updateRecipientDetails(formData: FormData) {
+  "use server";
+
+  const recipientKey = String(formData.get("recipientKey") || "").trim().toLowerCase();
+  const seasonId = String(formData.get("seasonId") || "").trim();
+  const listId = String(formData.get("listId") || "").trim();
+  const genderRaw = String(formData.get("gender") || "").trim();
+  const ageRangeRaw = String(formData.get("ageRange") || "").trim();
+
+  if (!recipientKey || !seasonId || !listId) return;
+
+  const userId = await getUserIdFromCookie();
+  if (!userId) return;
+
+  const payload = {
+    season_id: seasonId,
+    list_id: listId,
+    recipient_key: recipientKey,
+    gender: genderRaw || null,
+    age_range: ageRangeRaw || null,
+  };
+
+  await supabaseAdmin
+    .from("recipient_wrapups")
+    .upsert(payload, { onConflict: "season_id,list_id,recipient_key" });
 
   revalidatePath("/gifts");
 }
@@ -436,12 +488,15 @@ export default async function GiftsPage(props: {
 
   const { data: wrapupsRaw } = await supabaseAdmin
     .from("recipient_wrapups")
-    .select("season_id,list_id,recipient_key,wrapped_up_at")
+    .select("season_id,list_id,recipient_key,wrapped_up_at,gender,age_range")
     .eq("season_id", activeSeason.id)
     .eq("list_id", listIdForClient);
 
   const wrapups = (wrapupsRaw ?? []) as RecipientWrapupRow[];
-  const wrapupSet = new Set(wrapups.map((r) => r.recipient_key));
+  const wrapupsByRecipient = new Map(wrapups.map((r) => [r.recipient_key, r]));
+  const wrapupSet = new Set(
+    wrapups.filter((r) => Boolean(r.wrapped_up_at)).map((r) => r.recipient_key)
+  );
 
   const sortedRecipientKeys = [...recipientKeys].sort((a, b) => {
     const aWU = wrapupSet.has(a);
@@ -499,13 +554,17 @@ export default async function GiftsPage(props: {
                 initialBudget={activeSeason.budget ?? null}
               />
             </div>
+            <div className="flex justify-center">
+              <HowThisWorks />
+            </div>
           </div>
         </div>
 
       {gifts.length === 0 ? (
         <div className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-600/15 via-blue-600/10 to-blue-600/5 px-4 py-4 text-slate-900">
-          <div className="text-sm font-semibold text-center">
-            😕 You don&apos;t have any GIFTs yet! Add one here
+          <div className="text-base font-black text-center">Start by adding a person</div>
+          <div className="mt-1 text-sm text-center text-slate-700">
+            Start by adding a person, then add gifts under them.
           </div>
           <div style={{ marginTop: 12, display: "flex", justifyContent: "center" }}>
             <RefreshAfterAdd
@@ -530,6 +589,9 @@ export default async function GiftsPage(props: {
 
             const { total, wrappedCount, unwrappedCount, spend, hasAnyCost } = recipientSummary(list);
             const isWrappedUp = wrapupSet.has(key);
+            const details = wrapupsByRecipient.get(key) ?? null;
+            const detailsLine = formatRecipientDetails(details?.gender ?? null, details?.age_range ?? null);
+            const canEditDetails = key !== "unassigned";
 
             if (isWrappedUp) {
               return (
@@ -554,6 +616,22 @@ export default async function GiftsPage(props: {
                               {displayName}
                             </h2>
 
+                            {(detailsLine || canEditDetails) && (
+                              <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-600">
+                                {detailsLine && <span>{detailsLine}</span>}
+                                {canEditDetails && (
+                                  <RecipientDetailsSheet
+                                    recipientKey={key}
+                                    listId={listIdForClient}
+                                    seasonId={seasonIdForClient}
+                                    initialGender={details?.gender ?? null}
+                                    initialAgeRange={details?.age_range ?? null}
+                                    onSave={updateRecipientDetails}
+                                  />
+                                )}
+                              </div>
+                            )}
+
                             <div className="mt-2 flex flex-wrap gap-2 text-xs font-semibold text-slate-900">
                               <span className="rounded-full border border-blue-200 bg-white/80 px-2.5 py-1">
                               {wrappedCount}/{total} wrapped
@@ -569,6 +647,10 @@ export default async function GiftsPage(props: {
                               <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-emerald-800">
                                 all wrapped
                               </span>
+                            </div>
+
+                            <div className="mt-3 h-2 w-full rounded-full bg-emerald-100">
+                              <div className="h-2 w-full rounded-full bg-emerald-500" />
                             </div>
 
                             <div className="mt-2 text-xs text-slate-600 dark:text-slate-400">
@@ -597,6 +679,22 @@ export default async function GiftsPage(props: {
                         {displayName}
                       </h2>
 
+                      {(detailsLine || canEditDetails) && (
+                        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-600">
+                          {detailsLine && <span>{detailsLine}</span>}
+                          {canEditDetails && (
+                            <RecipientDetailsSheet
+                              recipientKey={key}
+                              listId={listIdForClient}
+                              seasonId={seasonIdForClient}
+                              initialGender={details?.gender ?? null}
+                              initialAgeRange={details?.age_range ?? null}
+                              onSave={updateRecipientDetails}
+                            />
+                          )}
+                        </div>
+                      )}
+
                       <div className="mt-2 flex flex-wrap gap-2 text-xs font-semibold text-slate-900">
                         <span className="rounded-full border border-blue-200 bg-white/80 px-2.5 py-1">
                           {wrappedCount}/{total} wrapped
@@ -619,6 +717,15 @@ export default async function GiftsPage(props: {
                             all wrapped
                           </span>
                         )}
+                      </div>
+
+                      <div className="mt-3 h-2 w-full rounded-full bg-slate-200">
+                        <div
+                          className="h-2 rounded-full bg-emerald-500"
+                          style={{
+                            width: `${Math.round((wrappedCount / Math.max(total, 1)) * 100)}%`,
+                          }}
+                        />
                       </div>
 
                       {/* ✅ RESTORED: Add gift for THIS recipient */}
@@ -683,6 +790,12 @@ export default async function GiftsPage(props: {
             freeRecipientLimit={FREE_RECIPIENT_LIMIT}
             existingRecipientKeys={existingRecipientKeys}
           />
+        </div>
+      )}
+
+      {sortedRecipientKeys.length > 0 && (
+        <div className="mt-4 flex justify-center">
+          <ShareRecipientButton recipientKey={sortedRecipientKeys[0]} listId={listIdForClient} />
         </div>
       )}
 

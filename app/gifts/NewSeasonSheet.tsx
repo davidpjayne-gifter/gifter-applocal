@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
 const PRESETS = [
@@ -15,12 +15,22 @@ export default function NewSeasonSheet({ listId }: { listId: string }) {
   const [name, setName] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const sheetRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(null), 2200);
     return () => clearTimeout(t);
   }, [toast]);
+
+  useEffect(() => {
+    if (!open || !sheetRef.current) return;
+    const node = sheetRef.current;
+    const raf = window.requestAnimationFrame(() => {
+      node.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+    });
+    return () => window.cancelAnimationFrame(raf);
+  }, [open]);
 
   const canSubmit = useMemo(() => name.trim().length > 0 && !submitting, [name, submitting]);
 
@@ -129,6 +139,7 @@ export default function NewSeasonSheet({ listId }: { listId: string }) {
       >
         <div
           className="bg-white text-gray-900"
+          ref={sheetRef}
           style={{
             maxWidth: 520,
             margin: "0 auto",

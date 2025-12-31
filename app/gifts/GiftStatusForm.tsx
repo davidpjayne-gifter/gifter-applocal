@@ -28,6 +28,13 @@ function statusButtonStyle(active: boolean): React.CSSProperties {
 export default function GiftStatusForm({ giftId, isWrapped, shippingStatus, updateGiftStatus }: Props) {
   const [confirmOpen, setConfirmOpen] = React.useState(false);
   const [pendingStatus, setPendingStatus] = React.useState<ShippingStatus | null>(null);
+  const [saved, setSaved] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!saved) return;
+    const t = window.setTimeout(() => setSaved(false), 1600);
+    return () => window.clearTimeout(t);
+  }, [saved]);
 
   function handle(nextStatus: ShippingStatus | "wrapped") {
     // Confirm only when unwrapping
@@ -42,6 +49,7 @@ export default function GiftStatusForm({ giftId, isWrapped, shippingStatus, upda
     fd.set("status", nextStatus);
 
     updateGiftStatus(fd);
+    setSaved(true);
   }
 
   function handleConfirmUnwrap() {
@@ -55,6 +63,7 @@ export default function GiftStatusForm({ giftId, isWrapped, shippingStatus, upda
     fd.set("status", pendingStatus);
 
     updateGiftStatus(fd);
+    setSaved(true);
     setConfirmOpen(false);
     setPendingStatus(null);
   }
@@ -94,6 +103,7 @@ export default function GiftStatusForm({ giftId, isWrapped, shippingStatus, upda
           Wrapped 🎁
         </button>
       </div>
+      {saved && <div className="mt-2 text-xs font-semibold text-emerald-700">Saved</div>}
 
       <ConfirmDialog
         open={confirmOpen}

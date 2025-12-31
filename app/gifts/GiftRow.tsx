@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { supabase } from "@/lib/supabase";
 import GiftStatusForm from "./GiftStatusForm";
 import CopyButton from "./CopyButton";
-import ConfirmDialog from "@/app/components/ui/ConfirmDialog";
 import { useToast } from "@/app/components/ui/toast";
 
 type ShippingStatus = "unknown" | "in_transit" | "arrived";
@@ -33,7 +33,7 @@ export default function GiftRow({ gift, updateGiftStatus }: Props) {
   const { toast } = useToast();
   const [removed, setRemoved] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [undoOpen, setUndoOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(gift.title);
   const [editCost, setEditCost] = useState(gift.cost === null ? "" : String(gift.cost));
@@ -41,8 +41,36 @@ export default function GiftRow({ gift, updateGiftStatus }: Props) {
   const [saveError, setSaveError] = useState("");
   const [saving, setSaving] = useState(false);
   const [localGift, setLocalGift] = useState(gift);
+  const deleteTimerRef = useRef<number | null>(null);
 
-  if (removed) return null;
+  const undoBar =
+    undoOpen && typeof document !== "undefined"
+      ? createPortal(
+          <div className="fixed bottom-4 left-4 right-4 z-50 mx-auto max-w-md rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 shadow-lg">
+            <div className="flex items-center justify-between gap-3">
+              <span>Gift deleted</span>
+              <button
+                type="button"
+                onClick={() => {
+                  if (deleteTimerRef.current) {
+                    window.clearTimeout(deleteTimerRef.current);
+                    deleteTimerRef.current = null;
+                  }
+                  setRemoved(false);
+                  setDeleting(false);
+                  setUndoOpen(false);
+                }}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-900"
+              >
+                Undo
+              </button>
+            </div>
+          </div>,
+          document.body
+        )
+      : null;
+
+  if (removed) return undoBar;
 
   useEffect(() => {
     setLocalGift(gift);
@@ -63,22 +91,27 @@ export default function GiftRow({ gift, updateGiftStatus }: Props) {
     };
   }, [gift.id]);
 
-  async function handleDelete() {
-    if (deleting) return;
-    setDeleting(true);
-
+  async function finalizeDelete() {
     const { error } = await supabase.from("gifts").delete().eq("id", gift.id);
-
     if (error) {
       console.error("Failed to delete gift:", error);
-      setDeleting(false);
       toast.error("Could not delete gift. Please try again.");
-      return;
+      setRemoved(false);
     }
+    setDeleting(false);
+    setUndoOpen(false);
+  }
 
-    toast.success("Gift deleted.");
+  function handleDelete() {
+    if (deleting) return;
+    setDeleting(true);
     setRemoved(true);
-    setConfirmOpen(false);
+    setUndoOpen(true);
+
+    deleteTimerRef.current = window.setTimeout(() => {
+      finalizeDelete();
+      deleteTimerRef.current = null;
+    }, 5000);
   }
 
   async function handleSave() {
@@ -253,7 +286,7 @@ export default function GiftRow({ gift, updateGiftStatus }: Props) {
             </button>
             <button
               type="button"
-              onClick={() => setConfirmOpen(true)}
+              onClick={handleDelete}
               disabled={deleting}
               className="rounded-lg border border-rose-200 bg-white px-2 py-1 text-[11px] font-semibold text-rose-600 transition hover:border-rose-300 disabled:cursor-not-allowed disabled:opacity-60"
             >
@@ -262,18 +295,7 @@ export default function GiftRow({ gift, updateGiftStatus }: Props) {
           </div>
         )}
       </div>
-
-      <ConfirmDialog
-        open={confirmOpen}
-        title="Delete gift?"
-        description="This action can’t be undone."
-        confirmText="Delete"
-        cancelText="Cancel"
-        variant="danger"
-        loading={deleting}
-        onCancel={() => setConfirmOpen(false)}
-        onConfirm={handleDelete}
-      />
+      {undoBar}
     </li>
   );
 }
