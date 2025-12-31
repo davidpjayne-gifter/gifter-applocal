@@ -649,13 +649,12 @@ export default async function GiftsPage(props: {
                           <input type="hidden" name="listId" value={listIdForClient} />
                           <input type="hidden" name="seasonId" value={seasonIdForClient} />
 
-                          <button
-                            type="submit"
+                          <ReopenRecipientButton
                             className="w-full cursor-pointer text-left text-xs text-slate-600"
                             title="Click to reopen"
                           >
                             Wrapped up — click to reopen
-                          </button>
+                          </ReopenRecipientButton>
                         </form>
                       </div>
 

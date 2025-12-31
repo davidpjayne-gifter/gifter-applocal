@@ -10,11 +10,10 @@ type Props = {
 
 export default function ReopenRecipientButton({ className, title, children }: Props) {
   return (
-    <div
+    <button
+      type="button"
       className={className}
       title={title}
-      role="button"
-      tabIndex={0}
       onClick={(event) => {
         const form = event.currentTarget.closest("form");
         if (form) {
@@ -39,6 +38,6 @@ export default function ReopenRecipientButton({ className, title, children }: Pr
       }}
     >
       {children}
-    </div>
+    </button>
   );
 }
