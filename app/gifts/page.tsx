@@ -507,6 +507,24 @@ export default async function GiftsPage(props: {
 
   const seasonIdForClient = String(activeSeason.id ?? "").trim();
 
+  const autoWrapTargets: string[] = [];
+  for (const key of sortedRecipientKeys) {
+    const list = grouped[key] ?? [];
+    const { total, wrappedCount } = recipientSummary(list);
+    if (total > 0 && wrappedCount === total && !wrapupSet.has(key)) {
+      autoWrapTargets.push(key);
+    }
+  }
+
+  if (autoWrapTargets.length > 0) {
+    for (const key of autoWrapTargets) {
+      const fd = new FormData();
+      fd.set("recipientKey", key);
+      fd.set("seasonId", seasonIdForClient);
+      await markRecipientWrappedUp(fd);
+    }
+  }
+
   return (
     <>
       <main style={{ padding: 16, maxWidth: 520, margin: "0 auto" }}>
