@@ -10,6 +10,7 @@ type Props = {
   isWrapped: boolean;
   shippingStatus: ShippingStatus;
   updateGiftStatus: (formData: FormData) => void; // server action
+  actions?: React.ReactNode;
 };
 
 function statusButtonStyle(active: boolean): React.CSSProperties {
@@ -25,7 +26,13 @@ function statusButtonStyle(active: boolean): React.CSSProperties {
   };
 }
 
-export default function GiftStatusForm({ giftId, isWrapped, shippingStatus, updateGiftStatus }: Props) {
+export default function GiftStatusForm({
+  giftId,
+  isWrapped,
+  shippingStatus,
+  updateGiftStatus,
+  actions,
+}: Props) {
   const [confirmOpen, setConfirmOpen] = React.useState(false);
   const [pendingStatus, setPendingStatus] = React.useState<ShippingStatus | null>(null);
   const [saved, setSaved] = React.useState(false);
@@ -102,6 +109,7 @@ export default function GiftStatusForm({ giftId, isWrapped, shippingStatus, upda
         >
           Wrapped 🎁
         </button>
+        {actions ? <div style={{ display: "flex", gap: 8 }}>{actions}</div> : null}
       </div>
       {saved && <div className="mt-2 text-xs font-semibold text-emerald-700">Saved</div>}
 

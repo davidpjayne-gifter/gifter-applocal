@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import Toast from "@/app/components/Toast";
-import { supabase } from "@/lib/supabase";
 import { safeFetchJson } from "@/app/lib/safeFetchJson";
 
 export default function ShareRecipientButton({
@@ -21,6 +21,7 @@ export default function ShareRecipientButton({
   const [copied, setCopied] = useState(false);
   const [toast, setToast] = useState("");
   const resetTimer = useRef<number | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     return () => {
@@ -90,19 +91,10 @@ export default function ShareRecipientButton({
       return;
     }
 
-    const { data } = await supabase.auth.getSession();
-    const accessToken = data.session?.access_token;
-
-    if (!accessToken) {
-      setToast("Please sign in first.");
-      return;
-    }
-
     const result = await safeFetchJson("/api/share", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
       },
       body: JSON.stringify({
         scope,
@@ -117,7 +109,7 @@ export default function ShareRecipientButton({
       setToast(
         (result.json as any)?.error?.message ||
           (result.json as any)?.error ||
-          "Something went wrong."
+          (result.status === 401 ? "Please sign in first." : "Something went wrong.")
       );
       return;
     }
@@ -138,38 +130,21 @@ export default function ShareRecipientButton({
       return;
     }
 
-    const shareText =
-      scope === "recipient"
-        ? `Share ${recipientName || "GIFTEE"}'s gifts`
-        : "Share entire list";
-
-    if (navigator?.share) {
-      try {
-        await navigator.share({
-          title: "Gift list",
-          text: shareText,
-          url: shareUrl,
-        });
-        return;
-      } catch {
-        // Fall through to clipboard for unsupported or canceled shares.
-      }
+    if (isProbablyMobile()) {
+      router.push(shareUrl);
+      return;
     }
+
+    window.open(shareUrl, "_blank");
 
     try {
       const ok = await copyToClipboard(shareUrl);
       if (ok) {
         showCopied();
         setToast("Link copied");
-      } else {
-        setToast("Couldn’t share. Try again.");
       }
     } catch {
-      setToast("Couldn’t share. Try again.");
-    }
-
-    if (!isProbablyMobile()) {
-      window.open(shareUrl, "_blank");
+      // no-op
     }
   }
 

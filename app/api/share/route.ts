@@ -3,10 +3,11 @@ import crypto from "crypto";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 function getAccessToken(req: NextRequest) {
-  const authHeader = req.headers.get("authorization") || "";
-  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
-  if (token) return token;
-  return req.cookies.get("sb-access-token")?.value ?? null;
+  return (
+    req.cookies.get("sb-access-token")?.value ??
+    req.cookies.get("supabase-auth-token")?.value ??
+    null
+  );
 }
 
 export async function POST(req: NextRequest) {

@@ -619,9 +619,12 @@ export default async function GiftsPage(props: {
             const displayName = key === "unassigned" ? "Unassigned" : toTitleCase(key);
 
             const { total, wrappedCount, unwrappedCount, spend, hasAnyCost } = recipientSummary(list);
-            const isWrappedUp = wrapupSet.has(key);
+            const hasWrapupRecord = wrapupSet.has(key);
+            const isWrappedUp = hasWrapupRecord;
             const details = wrapupsByRecipient.get(key) ?? null;
             const detailsLine = formatRecipientDetails(details?.gender ?? null, details?.age_range ?? null);
+            const allGiftsWrappedNow = total > 0 && wrappedCount === total;
+            const needsWork = hasWrapupRecord && !allGiftsWrappedNow;
 
             if (isWrappedUp) {
               return (
@@ -633,9 +636,19 @@ export default async function GiftsPage(props: {
                   <div className="border-b border-blue-700/70 bg-gradient-to-br from-blue-600/25 via-blue-600/20 to-blue-600/10 px-4 py-4 sm:px-5">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div className="min-w-0">
-                        <h2 className="text-lg font-black text-slate-900 sm:text-xl">
-                          {displayName}
-                        </h2>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h2 className="text-lg font-black text-slate-900 sm:text-xl">
+                            {displayName}
+                          </h2>
+                          <span className="rounded-full border border-blue-200 bg-white/80 px-2.5 py-1 text-xs font-semibold text-slate-900">
+                            {total} total
+                          </span>
+                          {hasAnyCost && (
+                            <span className="rounded-full border border-blue-200 bg-white/80 px-2.5 py-1 text-xs font-semibold text-slate-900">
+                              {money(spend)}
+                            </span>
+                          )}
+                        </div>
 
                         {detailsLine && (
                           <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-600">
@@ -647,17 +660,15 @@ export default async function GiftsPage(props: {
                           <span className="rounded-full border border-blue-200 bg-white/80 px-2.5 py-1">
                             {wrappedCount}/{total} wrapped
                           </span>
-                          <span className="rounded-full border border-blue-200 bg-white/80 px-2.5 py-1">
-                            {total} total
-                          </span>
-                          {hasAnyCost && (
-                            <span className="rounded-full border border-blue-200 bg-white/80 px-2.5 py-1">
-                              {money(spend)}
+                          {needsWork ? (
+                            <span className="rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-rose-800">
+                              Needs work
+                            </span>
+                          ) : (
+                            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-emerald-800">
+                              All wrapped
                             </span>
                           )}
-                          <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-emerald-800">
-                            all wrapped
-                          </span>
                         </div>
 
                         <div className="mt-3 h-2 w-full rounded-full bg-emerald-100">
@@ -694,9 +705,19 @@ export default async function GiftsPage(props: {
                 <div className="border-b border-blue-700/70 bg-gradient-to-br from-blue-600/25 via-blue-600/20 to-blue-600/10 px-4 py-4 sm:px-5">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
-                      <h2 className="text-lg font-black text-slate-900 sm:text-xl">
-                        {displayName}
-                      </h2>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h2 className="text-lg font-black text-slate-900 sm:text-xl">
+                          {displayName}
+                        </h2>
+                        <span className="rounded-full border border-blue-200 bg-white/80 px-2.5 py-1 text-xs font-semibold text-slate-900">
+                          {total} total
+                        </span>
+                        {hasAnyCost && (
+                          <span className="rounded-full border border-blue-200 bg-white/80 px-2.5 py-1 text-xs font-semibold text-slate-900">
+                            {money(spend)}
+                          </span>
+                        )}
+                      </div>
 
                       {detailsLine && (
                         <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-600">
@@ -708,14 +729,6 @@ export default async function GiftsPage(props: {
                         <span className="rounded-full border border-blue-200 bg-white/80 px-2.5 py-1">
                           {wrappedCount}/{total} wrapped
                         </span>
-                        <span className="rounded-full border border-blue-200 bg-white/80 px-2.5 py-1">
-                          {total} total
-                        </span>
-                        {hasAnyCost && (
-                          <span className="rounded-full border border-blue-200 bg-white/80 px-2.5 py-1">
-                            {money(spend)}
-                          </span>
-                        )}
 
                         {unwrappedCount > 0 ? (
                           <span className="rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-rose-800">

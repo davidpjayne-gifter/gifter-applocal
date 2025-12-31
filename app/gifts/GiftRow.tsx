@@ -225,8 +225,8 @@ export default function GiftRow({ gift, updateGiftStatus }: Props) {
 
   return (
     <>
-      <li style={{ padding: "12px 0", borderTop: "1px solid #f1f5f9" }}>
-      <div style={{ position: "relative", paddingBottom: 22 }}>
+      <li style={{ padding: "10px 0", borderTop: "1px solid #f1f5f9" }}>
+      <div>
         {!isEditing ? (
           <div className="text-slate-900" style={{ fontWeight: 800 }}>
             {localGift.title}
@@ -298,6 +298,25 @@ export default function GiftRow({ gift, updateGiftStatus }: Props) {
             isWrapped={isWrapped}
             shippingStatus={shipping}
             updateGiftStatus={updateGiftStatus}
+            actions={
+              <>
+                <button
+                  type="button"
+                  onClick={handleEditClick}
+                  className="rounded-lg bg-blue-600 px-2 py-1 text-[11px] font-semibold text-white transition hover:bg-blue-700"
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="rounded-lg border border-rose-200 bg-white px-2 py-1 text-[11px] font-semibold text-rose-600 transition hover:border-rose-300 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {deleting ? "Deleting..." : "Delete"}
+                </button>
+              </>
+            }
           />
         )}
 
@@ -313,25 +332,7 @@ export default function GiftRow({ gift, updateGiftStatus }: Props) {
           </div>
         )}
 
-        {!isEditing && (
-          <div className="absolute bottom-0 right-0 flex gap-2">
-            <button
-              type="button"
-              onClick={handleEditClick}
-              className="rounded-lg bg-blue-600 px-2 py-1 text-[11px] font-semibold text-white transition hover:bg-blue-700"
-            >
-              Edit
-            </button>
-            <button
-              type="button"
-              onClick={handleDelete}
-              disabled={deleting}
-              className="rounded-lg border border-rose-200 bg-white px-2 py-1 text-[11px] font-semibold text-rose-600 transition hover:border-rose-300 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {deleting ? "Deleting..." : "Delete"}
-            </button>
-          </div>
-        )}
+        
       </div>
         {undoBar}
       </li>
