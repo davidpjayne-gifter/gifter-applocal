@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import CopyLinkButton from "@/app/share/CopyLinkButton";
 
 type Gift = {
   id: string;
@@ -31,6 +32,8 @@ export default async function SharePage(props: {
       </main>
     );
   }
+
+  const sharePath = `/share/${token}`;
 
   // 1) Look up the share token
   const { data: share, error: shareErr } = await supabaseAdmin
@@ -175,6 +178,8 @@ export default async function SharePage(props: {
           </div>
         )}
 
+        <CopyLinkButton sharePath={sharePath} />
+
         <div
           style={{
             marginTop: 14,
@@ -241,6 +246,8 @@ export default async function SharePage(props: {
           ))}
         </div>
       )}
+
+      <CopyLinkButton sharePath={sharePath} />
 
       <div
         style={{
