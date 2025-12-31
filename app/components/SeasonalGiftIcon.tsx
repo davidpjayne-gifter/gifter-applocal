@@ -5,17 +5,18 @@ export default function SeasonalGiftIcon({
   size?: string;
   className?: string;
 }) {
-  const month = new Date().getMonth() + 1;
+  function getSeasonalEmoji(date = new Date()) {
+    const month = date.getMonth() + 1; // 1–12
+    const day = date.getDate();
 
-  let icon = "🎁"; // default
+    if (month === 2 && day <= 14) return "❤️";
+    if ((month === 3 && day >= 15) || (month === 4 && day <= 15)) return "🐰";
+    if (month === 10) return "🎃";
+    if (month === 12 && day <= 25) return "🎄";
+    return "🎁";
+  }
 
-  if (month === 2) icon = "❤️"; // February – Valentine’s
-  else if (month === 4) icon = "🐣"; // April – Easter
-  else if (month === 5) icon = "🌸"; // Spring
-  else if (month === 6) icon = "🎓"; // Graduation
-  else if (month === 7) icon = "🇺🇸"; // July
-  else if (month === 10) icon = "🎃"; // October
-  else if (month === 12) icon = "🎄"; // December
+  const icon = getSeasonalEmoji();
 
   return <div aria-hidden className={`flex justify-center mb-3 ${size} ${className}`}>{icon}</div>;
 }
