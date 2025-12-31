@@ -115,7 +115,7 @@ export default function LoginForm({ nextPath }: LoginFormProps) {
           id="gender"
           value={gender}
           onChange={(event) => setGender(event.target.value)}
-          className={`${selectBase} ${gender ? "text-blue-700" : "text-blue-400"}`}
+          className={`${selectBase} ${gender ? "text-blue-700" : "text-slate-900 sm:text-blue-400"}`}
           required
         >
           <option value="" disabled>
@@ -136,7 +136,7 @@ export default function LoginForm({ nextPath }: LoginFormProps) {
           id="ageRange"
           value={ageRange}
           onChange={(event) => setAgeRange(event.target.value)}
-          className={`${selectBase} ${ageRange ? "text-blue-700" : "text-blue-400"}`}
+          className={`${selectBase} ${ageRange ? "text-blue-700" : "text-slate-900 sm:text-blue-400"}`}
           required
         >
           <option value="" disabled>
