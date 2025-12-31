@@ -92,14 +92,21 @@ export default function GiftRow({ gift, updateGiftStatus }: Props) {
   }, [gift.id]);
 
   async function finalizeDelete() {
-    const { error } = await supabase.from("gifts").delete().eq("id", gift.id);
-    if (error) {
-      console.error("Failed to delete gift:", error);
+    try {
+      const { error } = await supabase.from("gifts").delete().eq("id", gift.id);
+      if (error) {
+        console.error("Failed to delete gift:", error);
+        toast.error("Could not delete gift. Please try again.");
+        setRemoved(false);
+      }
+    } catch (err: any) {
+      console.error("Failed to delete gift:", err);
       toast.error("Could not delete gift. Please try again.");
       setRemoved(false);
+    } finally {
+      setDeleting(false);
+      setUndoOpen(false);
     }
-    setDeleting(false);
-    setUndoOpen(false);
   }
 
   function handleDelete() {
@@ -109,7 +116,7 @@ export default function GiftRow({ gift, updateGiftStatus }: Props) {
     setUndoOpen(true);
 
     deleteTimerRef.current = window.setTimeout(() => {
-      finalizeDelete();
+      void finalizeDelete();
       deleteTimerRef.current = null;
     }, 5000);
   }
