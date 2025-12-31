@@ -32,6 +32,15 @@ function normalizeRecipientKey(name: string) {
   return name.trim().toLowerCase();
 }
 
+function withTimeout<T>(promise: Promise<T>, ms = 15000) {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => {
+      window.setTimeout(() => reject(new Error("That took too long. Please try again.")), ms);
+    }),
+  ]);
+}
+
 export default function AddGiftForm({
   listId,
   seasonId,
@@ -111,84 +120,92 @@ export default function AddGiftForm({
   );
 
   async function handleSubmit() {
-    if (!canSubmit) return;
+    if (submitting || !canSubmit) return;
 
-    setSubmitting(true);
     setSubmitError("");
     setCostError("");
-
-    if (!isPro && (hitsGiftLimit || hitsRecipientLimit)) {
-      setSubmitting(false);
-      setShowUpgrade(true);
-      return;
-    }
 
     const costRaw = cost.trim();
     const costNumber = moneyToNumber(cost);
     if (!costRaw) {
-      setSubmitting(false);
       setCostError("Cost is required.");
       return;
     }
     if (costRaw.includes("-") || costNumber === null || !Number.isFinite(costNumber) || costNumber <= 0) {
-      setSubmitting(false);
       setCostError("Enter a valid cost.");
       return;
     }
 
-    const { data: sessionData } = await supabase.auth.getSession();
-    const token = sessionData.session?.access_token;
+    setSubmitting(true);
 
-    setSubmitting(false);
-
-    if (!token) {
-      setSubmitError("Please sign in first.");
-      return;
-    }
-
-    const res = await fetch("/api/gifts", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        title: title.trim(),
-        recipient_name: recipient.trim(),
-        cost: costNumber,
-        list_id: listId,
-        season_id: seasonId,
-        tracking: tracking.trim() ? tracking.trim() : null,
-      }),
-    });
-
-    const json = await res.json().catch(() => null);
-
-    if (!res.ok || !json?.ok) {
-      if (json?.code === "LIMIT_REACHED") {
+    try {
+      if (!isPro && (hitsGiftLimit || hitsRecipientLimit)) {
         setShowUpgrade(true);
         return;
       }
-      setSubmitError(json?.message || "Couldn’t save that gift. Try again.");
-      return;
-    }
 
-    setTitle("");
-    setRecipient("");
-    setCost("");
-    setTracking("");
-    setOpen(false);
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
 
-    setToast("Added 🎁");
-
-    // Refresh after animation for a native feel
-    setTimeout(() => {
-      if (onAdded) {
-        onAdded();
+      if (!token) {
+        setSubmitError("Please sign in first.");
         return;
       }
-      window.location.reload();
-    }, 300);
+
+      const res = await withTimeout(
+        fetch("/api/gifts", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            title: title.trim(),
+            recipient_name: recipient.trim(),
+            cost: costNumber,
+            list_id: listId,
+            season_id: seasonId,
+            tracking: tracking.trim() ? tracking.trim() : null,
+          }),
+        }),
+        15000
+      );
+
+      const json = await res.json().catch(() => null);
+
+      if (!res.ok || !json?.ok) {
+        if (json?.code === "LIMIT_REACHED") {
+          setShowUpgrade(true);
+          return;
+        }
+        setSubmitError(json?.message || "Couldn’t save that gift. Try again.");
+        return;
+      }
+
+      setTitle("");
+      setRecipient("");
+      setCost("");
+      setTracking("");
+      setOpen(false);
+
+      setToast("Added 🎁");
+
+      setTimeout(() => {
+        if (onAdded) {
+          onAdded();
+          return;
+        }
+        router.refresh();
+      }, 300);
+    } catch (err) {
+      const message =
+        err instanceof Error && err.message
+          ? err.message
+          : "Couldn’t save that gift. Try again.";
+      setSubmitError(message);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   const showUpgradeCta =
@@ -421,7 +438,7 @@ export default function AddGiftForm({
             </button>
 
             {submitError && (
-              <div style={{ fontSize: 12, color: "#b91c1c", textAlign: "center" }}>{submitError}</div>
+              <p className="mt-2 text-sm text-rose-700">{submitError}</p>
             )}
             {needsSignIn && (
               <SignInCtaButton

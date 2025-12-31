@@ -75,8 +75,14 @@ export default function LoginForm({ nextPath }: LoginFormProps) {
       </button>
 
       {status === "sent" && (
-        <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-          {message || "Check your email for a sign-in link."}
+        <div>
+          <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+            {message || "Check your email for a sign-in link."}
+          </div>
+          <div className="mt-1 text-xs text-gray-600 dark:text-gray-300">
+            If you don’t see it within a couple minutes, check Spam/Promotions and mark the email
+            as Not Spam so future links arrive.
+          </div>
         </div>
       )}
       {status === "error" && (
