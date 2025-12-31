@@ -124,7 +124,7 @@ export default async function SharePage(props: {
         <div style={{ marginBottom: 14 }}>
           <div style={{ fontSize: 20, fontWeight: 900, lineHeight: 1.15 }}>Shared list</div>
           <div style={{ marginTop: 4, fontSize: 12, color: "#64748b" }}>
-            Shared list (all GIFTees)
+            (all GIFTees)
           </div>
         </div>
 
@@ -216,9 +216,6 @@ export default async function SharePage(props: {
           }}
         >
           {displayName} 🎁
-        </div>
-        <div style={{ marginTop: 6, fontSize: 12, color: "#64748b" }}>
-          Shared GIFTEE (one person)
         </div>
       </div>
 
