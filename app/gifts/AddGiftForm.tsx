@@ -90,6 +90,13 @@ export default function AddGiftForm({
     return () => window.cancelAnimationFrame(raf);
   }, [open, recipientName]);
 
+  function handleClose() {
+    setSubmitting(false);
+    setSubmitError("");
+    setCostError("");
+    setOpen(false);
+  }
+
   const parsedCost = useMemo(() => {
     const raw = cost.trim().replace(/[^0-9.]/g, "");
     if (!raw) return null;
@@ -272,7 +279,7 @@ export default function AddGiftForm({
       {/* Backdrop */}
       {open && (
         <div
-          onClick={() => (submitting ? null : setOpen(false))}
+          onClick={handleClose}
           style={{
             position: "fixed",
             inset: 0,
@@ -314,7 +321,7 @@ export default function AddGiftForm({
               🎁 Add a GIFT
             </div>
             <button
-              onClick={() => (submitting ? null : setOpen(false))}
+              onClick={handleClose}
               style={{
                 border: "1px solid #e2e8f0",
                 background: "#fff",
@@ -435,6 +442,24 @@ export default function AddGiftForm({
               }}
             >
               {submitting ? "Adding…" : "Add gift"}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleClose}
+              style={{
+                marginTop: 6,
+                padding: "10px 14px",
+                borderRadius: 14,
+                border: "1px solid #e2e8f0",
+                background: "#fff",
+                color: "#0f172a",
+                fontWeight: 900,
+                fontSize: 14,
+                cursor: "pointer",
+              }}
+            >
+              Cancel
             </button>
 
             {submitError && (
