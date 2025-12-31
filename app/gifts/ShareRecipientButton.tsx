@@ -11,7 +11,7 @@ export default function ShareRecipientButton({
   listId,
   seasonId,
 }: {
-  scope: "list" | "giftee";
+  scope: "list" | "recipient";
   recipientKey?: string;
   recipientName?: string | null;
   listId: string;
@@ -73,7 +73,7 @@ export default function ShareRecipientButton({
     const lid = (listId || "").trim();
     const sid = (seasonId || "").trim();
 
-    if (scope === "giftee" && !rk) {
+    if (scope === "recipient" && !rk) {
       console.error("ShareRecipientButton missing recipientKey prop:", recipientKey);
       setToast("Share failed. Try again.");
       return;
@@ -105,23 +105,16 @@ export default function ShareRecipientButton({
       },
       body: JSON.stringify({
         scope,
-        seasonId: sid,
-        recipientKey: scope === "giftee" ? rk : undefined,
-        listId: lid,
+        season_id: sid,
+        list_id: lid,
+        recipient_key: scope === "recipient" ? rk : undefined,
       }),
     });
 
-    const raw = await res.text();
-    let json: any = null;
-    try {
-      json = raw ? JSON.parse(raw) : null;
-    } catch {
-      json = null;
-    }
+    const json = await res.json().catch(() => null);
 
     if (!res.ok) {
       console.error("Share API error status:", res.status);
-      console.error("Share API raw:", raw);
       setToast((json && json.error) || "Share failed. Try again.");
       return;
     }
@@ -132,13 +125,13 @@ export default function ShareRecipientButton({
         ? `${window.location.origin}/share/${json.token}`
         : "";
     if (!shareUrl) {
-      console.error("Share API missing url:", { raw, json });
+      console.error("Share API missing url:", { json });
       setToast("Share failed. Try again.");
       return;
     }
 
     const shareText =
-      scope === "giftee"
+      scope === "recipient"
         ? `Share ${recipientName || "GIFTEE"}'s gifts`
         : "Share entire list";
 
@@ -193,7 +186,7 @@ export default function ShareRecipientButton({
     >
       {copied
         ? "Link copied"
-        : scope === "giftee"
+        : scope === "recipient"
           ? `Share ${recipientName || "GIFTEE"}'s gifts`
           : "Share entire list"}
     </button>

@@ -773,7 +773,7 @@ export default async function GiftsPage(props: {
                   {list.length > 0 && (
                     <div style={bottomActionRowStyle()}>
                       <ShareRecipientButton
-                        scope="giftee"
+                        scope="recipient"
                         recipientKey={key}
                         recipientName={displayName}
                         listId={listIdForClient}
