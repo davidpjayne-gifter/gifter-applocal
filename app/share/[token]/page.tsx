@@ -118,6 +118,7 @@ export default async function SharePage(props: {
           margin: "0 auto",
           fontFamily: "system-ui, -apple-system, Arial",
           background: "#ffffff",
+          textAlign: "center",
         }}
       >
         <div style={{ marginBottom: 14 }}>
@@ -145,26 +146,26 @@ export default async function SharePage(props: {
               const list = grouped[key];
               const name = key === "unassigned" ? "Unassigned" : toTitleCase(key);
               return (
-                <section
-                  key={key}
-                  style={{
-                    border: "1px solid #e2e8f0",
-                    borderRadius: 14,
-                    padding: 14,
-                  }}
-                >
-                  <div style={{ fontWeight: 900, marginBottom: 8 }}>{name}</div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <section key={key} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <div
+                    style={{
+                      alignSelf: "center",
+                      padding: "6px 10px",
+                      borderRadius: 999,
+                      border: "1px solid #e2e8f0",
+                      fontSize: 12,
+                      fontWeight: 900,
+                      color: "#0f172a",
+                      background:
+                        "linear-gradient(135deg, rgba(37,99,235,0.12), rgba(37,99,235,0.04) 55%, rgba(37,99,235,0))",
+                    }}
+                  >
+                    {name} 🎁
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                     {list.map((g) => (
-                      <div
-                        key={g.id}
-                        style={{
-                          border: "1px solid #e2e8f0",
-                          borderRadius: 12,
-                          padding: "10px 12px",
-                        }}
-                      >
-                        <div style={{ fontWeight: 800 }}>{g.title}</div>
+                      <div key={g.id} style={{ fontWeight: 800, fontSize: 13, color: "#0f172a" }}>
+                        {g.title}
                       </div>
                     ))}
                   </div>
@@ -190,20 +191,33 @@ export default async function SharePage(props: {
 
   return (
     <main
-      style={{
-        padding: 18,
-        maxWidth: 430,
-        margin: "0 auto",
-        fontFamily: "system-ui, -apple-system, Arial",
-        background: "#ffffff",
-      }}
-    >
+        style={{
+          padding: 18,
+          maxWidth: 430,
+          margin: "0 auto",
+          fontFamily: "system-ui, -apple-system, Arial",
+          background: "#ffffff",
+          textAlign: "center",
+        }}
+      >
       {/* Title */}
       <div style={{ marginBottom: 14 }}>
-        <div style={{ fontSize: 20, fontWeight: 900, lineHeight: 1.15 }}>
-          What we bought for {displayName}:
+        <div
+          style={{
+            display: "inline-block",
+            padding: "6px 10px",
+            borderRadius: 999,
+            border: "1px solid #e2e8f0",
+            fontSize: 12,
+            fontWeight: 900,
+            color: "#0f172a",
+            background:
+              "linear-gradient(135deg, rgba(37,99,235,0.12), rgba(37,99,235,0.04) 55%, rgba(37,99,235,0))",
+          }}
+        >
+          {displayName} 🎁
         </div>
-        <div style={{ marginTop: 4, fontSize: 12, color: "#64748b" }}>
+        <div style={{ marginTop: 6, fontSize: 12, color: "#64748b" }}>
           Shared GIFTEE (one person)
         </div>
       </div>
@@ -222,17 +236,10 @@ export default async function SharePage(props: {
           No gifts yet.
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {gifts.map((g: Gift) => (
-            <div
-              key={g.id}
-              style={{
-                border: "1px solid #e2e8f0",
-                borderRadius: 14,
-                padding: 14,
-              }}
-            >
-              <div style={{ fontWeight: 800 }}>{g.title}</div>
+            <div key={g.id} style={{ fontWeight: 800, fontSize: 13, color: "#0f172a" }}>
+              {g.title}
             </div>
           ))}
         </div>
