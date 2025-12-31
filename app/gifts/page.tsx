@@ -368,6 +368,9 @@ export default async function GiftsPage(props: {
           <div className="text-slate-900" style={{ fontWeight: 700 }}>
             Welcome back — logging you in…
           </div>
+          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            Just a moment.
+          </div>
           <AuthRedirectGate />
           <div className="mt-3 text-center text-sm text-slate-500 dark:text-slate-400">
             <Link href="/" className="underline hover:text-slate-600 dark:hover:text-slate-300">
