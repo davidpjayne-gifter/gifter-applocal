@@ -90,6 +90,15 @@ export default function AddGiftForm({
     return () => window.cancelAnimationFrame(raf);
   }, [open, recipientName]);
 
+  useEffect(() => {
+    if (!open || !submitting) return;
+    const t = window.setTimeout(() => {
+      setSubmitting(false);
+      setSubmitError("That took too long. Please try again.");
+    }, 16000);
+    return () => window.clearTimeout(t);
+  }, [open, submitting]);
+
   function handleClose() {
     setSubmitting(false);
     setSubmitError("");
@@ -151,7 +160,7 @@ export default function AddGiftForm({
         return;
       }
 
-      const { data: sessionData } = await supabase.auth.getSession();
+      const { data: sessionData } = await withTimeout(supabase.auth.getSession(), 15000);
       const token = sessionData.session?.access_token;
 
       if (!token) {
