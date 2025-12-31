@@ -32,13 +32,36 @@ function normalizeRecipientKey(name: string) {
   return name.trim().toLowerCase();
 }
 
-function withTimeout<T>(promise: Promise<T>, ms = 15000) {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) => {
-      window.setTimeout(() => reject(new Error("That took too long. Please try again.")), ms);
-    }),
-  ]);
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchJsonWithTimeout(
+  input: RequestInfo | URL,
+  init: RequestInit,
+  timeoutMs = 15000
+) {
+  const controller = new AbortController();
+  const id = window.setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const res = await fetch(input, { ...init, signal: controller.signal });
+    const json = await Promise.race([
+      res.json(),
+      (async () => {
+        await sleep(timeoutMs);
+        throw new Error("timeout");
+      })(),
+    ]).catch(() => null);
+
+    return { res, json };
+  } catch (err: any) {
+    if (err?.name === "AbortError") throw new Error("timeout");
+    if (err?.message === "timeout") throw err;
+    throw err;
+  } finally {
+    window.clearTimeout(id);
+  }
 }
 
 export default function AddGiftForm({
@@ -130,9 +153,10 @@ export default function AddGiftForm({
     () =>
       title.trim().length > 0 &&
       recipient.trim().length > 0 &&
+      costIsValid &&
       !submitting &&
       !(hitsGiftLimit || hitsRecipientLimit),
-    [title, recipient, submitting, hitsGiftLimit, hitsRecipientLimit]
+    [title, recipient, costIsValid, submitting, hitsGiftLimit, hitsRecipientLimit]
   );
 
   async function handleSubmit() {
@@ -141,13 +165,13 @@ export default function AddGiftForm({
     setSubmitError("");
     setCostError("");
 
-    const costRaw = cost.trim();
-    const costNumber = moneyToNumber(cost);
+    const costRaw = cost.trim().replace(/[^0-9.]/g, "");
+    const costNumber = Number(costRaw);
     if (!costRaw) {
       setCostError("Cost is required.");
       return;
     }
-    if (costRaw.includes("-") || costNumber === null || !Number.isFinite(costNumber) || costNumber <= 0) {
+    if (!Number.isFinite(costNumber) || costNumber <= 0) {
       setCostError("Enter a valid cost.");
       return;
     }
@@ -160,7 +184,7 @@ export default function AddGiftForm({
         return;
       }
 
-      const { data: sessionData } = await withTimeout(supabase.auth.getSession(), 15000);
+      const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
 
       if (!token) {
@@ -168,8 +192,9 @@ export default function AddGiftForm({
         return;
       }
 
-      const res = await withTimeout(
-        fetch("/api/gifts", {
+      const { res, json } = await fetchJsonWithTimeout(
+        "/api/gifts",
+        {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -183,18 +208,16 @@ export default function AddGiftForm({
             season_id: seasonId,
             tracking: tracking.trim() ? tracking.trim() : null,
           }),
-        }),
+        },
         15000
       );
-
-      const json = await res.json().catch(() => null);
 
       if (!res.ok || !json?.ok) {
         if (json?.code === "LIMIT_REACHED") {
           setShowUpgrade(true);
           return;
         }
-        setSubmitError(json?.message || "Couldn’t save that gift. Try again.");
+        setSubmitError(json?.message || "Couldn’t add gift. Please try again.");
         return;
       }
 
@@ -214,10 +237,14 @@ export default function AddGiftForm({
         router.refresh();
       }, 300);
     } catch (err) {
+      if (err instanceof Error && err.message === "timeout") {
+        setSubmitError("That took too long. Please try again.");
+        return;
+      }
       const message =
         err instanceof Error && err.message
           ? err.message
-          : "Couldn’t save that gift. Try again.";
+          : "Couldn’t add gift. Please try again.";
       setSubmitError(message);
     } finally {
       setSubmitting(false);
