@@ -11,6 +11,7 @@ import SeasonBudgetPill from "./SeasonBudgetPill";
 import SignOutButton from "./SignOutButton";
 import GiftRow from "./GiftRow";
 import SignInBanner from "./SignInBanner";
+import ReopenRecipientButton from "./ReopenRecipientButton";
 import HowThisWorks from "./HowThisWorks";
 import RecipientDetailsSheet from "./RecipientDetailsSheet";
 import SeasonalGiftIcon from "@/app/components/SeasonalGiftIcon";
@@ -606,8 +607,7 @@ export default async function GiftsPage(props: {
                     <input type="hidden" name="listId" value={listIdForClient} />
                     <input type="hidden" name="seasonId" value={seasonIdForClient} />
 
-                    <button
-                      type="submit"
+                    <ReopenRecipientButton
                       className="w-full cursor-pointer text-left"
                       title="Click to reopen"
                     >
@@ -663,7 +663,7 @@ export default async function GiftsPage(props: {
                           <div className="text-sm font-semibold text-slate-700">Ready ✅</div>
                         </div>
                       </div>
-                    </button>
+                    </ReopenRecipientButton>
                   </form>
                 </section>
               );
