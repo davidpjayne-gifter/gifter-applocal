@@ -40,7 +40,7 @@ export default async function LoginPage(props: {
         >
           ← Back to home
         </Link>
-        <h1 className="mt-3 text-2xl font-black">Sign in</h1>
+        <h1 className="mt-3 text-2xl font-black">Login</h1>
         <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
           GIFTer is a web app. Enter your email and we’ll send a sign-in link.
         </p>
