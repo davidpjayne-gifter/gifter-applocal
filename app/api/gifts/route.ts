@@ -13,16 +13,7 @@ function getAccessToken(req: NextRequest) {
   return req.cookies.get("sb-access-token")?.value ?? null;
 }
 
-type GiftPayload = {
-  requestId?: string;
-  title?: string;
-  recipient_name?: string | null;
-  recipient_key?: string | null;
-  cost?: number | null;
-  list_id?: string;
-  season_id?: string;
-  tracking?: string | null;
-};
+type GiftPayload = Record<string, unknown>;
 
 function isUuid(value: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
@@ -64,41 +55,39 @@ export async function POST(req: NextRequest) {
     console.error("[addGift:incoming]", {
       requestId,
       recipient: (body as any)?.recipient,
-      title: body?.title,
-      cost: body?.cost,
-      costType: typeof body?.cost,
-      tracking: body?.tracking,
-      trackingType: typeof body?.tracking,
+      title: (body as any)?.title,
+      cost: (body as any)?.cost,
+      costType: typeof (body as any)?.cost,
+      tracking: (body as any)?.tracking,
+      trackingType: typeof (body as any)?.tracking,
     });
-    const title = String(body?.title ?? "").trim();
+    const title = String((body as any)?.title ?? "").trim();
     const recipientRaw =
-      typeof body?.recipient_name === "string"
-        ? body.recipient_name
-        : typeof (body as any)?.recipient === "string"
-          ? (body as any).recipient
-          : typeof body?.recipient_key === "string"
-            ? body.recipient_key
-            : "";
+      typeof (body as any)?.recipient === "string"
+        ? (body as any).recipient
+        : typeof (body as any)?.recipient_name === "string"
+          ? (body as any).recipient_name
+          : "";
     const recipientName = recipientRaw.trim() || null;
-    const listId = String((body as any)?.listId ?? body?.list_id ?? "").trim();
-    const seasonId = String((body as any)?.seasonId ?? body?.season_id ?? "").trim();
-    const costRaw = body?.cost;
+    const listId = String((body as any)?.list_id ?? "").trim();
+    const seasonId = String((body as any)?.season_id ?? "").trim();
+    const costRaw = (body as any)?.cost;
     const cost: number | null =
       typeof costRaw === "number"
         ? (Number.isFinite(costRaw) ? costRaw : null)
         : typeof costRaw === "string"
           ? (() => {
-              const cleaned = costRaw.replace(/[$,]/g, "").trim();
-              if (cleaned === "") return null;
-              const n = Number(cleaned);
-              return Number.isFinite(n) ? n : null;
-            })()
+            const cleaned = costRaw.replace(/[$,]/g, "").trim();
+            if (cleaned === "") return null;
+            const n = Number(cleaned);
+            return Number.isFinite(n) ? n : null;
+          })()
           : null;
     const trackingNumber: string | null =
-      typeof body?.tracking === "string"
-        ? body.tracking.trim() === ""
+      typeof (body as any)?.tracking === "string"
+        ? (body as any).tracking.trim() === ""
           ? null
-          : body.tracking.trim()
+          : (body as any).tracking.trim()
         : null;
 
     console.log("[api/gifts] start", { requestId, ts: new Date().toISOString() });
@@ -137,7 +126,7 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    if (cost === null || cost <= 0) {
+    if (cost === null || cost < 0) {
       console.warn("[api/gifts] bad_request", { requestId, missing: ["cost"] });
       logEnd(false);
       return NextResponse.json(
@@ -203,6 +192,13 @@ export async function POST(req: NextRequest) {
         return NextResponse.json(
           { ok: false, error: "Insert timed out", requestId },
           { status: 504 }
+        );
+      }
+      if (typeof err?.message === "string" && /cost|not null|check/i.test(err.message)) {
+        logEnd(false);
+        return NextResponse.json(
+          { ok: false, requestId, error: { code: "INVALID_COST", message: "Please enter a valid cost." } },
+          { status: 400 }
         );
       }
       const message = err?.message || FREE_LIMIT_MESSAGE;

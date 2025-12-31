@@ -8,7 +8,7 @@ export type CreateGiftInput = {
   seasonId: string;
   title: string;
   recipientName?: string | null;
-  cost?: number | null;
+  cost: number;
   trackingNumber?: string | null;
 };
 
@@ -52,7 +52,7 @@ export async function createGift(input: CreateGiftInput) {
       {
         title: input.title,
         recipient_name: input.recipientName ?? null,
-        cost: input.cost ?? null,
+        cost: input.cost,
         tracking_number: input.trackingNumber ?? null,
         list_id: input.listId,
         season_id: input.seasonId,

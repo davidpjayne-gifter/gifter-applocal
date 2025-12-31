@@ -56,13 +56,26 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
     }
 
     if (cost !== undefined) {
-      if (cost === null) {
-        updates.cost = null;
-      } else if (typeof cost === "number" && Number.isFinite(cost) && cost >= 0) {
-        updates.cost = cost;
-      } else {
-        return NextResponse.json({ error: "Invalid cost value" }, { status: 400 });
+      const costValue =
+        typeof cost === "number"
+          ? (Number.isFinite(cost) ? cost : null)
+          : typeof cost === "string"
+            ? (() => {
+                const cleaned = cost.replace(/[$,]/g, "").trim();
+                if (cleaned === "") return null;
+                const parsed = Number(cleaned);
+                return Number.isFinite(parsed) ? parsed : null;
+              })()
+            : null;
+
+      if (costValue === null || costValue < 0) {
+        return NextResponse.json(
+          { error: { code: "INVALID_COST", message: "Please enter a valid cost." } },
+          { status: 400 }
+        );
       }
+
+      updates.cost = costValue;
     }
 
     if (tracking !== undefined) {
@@ -87,7 +100,10 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
       .maybeSingle();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+      const message = error.message.includes("not-null") || error.message.includes("check constraint")
+        ? "Please enter a valid cost."
+        : error.message;
+      return NextResponse.json({ error: { message } }, { status: 400 });
     }
 
     if (!gift) {

@@ -140,7 +140,7 @@ export default function AddGiftForm({
   }, [cost]);
 
   const costIsValid = useMemo(() => {
-    return typeof parsedCost === "number" && Number.isFinite(parsedCost) && parsedCost > 0;
+    return typeof parsedCost === "number" && Number.isFinite(parsedCost) && parsedCost >= 0;
   }, [parsedCost]);
 
   const recipientKey = normalizeRecipientKey(recipient);
@@ -174,7 +174,7 @@ export default function AddGiftForm({
       setCostError("Cost is required.");
       return;
     }
-    if (!Number.isFinite(costNumber) || costNumber <= 0) {
+    if (!Number.isFinite(costNumber) || costNumber < 0) {
       setCostError("Enter a valid cost.");
       return;
     }
@@ -237,7 +237,11 @@ export default function AddGiftForm({
           setShowUpgrade(true);
           return;
         }
-        const serverMessage = json?.error || json?.message || "Couldn’t add gift.";
+        const serverMessage =
+          json?.error?.message ||
+          json?.error ||
+          json?.message ||
+          "Couldn’t add gift.";
         const serverId = json?.requestId || requestId;
         setSubmitError(`${serverMessage} (ID: ${serverId})`);
         return;

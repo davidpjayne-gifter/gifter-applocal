@@ -121,17 +121,17 @@ export default function GiftRow({ gift, updateGiftStatus }: Props) {
       return;
     }
 
-    let costValue: number | null | undefined = undefined;
-    if (editCost.trim() !== "") {
-      const parsed = Number(editCost);
-      if (!Number.isFinite(parsed)) {
-        setSaveError("Cost must be a valid number.");
-        return;
-      }
-      costValue = parsed;
-    } else {
-      costValue = null;
+    const rawCost = editCost.trim().replace(/[$,]/g, "");
+    if (!rawCost) {
+      setSaveError("Cost is required.");
+      return;
     }
+    const parsed = Number(rawCost);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      setSaveError("Please enter a valid cost.");
+      return;
+    }
+    const costValue = parsed;
 
     setSaving(true);
     setSaveError("");
@@ -161,7 +161,11 @@ export default function GiftRow({ gift, updateGiftStatus }: Props) {
       const json = await res.json().catch(() => null);
 
       if (!res.ok || !json?.gift) {
-        throw new Error(json?.error || "Unable to update gift.");
+        const message =
+          json?.error?.message ||
+          json?.error ||
+          "Unable to update gift.";
+        throw new Error(message);
       }
 
       setLocalGift((prev) => ({ ...prev, ...json.gift }));
