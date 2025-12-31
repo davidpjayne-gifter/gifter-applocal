@@ -139,9 +139,13 @@ export default function HomePage() {
             border: "1px solid #cbd5e1",
             fontSize: 14,
             background: "#fff",
+            color: gender ? "#1d4ed8" : "#0f172a",
+            appearance: "none",
           }}
         >
-          <option value="">Select gender</option>
+          <option value="" disabled>
+            Select gender
+          </option>
           <option value="male">Male</option>
           <option value="female">Female</option>
         </select>
@@ -157,9 +161,13 @@ export default function HomePage() {
             border: "1px solid #cbd5e1",
             fontSize: 14,
             background: "#fff",
+            color: ageRange ? "#1d4ed8" : "#0f172a",
+            appearance: "none",
           }}
         >
-          <option value="">Select age range</option>
+          <option value="" disabled>
+            Select age range
+          </option>
           <option value="13-17">13–17</option>
           <option value="18-24">18–24</option>
           <option value="25-34">25–34</option>
@@ -231,7 +239,7 @@ export default function HomePage() {
       <div
         style={{
           marginTop: 20,
-          textAlign: "left",
+          textAlign: "center",
           border: "1px solid #e2e8f0",
           borderRadius: 16,
           padding: 16,
@@ -241,7 +249,16 @@ export default function HomePage() {
         <div style={{ fontWeight: 900, fontSize: 14, color: "#0f172a" }}>
           How GIFTer works
         </div>
-        <ul style={{ marginTop: 8, paddingLeft: 18, fontSize: 13, color: "#475569" }}>
+        <ul
+          style={{
+            marginTop: 8,
+            paddingLeft: 0,
+            fontSize: 13,
+            color: "#475569",
+            listStylePosition: "inside",
+            textAlign: "center",
+          }}
+        >
           <li>Sign in once, then come back anytime at: {origin || "this site"}</li>
           <li>Bookmark this page (desktop) or “Add to Home Screen” (mobile) for quick access.</li>
           <li>You’ll stay signed in unless you click Sign out.</li>
@@ -261,13 +278,14 @@ export default function HomePage() {
             fontWeight: 700,
             cursor: "pointer",
             fontSize: 12,
+            textAlign: "center",
           }}
         >
           {showBookmarkHelp ? "Hide bookmark tips" : "How do I bookmark this?"}
         </button>
 
         {showBookmarkHelp && (
-          <div style={{ marginTop: 6, fontSize: 12, color: "#475569" }}>
+          <div style={{ marginTop: 6, fontSize: 12, color: "#475569", textAlign: "center" }}>
             Desktop: Press Ctrl+D (Windows) / Cmd+D (Mac). Mobile: Share → Add to Home Screen.
           </div>
         )}
