@@ -2,27 +2,40 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { safeFetchJson } from "@/app/lib/safeFetchJson";
+import { useToast } from "@/app/components/ui/toast";
 
 export default function SyncTrackingButton() {
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState("");
   const router = useRouter();
+  const { toast } = useToast();
 
   async function sync() {
     setLoading(true);
     setMsg("");
 
-    const res = await fetch("/api/aftership/sync", { method: "POST" });
-    const json = await res.json();
+    const result = await safeFetchJson("/api/aftership/sync", { method: "POST" });
 
-    if (!res.ok || !json.ok) {
-      setMsg(json.error || "Sync failed");
+    if (!result.ok || !(result.json as any)?.ok) {
+      const message =
+        (result.json as any)?.error?.message ||
+        (result.json as any)?.error ||
+        "Something went wrong.";
+      toast.error(message);
+      setMsg(message);
+      setLoading(false);
+      return;
+    }
+    if (result.text) {
+      toast.error("Something went wrong.");
+      setMsg("Something went wrong.");
       setLoading(false);
       return;
     }
 
-    const okCount = Array.isArray(json.results)
-      ? json.results.filter((r: any) => r.status === "ok").length
+    const okCount = Array.isArray((result.json as any)?.results)
+      ? (result.json as any).results.filter((r: any) => r.status === "ok").length
       : 0;
 
     setMsg(`Synced! Updated ${okCount} item${okCount === 1 ? "" : "s"}.`);

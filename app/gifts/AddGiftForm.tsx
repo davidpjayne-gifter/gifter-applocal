@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { safeFetchJson } from "@/app/lib/safeFetchJson";
 import UpgradeSheet from "@/app/components/UpgradeSheet";
 import Toast from "@/app/components/Toast";
 import SignInCtaButton from "@/app/components/SignInCtaButton";
@@ -45,16 +46,15 @@ async function fetchJsonWithTimeout(
   const id = window.setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const res = await fetch(input, { ...init, signal: controller.signal });
-    const json = await Promise.race([
-      res.json(),
+    const result = await Promise.race([
+      safeFetchJson(input, { ...init, signal: controller.signal }),
       (async () => {
         await sleep(timeoutMs);
         throw new Error("timeout");
       })(),
-    ]).catch(() => null);
+    ]);
 
-    return { res, json };
+    return result;
   } catch (err: any) {
     if (err?.name === "AbortError") throw new Error("timeout");
     if (err?.message === "timeout") throw err;
@@ -218,7 +218,7 @@ export default function AddGiftForm({
         seasonId: payload.season_id,
       });
 
-      const { res, json } = await fetchJsonWithTimeout(
+      const result = await fetchJsonWithTimeout(
         "/api/gifts",
         {
           method: "POST",
@@ -232,17 +232,21 @@ export default function AddGiftForm({
         15000
       );
 
-      if (!res.ok || !json?.ok) {
-        if (json?.code === "LIMIT_REACHED") {
+      if (!result.ok || !(result.json as any)?.ok) {
+        if ((result.json as any)?.code === "LIMIT_REACHED") {
           setShowUpgrade(true);
           return;
         }
+        if (result.text) {
+          setSubmitError("Something went wrong. Please try again.");
+          return;
+        }
         const serverMessage =
-          json?.error?.message ||
-          json?.error ||
-          json?.message ||
+          (result.json as any)?.error?.message ||
+          (result.json as any)?.error ||
+          (result.json as any)?.message ||
           "Couldn’t add gift.";
-        const serverId = json?.requestId || requestId;
+        const serverId = (result.json as any)?.requestId || requestId;
         setSubmitError(`${serverMessage} (ID: ${serverId})`);
         return;
       }

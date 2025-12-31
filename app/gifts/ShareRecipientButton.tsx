@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Toast from "@/app/components/Toast";
 import { supabase } from "@/lib/supabase";
+import { safeFetchJson } from "@/app/lib/safeFetchJson";
 
 export default function ShareRecipientButton({
   scope,
@@ -97,7 +98,7 @@ export default function ShareRecipientButton({
       return;
     }
 
-    const res = await fetch("/api/share", {
+    const result = await safeFetchJson("/api/share", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -111,18 +112,25 @@ export default function ShareRecipientButton({
       }),
     });
 
-    const json = await res.json().catch(() => null);
-
-    if (!res.ok) {
-      console.error("Share API error status:", res.status);
-      setToast((json && json.error) || "Share failed. Try again.");
+    if (!result.ok) {
+      console.error("Share API error status:", result.status);
+      setToast(
+        (result.json as any)?.error?.message ||
+          (result.json as any)?.error ||
+          "Something went wrong."
+      );
       return;
     }
 
-    const shareUrl = json?.url
-      ? String(json.url)
-      : json?.token
-        ? `${window.location.origin}/share/${json.token}`
+    if (result.text) {
+      setToast("Something went wrong.");
+      return;
+    }
+
+    const shareUrl = (result.json as any)?.url
+      ? String((result.json as any).url)
+      : (result.json as any)?.token
+        ? `${window.location.origin}/share/${(result.json as any).token}`
         : "";
     if (!shareUrl) {
       console.error("Share API missing url:", { json });

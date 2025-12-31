@@ -13,7 +13,6 @@ import GiftRow from "./GiftRow";
 import SignInBanner from "./SignInBanner";
 import ReopenRecipientButton from "./ReopenRecipientButton";
 import HowThisWorks from "./HowThisWorks";
-import RecipientDetailsSheet from "./RecipientDetailsSheet";
 import SeasonalGiftIcon from "@/app/components/SeasonalGiftIcon";
 
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
@@ -224,19 +223,18 @@ async function markRecipientWrappedUp(formData: FormData) {
 async function reopenRecipient(formData: FormData) {
   "use server";
 
-  const recipientKey = String(formData.get("recipientKey") || "");
-  const seasonId = String(formData.get("seasonId") || "");
+  const recipientKey = String(formData.get("recipientKey") || "").trim().toLowerCase();
+  const seasonId = String(formData.get("seasonId") || "").trim();
+  const listId = String(formData.get("listId") || "").trim();
 
-  if (!recipientKey || !seasonId) return;
+  if (!recipientKey || !seasonId || !listId) return;
 
   const userId = await getUserIdFromCookie();
   if (!userId) return;
 
-  const { id: listId } = await getOrCreateCurrentList(userId);
-
   await supabaseAdmin
     .from("recipient_wrapups")
-    .update({ wrapped_up_at: null })
+    .delete()
     .eq("season_id", seasonId)
     .eq("list_id", listId)
     .eq("recipient_key", recipientKey);
@@ -595,7 +593,6 @@ export default async function GiftsPage(props: {
             const shouldAutoWrapUp = total > 0 && wrappedCount === total && !isWrappedUp;
             const details = wrapupsByRecipient.get(key) ?? null;
             const detailsLine = formatRecipientDetails(details?.gender ?? null, details?.age_range ?? null);
-            const canEditDetails = key !== "unassigned";
 
             if (isWrappedUp) {
               return (
@@ -610,69 +607,61 @@ export default async function GiftsPage(props: {
                       <button type="submit" style={{ display: "none" }} />
                     </form>
                   )}
-                  <form action={reopenRecipient} className="m-0">
-                    <input type="hidden" name="recipientKey" value={key} />
-                    <input type="hidden" name="listId" value={listIdForClient} />
-                    <input type="hidden" name="seasonId" value={seasonIdForClient} />
 
-                    <ReopenRecipientButton
-                      className="w-full cursor-pointer text-left"
-                      title="Click to reopen"
-                    >
-                      <div className="border-b border-blue-700/70 bg-gradient-to-br from-blue-600/25 via-blue-600/20 to-blue-600/10 px-4 py-4 sm:px-5">
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                          <div className="min-w-0">
-                            <h2 className="text-lg font-black text-slate-900 sm:text-xl">
-                              {displayName}
-                            </h2>
+                  {/* Header (NOT inside reopen form, so RecipientDetailsSheet can use its own form) */}
+                  <div className="border-b border-blue-700/70 bg-gradient-to-br from-blue-600/25 via-blue-600/20 to-blue-600/10 px-4 py-4 sm:px-5">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="min-w-0">
+                        <h2 className="text-lg font-black text-slate-900 sm:text-xl">
+                          {displayName}
+                        </h2>
 
-                            {(detailsLine || canEditDetails) && (
-                              <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-600">
-                                {detailsLine && <span>{detailsLine}</span>}
-                                {canEditDetails && (
-                                  <RecipientDetailsSheet
-                                    recipientKey={key}
-                                    listId={listIdForClient}
-                                    seasonId={seasonIdForClient}
-                                    initialGender={details?.gender ?? null}
-                                    initialAgeRange={details?.age_range ?? null}
-                                    onSave={updateRecipientDetails}
-                                  />
-                                )}
-                              </div>
-                            )}
-
-                            <div className="mt-2 flex flex-wrap gap-2 text-xs font-semibold text-slate-900">
-                              <span className="rounded-full border border-blue-200 bg-white/80 px-2.5 py-1">
-                              {wrappedCount}/{total} wrapped
-                              </span>
-                              <span className="rounded-full border border-blue-200 bg-white/80 px-2.5 py-1">
-                                {total} total
-                              </span>
-                              {hasAnyCost && (
-                                <span className="rounded-full border border-blue-200 bg-white/80 px-2.5 py-1">
-                                  {money(spend)}
-                                </span>
-                              )}
-                              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-emerald-800">
-                                all wrapped
-                              </span>
-                            </div>
-
-                            <div className="mt-3 h-2 w-full rounded-full bg-emerald-100">
-                              <div className="h-2 w-full rounded-full bg-emerald-500" />
-                            </div>
-
-                            <div className="mt-2 text-xs text-slate-600 dark:text-slate-400">
-                              Wrapped up — click to reopen
-                            </div>
+                        {detailsLine && (
+                          <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-600">
+                            <span>{detailsLine}</span>
                           </div>
+                        )}
 
-                          <div className="text-sm font-semibold text-slate-700">Ready ✅</div>
+                        <div className="mt-2 flex flex-wrap gap-2 text-xs font-semibold text-slate-900">
+                          <span className="rounded-full border border-blue-200 bg-white/80 px-2.5 py-1">
+                            {wrappedCount}/{total} wrapped
+                          </span>
+                          <span className="rounded-full border border-blue-200 bg-white/80 px-2.5 py-1">
+                            {total} total
+                          </span>
+                          {hasAnyCost && (
+                            <span className="rounded-full border border-blue-200 bg-white/80 px-2.5 py-1">
+                              {money(spend)}
+                            </span>
+                          )}
+                          <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-emerald-800">
+                            all wrapped
+                          </span>
                         </div>
+
+                        <div className="mt-3 h-2 w-full rounded-full bg-emerald-100">
+                          <div className="h-2 w-full rounded-full bg-emerald-500" />
+                        </div>
+
+                        {/* Reopen form ONLY for the clickable row */}
+                        <form action={reopenRecipient} className="m-0 mt-2">
+                          <input type="hidden" name="recipientKey" value={key} />
+                          <input type="hidden" name="listId" value={listIdForClient} />
+                          <input type="hidden" name="seasonId" value={seasonIdForClient} />
+
+                          <button
+                            type="submit"
+                            className="w-full cursor-pointer text-left text-xs text-slate-600"
+                            title="Click to reopen"
+                          >
+                            Wrapped up — click to reopen
+                          </button>
+                        </form>
                       </div>
-                    </ReopenRecipientButton>
-                  </form>
+
+                      <div className="text-sm font-semibold text-slate-700">Ready ✅</div>
+                    </div>
+                  </div>
                 </section>
               );
             }
@@ -696,19 +685,9 @@ export default async function GiftsPage(props: {
                         {displayName}
                       </h2>
 
-                      {(detailsLine || canEditDetails) && (
+                      {detailsLine && (
                         <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-600">
-                          {detailsLine && <span>{detailsLine}</span>}
-                          {canEditDetails && (
-                            <RecipientDetailsSheet
-                              recipientKey={key}
-                              listId={listIdForClient}
-                              seasonId={seasonIdForClient}
-                              initialGender={details?.gender ?? null}
-                              initialAgeRange={details?.age_range ?? null}
-                              onSave={updateRecipientDetails}
-                            />
-                          )}
+                          <span>{detailsLine}</span>
                         </div>
                       )}
 

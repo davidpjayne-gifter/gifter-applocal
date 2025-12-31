@@ -10,6 +10,8 @@ type LoginFormProps = {
 
 export default function LoginForm({ nextPath }: LoginFormProps) {
   const [email, setEmail] = useState("");
+  const [gender, setGender] = useState("");
+  const [ageRange, setAgeRange] = useState("");
   const [status, setStatus] = useState<null | "sent" | "error">(null);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
@@ -24,6 +26,11 @@ export default function LoginForm({ nextPath }: LoginFormProps) {
       setMessage("Please enter your email address.");
       return;
     }
+    if (!gender || !ageRange) {
+      setStatus("error");
+      setMessage("Please select your gender and age range.");
+      return;
+    }
 
     setStatus(null);
     setMessage("");
@@ -35,7 +42,13 @@ export default function LoginForm({ nextPath }: LoginFormProps) {
 
     const { error } = await supabase.auth.signInWithOtp({
       email: nextEmail,
-      options: { emailRedirectTo },
+      options: {
+        emailRedirectTo,
+        data: {
+          gender,
+          age_range: ageRange,
+        },
+      },
     });
 
     setLoading(false);
@@ -66,6 +79,41 @@ export default function LoginForm({ nextPath }: LoginFormProps) {
         placeholder="you@example.com"
         className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200 dark:border-slate-700"
       />
+      <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="gender">
+        Gender
+      </label>
+      <select
+        id="gender"
+        value={gender}
+        onChange={(event) => setGender(event.target.value)}
+        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200 dark:border-slate-700"
+        required
+      >
+        <option value="">Select gender</option>
+        <option value="male">Male</option>
+        <option value="female">Female</option>
+        <option value="prefer_not_to_say">Prefer not to say</option>
+      </select>
+      <label className="text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor="ageRange">
+        Age range
+      </label>
+      <select
+        id="ageRange"
+        value={ageRange}
+        onChange={(event) => setAgeRange(event.target.value)}
+        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200 dark:border-slate-700"
+        required
+      >
+        <option value="">Select age range</option>
+        <option value="13-17">13–17</option>
+        <option value="18-24">18–24</option>
+        <option value="25-34">25–34</option>
+        <option value="35-44">35–44</option>
+        <option value="45-54">45–54</option>
+        <option value="55-64">55–64</option>
+        <option value="65+">65+</option>
+        <option value="prefer_not_to_say">Prefer not to say</option>
+      </select>
       <button
         type="submit"
         disabled={loading}

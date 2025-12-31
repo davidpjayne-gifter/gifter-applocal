@@ -7,6 +7,7 @@ import GiftStatusForm from "./GiftStatusForm";
 import CopyButton from "./CopyButton";
 import ConfirmDialog from "@/app/components/ui/ConfirmDialog";
 import { useToast } from "@/app/components/ui/toast";
+import { safeFetchJson } from "@/app/lib/safeFetchJson";
 
 type ShippingStatus = "unknown" | "in_transit" | "arrived";
 
@@ -157,7 +158,7 @@ export default function GiftRow({ gift, updateGiftStatus }: Props) {
     }
 
     try {
-      const res = await fetch(`/api/gifts/${gift.id}`, {
+      const result = await safeFetchJson(`/api/gifts/${gift.id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -170,17 +171,29 @@ export default function GiftRow({ gift, updateGiftStatus }: Props) {
         }),
       });
 
-      const json = await res.json().catch(() => null);
-
-      if (!res.ok || !json?.gift) {
+      if (!result.ok) {
         const message =
-          json?.error?.message ||
-          json?.error ||
+          (result.json as any)?.error?.message ||
+          (result.json as any)?.error ||
+          "Something went wrong.";
+        toast.error(message);
+        return;
+      }
+
+      if (result.text) {
+        toast.error("Something went wrong.");
+        return;
+      }
+
+      if (!(result.json as any)?.gift) {
+        const message =
+          (result.json as any)?.error?.message ||
+          (result.json as any)?.error ||
           "Unable to update gift.";
         throw new Error(message);
       }
 
-      setLocalGift((prev) => ({ ...prev, ...json.gift }));
+      setLocalGift((prev) => ({ ...prev, ...(result.json as any).gift }));
       toast.success("Gift updated.");
       setIsEditing(false);
     } catch (err: any) {

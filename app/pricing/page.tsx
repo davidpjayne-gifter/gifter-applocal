@@ -3,9 +3,12 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { safeFetchJson } from "@/app/lib/safeFetchJson";
+import { useToast } from "@/app/components/ui/toast";
 
 export default function PricingPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -34,27 +37,41 @@ export default function PricingPage() {
     }
 
     try {
-      const res = await fetch("/api/billing/checkout", {
+      const result = await safeFetchJson("/api/billing/checkout", {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
       });
-      const json = await res.json().catch(() => null);
 
-      if (!res.ok) {
-        setErrorMessage(json?.error || "Unable to start checkout.");
+      if (!result.ok) {
+        const message =
+          (result.json as any)?.error?.message ||
+          (result.json as any)?.error ||
+          "Something went wrong.";
+        toast.error(message);
+        setErrorMessage(message);
         setLoading(false);
         return;
       }
 
-      if (json?.url) {
-        window.location.href = json.url;
+      if (result.text) {
+        toast.error("Something went wrong.");
+        setErrorMessage("Something went wrong.");
+        setLoading(false);
         return;
       }
 
+      if ((result.json as any)?.url) {
+        window.location.href = String((result.json as any).url);
+        return;
+      }
+
+      toast.error("Stripe did not return a checkout URL.");
       setErrorMessage("Stripe did not return a checkout URL.");
       setLoading(false);
     } catch (err: any) {
-      setErrorMessage(err?.message || "Unable to start checkout.");
+      const message = err?.message || "Unable to start checkout.";
+      toast.error(message);
+      setErrorMessage(message);
       setLoading(false);
     }
   }

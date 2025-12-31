@@ -9,6 +9,7 @@ import SignInCtaButton from "@/app/components/SignInCtaButton";
 import { openStripePortal } from "@/lib/stripeClient";
 import ConfirmDialog from "@/app/components/ui/ConfirmDialog";
 import { useToast } from "@/app/components/ui/toast";
+import { safeFetchJson } from "@/app/lib/safeFetchJson";
 
 type Profile = {
   id: string;
@@ -122,24 +123,34 @@ export default function SettingsClient({ initialProfile, initialDevices, initial
         return;
       }
 
-      const res = await fetch("/api/settings", {
+      const result = await safeFetchJson("/api/settings", {
         method: "GET",
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      const json = await res.json().catch(() => null);
-
       if (!active) return;
 
-      if (!res.ok || !json?.profile) {
+      if (!result.ok || !(result.json as any)?.profile) {
+        const message =
+          (result.json as any)?.error?.message ||
+          (result.json as any)?.error ||
+          "Something went wrong.";
+        toast.error(message);
         setCheckedSession(true);
         setInitialLoading(false);
         return;
       }
 
-      setProfile(json.profile);
-      setDevices(json.devices ?? []);
-      setName(json.profile.name ?? "");
+      if (result.text) {
+        toast.error("Something went wrong.");
+        setCheckedSession(true);
+        setInitialLoading(false);
+        return;
+      }
+
+      setProfile((result.json as any).profile);
+      setDevices((result.json as any).devices ?? []);
+      setName((result.json as any).profile.name ?? "");
       setCheckedSession(true);
       setInitialLoading(false);
     }
@@ -192,27 +203,41 @@ export default function SettingsClient({ initialProfile, initialDevices, initial
     }
 
     try {
-      const res = await fetch("/api/billing/checkout", {
+      const result = await safeFetchJson("/api/billing/checkout", {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
       });
-      const json = await res.json().catch(() => null);
 
-      if (!res.ok) {
-        setBillingError(json?.error || "Unable to start checkout.");
+      if (!result.ok) {
+        const message =
+          (result.json as any)?.error?.message ||
+          (result.json as any)?.error ||
+          "Something went wrong.";
+        toast.error(message);
+        setBillingError(message);
         setBillingLoading(false);
         return;
       }
 
-      if (json?.url) {
-        window.location.href = json.url;
+      if (result.text) {
+        toast.error("Something went wrong.");
+        setBillingError("Something went wrong.");
+        setBillingLoading(false);
         return;
       }
 
+      if ((result.json as any)?.url) {
+        window.location.href = String((result.json as any).url);
+        return;
+      }
+
+      toast.error("Stripe did not return a checkout URL.");
       setBillingError("Stripe did not return a checkout URL.");
       setBillingLoading(false);
     } catch (err: any) {
-      setBillingError(err?.message || "Unable to start checkout.");
+      const message = err?.message || "Unable to start checkout.";
+      toast.error(message);
+      setBillingError(message);
       setBillingLoading(false);
     }
   }
@@ -254,7 +279,16 @@ export default function SettingsClient({ initialProfile, initialDevices, initial
   async function handleSignOut() {
     setDangerError("");
     await supabase.auth.signOut();
-    await fetch("/api/auth/session", { method: "DELETE" });
+    const result = await safeFetchJson("/api/auth/session", { method: "DELETE" });
+    if (!result.ok) {
+      const message =
+        (result.json as any)?.error?.message ||
+        (result.json as any)?.error ||
+        "Something went wrong.";
+      toast.error(message);
+    } else if (result.text) {
+      toast.error("Something went wrong.");
+    }
     router.push("/");
     router.refresh();
   }
@@ -269,21 +303,40 @@ export default function SettingsClient({ initialProfile, initialDevices, initial
       return;
     }
 
-    const res = await fetch("/api/account/delete", {
+    const result = await safeFetchJson("/api/account/delete", {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },
     });
 
-    const json = await res.json().catch(() => null);
+    if (!result.ok) {
+      const message =
+        (result.json as any)?.error?.message ||
+        (result.json as any)?.error ||
+        "Something went wrong.";
+      toast.error(message);
+      setDangerError(message);
+      setDeleteLoading(false);
+      return;
+    }
 
-    if (!res.ok) {
-      setDangerError(json?.error || "Unable to delete account.");
+    if (result.text) {
+      toast.error("Something went wrong.");
+      setDangerError("Something went wrong.");
       setDeleteLoading(false);
       return;
     }
 
     await supabase.auth.signOut();
-    await fetch("/api/auth/session", { method: "DELETE" });
+    const signOutResult = await safeFetchJson("/api/auth/session", { method: "DELETE" });
+    if (!signOutResult.ok) {
+      const message =
+        (signOutResult.json as any)?.error?.message ||
+        (signOutResult.json as any)?.error ||
+        "Something went wrong.";
+      toast.error(message);
+    } else if (signOutResult.text) {
+      toast.error("Something went wrong.");
+    }
     router.push("/");
     router.refresh();
   }

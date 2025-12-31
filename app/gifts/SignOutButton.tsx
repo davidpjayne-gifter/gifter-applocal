@@ -2,9 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { safeFetchJson } from "@/app/lib/safeFetchJson";
+import { useToast } from "@/app/components/ui/toast";
 
 export default function SignOutButton({ className }: { className?: string }) {
   const [hasSession, setHasSession] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     let mounted = true;
@@ -26,7 +29,16 @@ export default function SignOutButton({ className }: { className?: string }) {
 
   async function handleSignOut() {
     await supabase.auth.signOut();
-    await fetch("/api/auth/session", { method: "DELETE" });
+    const result = await safeFetchJson("/api/auth/session", { method: "DELETE" });
+    if (!result.ok) {
+      const message =
+        (result.json as any)?.error?.message ||
+        (result.json as any)?.error ||
+        "Something went wrong.";
+      toast.error(message);
+    } else if (result.text) {
+      toast.error("Something went wrong.");
+    }
     window.location.href = "/";
   }
 

@@ -5,6 +5,8 @@ import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { openStripePortal } from "@/lib/stripeClient";
 import SignInCtaButton from "@/app/components/SignInCtaButton";
+import { safeFetchJson } from "@/app/lib/safeFetchJson";
+import { useToast } from "@/app/components/ui/toast";
 
 export default function UpgradeClient() {
   const searchParams = useSearchParams();
@@ -12,6 +14,7 @@ export default function UpgradeClient() {
   const [loading, setLoading] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const { toast } = useToast();
 
   async function getAccessToken() {
     const { data } = await supabase.auth.getSession();
@@ -36,22 +39,38 @@ export default function UpgradeClient() {
       return;
     }
 
-    const res = await fetch("/api/billing/checkout", {
+    const result = await safeFetchJson("/api/billing/checkout", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
-
-    const json = await res.json().catch(() => null);
-
-    if (!res.ok || !json?.url) {
+    if (!result.ok) {
+      const message =
+        (result.json as any)?.error?.message ||
+        (result.json as any)?.error ||
+        "Something went wrong.";
+      toast.error(message);
       setLoading(false);
-      setErrorMessage(json?.error || "Unable to start checkout.");
+      setErrorMessage(message);
       return;
     }
 
-    window.location.href = json.url;
+    if (result.text) {
+      toast.error("Something went wrong.");
+      setLoading(false);
+      setErrorMessage("Something went wrong.");
+      return;
+    }
+
+    if (!(result.json as any)?.url) {
+      toast.error("Stripe did not return a checkout URL.");
+      setLoading(false);
+      setErrorMessage("Stripe did not return a checkout URL.");
+      return;
+    }
+
+    window.location.href = String((result.json as any).url);
   }
 
   async function handleManageBilling() {

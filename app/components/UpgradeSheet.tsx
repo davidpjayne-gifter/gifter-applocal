@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import SignInCtaButton from "@/app/components/SignInCtaButton";
+import { safeFetchJson } from "@/app/lib/safeFetchJson";
 
 type Props = {
   open: boolean;
@@ -28,22 +29,36 @@ export default function UpgradeSheet({ open, onClose }: Props) {
       return;
     }
 
-    const res = await fetch("/api/billing/checkout", {
+    const result = await safeFetchJson("/api/billing/checkout", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
 
-    const json = await res.json().catch(() => null);
-
-    if (!res.ok || !json?.url) {
+    if (!result.ok) {
       setLoading(false);
-      setErrorMessage(json?.error || "Unable to start checkout.");
+      setErrorMessage(
+        (result.json as any)?.error?.message ||
+          (result.json as any)?.error ||
+          "Something went wrong."
+      );
       return;
     }
 
-    window.location.href = json.url;
+    if (result.text) {
+      setLoading(false);
+      setErrorMessage("Something went wrong.");
+      return;
+    }
+
+    if (!(result.json as any)?.url) {
+      setLoading(false);
+      setErrorMessage("Stripe did not return a checkout URL.");
+      return;
+    }
+
+    window.location.href = String((result.json as any).url);
   }
 
   async function handleSyncAccess() {
@@ -60,18 +75,26 @@ export default function UpgradeSheet({ open, onClose }: Props) {
       return;
     }
 
-    const res = await fetch("/api/billing/sync", {
+    const result = await safeFetchJson("/api/billing/sync", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
 
-    const json = await res.json().catch(() => null);
-
-    if (!res.ok || !json?.ok) {
+    if (!result.ok || !(result.json as any)?.ok) {
       setSyncLoading(false);
-      setErrorMessage(json?.error || "Unable to sync access.");
+      setErrorMessage(
+        (result.json as any)?.error?.message ||
+          (result.json as any)?.error ||
+          "Something went wrong."
+      );
+      return;
+    }
+
+    if (result.text) {
+      setSyncLoading(false);
+      setErrorMessage("Something went wrong.");
       return;
     }
 

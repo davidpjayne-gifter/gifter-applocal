@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import UpgradeSheet from "@/app/components/UpgradeSheet";
+import { safeFetchJson } from "@/app/lib/safeFetchJson";
 
 type Item = {
   id: string;
@@ -112,7 +113,7 @@ export default function ExploreClient({ items, listId }: { items: Item[]; listId
       return;
     }
 
-    const res = await fetch("/api/gifts", {
+    const result = await safeFetchJson("/api/gifts", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -126,15 +127,17 @@ export default function ExploreClient({ items, listId }: { items: Item[]; listId
       }),
     });
 
-    const json = await res.json().catch(() => null);
-
-    if (!res.ok || !json?.ok) {
+    if (!result.ok || !(result.json as any)?.ok) {
       setSavingId(null);
-      if (json?.code === "LIMIT_REACHED") {
+      if ((result.json as any)?.code === "LIMIT_REACHED") {
         setShowUpgrade(true);
         return;
       }
-      setToast(json?.message || "Couldn’t save gift — try again.");
+      if (result.text) {
+        setToast("Something went wrong.");
+        return;
+      }
+      setToast((result.json as any)?.message || "Something went wrong.");
       return;
     }
 

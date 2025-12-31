@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/app/components/ui/toast";
 import { supabase } from "@/lib/supabase";
+import { safeFetchJson } from "@/app/lib/safeFetchJson";
 
 function money(n: number) {
   return n.toLocaleString(undefined, { style: "currency", currency: "USD" });
@@ -88,14 +89,23 @@ export default function SeasonBudgetPill({ seasonId, totalSpent, initialBudget }
         throw new Error("Please sign in first.");
       }
 
-      const res = await fetch(`/api/seasons/${safeSeasonId}/budget`, {
+      const result = await safeFetchJson(`/api/seasons/${safeSeasonId}/budget`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ budget: next }),
       });
 
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok || !json.ok) throw new Error(json.error || "Failed to save budget");
+      if (!result.ok || !(result.json as any)?.ok) {
+        const message =
+          (result.json as any)?.error?.message ||
+          (result.json as any)?.error ||
+          "Something went wrong.";
+        throw new Error(message);
+      }
+
+      if (result.text) {
+        throw new Error("Something went wrong.");
+      }
 
       setEditing(false);
       toast.success("Budget saved.");

@@ -46,8 +46,10 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <AuthSessionSync />
-        <ToastProvider>{children}</ToastProvider>
+        <ToastProvider>
+          <AuthSessionSync />
+          {children}
+        </ToastProvider>
       </body>
     </html>
   );

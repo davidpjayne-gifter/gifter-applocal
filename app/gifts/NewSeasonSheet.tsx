@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { safeFetchJson } from "@/app/lib/safeFetchJson";
 
 const PRESETS = [
   { label: "Christmas", example: `Christmas ${new Date().getFullYear()}` },
@@ -47,18 +48,25 @@ export default function NewSeasonSheet({ listId }: { listId: string }) {
       return;
     }
 
-    const res = await fetch("/api/seasons/new", {
+    const result = await safeFetchJson("/api/seasons/new", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ listId, name }),
     });
 
-    const json = await res.json().catch(() => ({}));
-
     setSubmitting(false);
 
-    if (!res.ok) {
-      setToast(json?.error || "Couldn’t start season.");
+    if (!result.ok) {
+      const message =
+        (result.json as any)?.error?.message ||
+        (result.json as any)?.error ||
+        "Something went wrong.";
+      setToast(message);
+      return;
+    }
+
+    if (result.text) {
+      setToast("Something went wrong.");
       return;
     }
 

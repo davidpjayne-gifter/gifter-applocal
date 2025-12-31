@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useToast } from "@/app/components/ui/toast";
 import { supabase } from "@/lib/supabase";
+import { safeFetchJson } from "@/app/lib/safeFetchJson";
 
 export default function ShareScreenshotButton() {
   const { toast } = useToast();
@@ -22,19 +23,29 @@ export default function ShareScreenshotButton() {
       return;
     }
 
-    const res = await fetch("/api/share/create", {
+    const result = await safeFetchJson("/api/share/create", {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },
     });
-    const json = await res.json();
 
-    if (!res.ok || !json.ok) {
+    if (!result.ok || !(result.json as any)?.ok) {
       setLoading(false);
-      toast.error(json.error || "Could not create share link");
+      toast.error(
+        (result.json as any)?.error?.message ||
+          (result.json as any)?.error ||
+          "Something went wrong."
+      );
       return;
     }
 
-    const url = `${window.location.origin}/share/${json.token}`;
+    if (result.text) {
+      setLoading(false);
+      toast.error("Something went wrong.");
+      return;
+    }
+
+    const tokenValue = (result.json as any)?.token;
+    const url = `${window.location.origin}/share/${tokenValue}`;
     setLink(url);
     window.open(url, "_blank"); // open screenshot page
     toast.success("Share link opened.");
