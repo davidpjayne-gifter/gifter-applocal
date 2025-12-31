@@ -383,7 +383,7 @@ export default async function GiftsPage(props: {
                 textDecoration: "none",
               }}
             >
-              Sign in with email
+              Login
             </Link>
             <Link
               href="/"
