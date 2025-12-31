@@ -562,8 +562,10 @@ export default async function GiftsPage(props: {
 
       {gifts.length === 0 ? (
         <div className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-600/15 via-blue-600/10 to-blue-600/5 px-4 py-4 text-slate-900">
-          <div className="text-base font-black text-center">Start by adding a person</div>
-          <div className="mt-1 text-sm text-center text-slate-700">
+          <div className="text-base font-black text-center text-gray-900 dark:text-gray-100">
+            Start by adding a person
+          </div>
+          <div className="mt-1 text-sm text-center text-gray-900 dark:text-gray-100">
             Start by adding a person, then add gifts under them.
           </div>
           <div style={{ marginTop: 12, display: "flex", justifyContent: "center" }}>
