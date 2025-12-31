@@ -2,6 +2,7 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { assertCanAddGift, assertCanAddRecipient, FREE_LIMIT_MESSAGE } from "@/lib/entitlements";
 
 export type CreateGiftInput = {
+  requestId?: string;
   userId: string;
   listId: string;
   seasonId: string;
@@ -62,6 +63,13 @@ export async function createGift(input: CreateGiftInput) {
     .single<CreateGiftResult>();
 
   if (error) {
+    console.error("[createGift:supabase_error]", {
+      requestId: input.requestId ?? null,
+      message: error.message,
+      details: (error as any).details,
+      hint: (error as any).hint,
+      code: (error as any).code,
+    });
     throw new Error(error.message);
   }
 

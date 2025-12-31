@@ -42,7 +42,7 @@ async function withTimeout<T>(promise: Promise<T>, ms: number) {
 
 export async function POST(req: NextRequest) {
   const startedAt = Date.now();
-  let requestId = req.headers.get("x-request-id") || "";
+  const requestId = crypto.randomUUID();
   const logEnd = (ok: boolean) => {
     console.log("[api/gifts] end", { requestId, ok, ms: Date.now() - startedAt });
   };
@@ -61,7 +61,15 @@ export async function POST(req: NextRequest) {
     }
 
     const body = (await req.json().catch(() => ({}))) as GiftPayload;
-    requestId = String(body?.requestId || requestId || crypto.randomUUID());
+    console.error("[addGift:incoming]", {
+      requestId,
+      recipient: (body as any)?.recipient,
+      title: body?.title,
+      cost: body?.cost,
+      costType: typeof body?.cost,
+      tracking: body?.tracking,
+      trackingType: typeof body?.tracking,
+    });
     const title = String(body?.title ?? "").trim();
     const recipientRaw =
       typeof body?.recipient_name === "string"
@@ -74,8 +82,18 @@ export async function POST(req: NextRequest) {
     const recipientName = recipientRaw.trim() || null;
     const listId = String((body as any)?.listId ?? body?.list_id ?? "").trim();
     const seasonId = String((body as any)?.seasonId ?? body?.season_id ?? "").trim();
-    const cost =
-      typeof body?.cost === "string" ? Number(body.cost) : (body?.cost ?? null);
+    const costRaw = body?.cost;
+    const cost: number | null =
+      typeof costRaw === "number"
+        ? (Number.isFinite(costRaw) ? costRaw : null)
+        : typeof costRaw === "string"
+          ? (() => {
+              const cleaned = costRaw.replace(/[$,]/g, "").trim();
+              if (cleaned === "") return null;
+              const n = Number(cleaned);
+              return Number.isFinite(n) ? n : null;
+            })()
+          : null;
     const trackingNumber: string | null =
       typeof body?.tracking === "string"
         ? body.tracking.trim() === ""
@@ -119,10 +137,13 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    if (typeof cost !== "number" || !Number.isFinite(cost) || cost <= 0) {
+    if (cost === null || cost <= 0) {
       console.warn("[api/gifts] bad_request", { requestId, missing: ["cost"] });
       logEnd(false);
-      return NextResponse.json({ ok: false, error: "Invalid cost", requestId }, { status: 400 });
+      return NextResponse.json(
+        { ok: false, requestId, error: { code: "INVALID_COST", message: "Please enter a valid cost." } },
+        { status: 400 }
+      );
     }
 
     const currentList = await getOrCreateCurrentList(userData.user.id);
@@ -160,6 +181,7 @@ export async function POST(req: NextRequest) {
 
       const gift = await withTimeout(
         createGift({
+          requestId,
           userId: userData.user.id,
           listId,
           seasonId,
@@ -196,10 +218,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: message, requestId }, { status: 500 });
     }
   } catch (err: any) {
-    console.error("[api/gifts] error", { requestId, message: err?.message ?? "Server error" });
+    console.error("[addGift:handler_error]", { requestId, message: err?.message, err });
     logEnd(false);
     return NextResponse.json(
-      { ok: false, error: err?.message ?? "Server error", requestId: requestId || null },
+      { ok: false, requestId, error: { message: err?.message ?? "Couldn’t save that gift. Try again." } },
       { status: 500 }
     );
   }
