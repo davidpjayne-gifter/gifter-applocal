@@ -104,7 +104,9 @@ export default function AddGiftForm({
 
   useEffect(() => {
     if (!open) return;
-    setRecipient(recipientName ?? "");
+    if (!recipient) {
+      setRecipient(recipientName ?? "");
+    }
     if (!sheetRef.current) return;
     const node = sheetRef.current;
     const raf = window.requestAnimationFrame(() => {
@@ -499,7 +501,27 @@ export default function AddGiftForm({
             </button>
 
             {submitError && (
-              <p className="mt-2 text-sm text-rose-700">{submitError}</p>
+              <div className="mt-2 flex flex-col gap-2">
+                <p className="text-sm text-rose-700">{submitError}</p>
+                {!submitting && (
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={handleSubmit}
+                      className="flex-1 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-800"
+                    >
+                      Try again
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleClose}
+                      className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900"
+                    >
+                      Close
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
             {needsSignIn && (
               <SignInCtaButton
