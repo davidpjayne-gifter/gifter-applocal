@@ -507,24 +507,6 @@ export default async function GiftsPage(props: {
 
   const seasonIdForClient = String(activeSeason.id ?? "").trim();
 
-  const autoWrapTargets: string[] = [];
-  for (const key of sortedRecipientKeys) {
-    const list = grouped[key] ?? [];
-    const { total, wrappedCount } = recipientSummary(list);
-    if (total > 0 && wrappedCount === total && !wrapupSet.has(key)) {
-      autoWrapTargets.push(key);
-    }
-  }
-
-  if (autoWrapTargets.length > 0) {
-    for (const key of autoWrapTargets) {
-      const fd = new FormData();
-      fd.set("recipientKey", key);
-      fd.set("seasonId", seasonIdForClient);
-      await markRecipientWrappedUp(fd);
-    }
-  }
-
   return (
     <>
       <main style={{ padding: 16, maxWidth: 520, margin: "0 auto" }}>
@@ -610,6 +592,7 @@ export default async function GiftsPage(props: {
 
             const { total, wrappedCount, unwrappedCount, spend, hasAnyCost } = recipientSummary(list);
             const isWrappedUp = wrapupSet.has(key);
+            const shouldAutoWrapUp = total > 0 && wrappedCount === total && !isWrappedUp;
             const details = wrapupsByRecipient.get(key) ?? null;
             const detailsLine = formatRecipientDetails(details?.gender ?? null, details?.age_range ?? null);
             const canEditDetails = key !== "unassigned";
@@ -620,6 +603,13 @@ export default async function GiftsPage(props: {
                   key={key}
                   className="overflow-hidden rounded-2xl border border-blue-200 bg-white shadow-sm"
                 >
+                  {shouldAutoWrapUp && (
+                    <form action={markRecipientWrappedUp} className="m-0">
+                      <input type="hidden" name="recipientKey" value={key} />
+                      <input type="hidden" name="seasonId" value={seasonIdForClient} />
+                      <button type="submit" style={{ display: "none" }} />
+                    </form>
+                  )}
                   <form action={reopenRecipient} className="m-0">
                     <input type="hidden" name="recipientKey" value={key} />
                     <input type="hidden" name="listId" value={listIdForClient} />
@@ -692,6 +682,13 @@ export default async function GiftsPage(props: {
                 key={key}
                 className="overflow-hidden rounded-2xl border border-blue-200 bg-white shadow-sm"
               >
+                {shouldAutoWrapUp && (
+                  <form action={markRecipientWrappedUp} className="m-0">
+                    <input type="hidden" name="recipientKey" value={key} />
+                    <input type="hidden" name="seasonId" value={seasonIdForClient} />
+                    <button type="submit" style={{ display: "none" }} />
+                  </form>
+                )}
                 <div className="border-b border-blue-700/70 bg-gradient-to-br from-blue-600/25 via-blue-600/20 to-blue-600/10 px-4 py-4 sm:px-5">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
