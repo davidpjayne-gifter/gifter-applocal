@@ -88,6 +88,7 @@ export default function AddGiftForm({
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [costError, setCostError] = useState("");
+  const [lastRequestId, setLastRequestId] = useState<string | null>(null);
 
   // iOS toast
   const [toast, setToast] = useState<string | null>(null);
@@ -178,6 +179,8 @@ export default function AddGiftForm({
       return;
     }
 
+    const requestId = crypto.randomUUID();
+    setLastRequestId(requestId);
     setSubmitting(true);
 
     try {
@@ -194,22 +197,35 @@ export default function AddGiftForm({
         return;
       }
 
+      const payload = {
+        requestId,
+        title: title.trim(),
+        recipient_name: recipient.trim(),
+        recipient_key: recipient.trim().toLowerCase(),
+        cost: costNumber,
+        list_id: listId,
+        season_id: seasonId,
+        tracking: tracking.trim() ? tracking.trim() : null,
+      };
+
+      console.log("[AddGift] request", requestId, {
+        recipient: payload.recipient_name,
+        title: payload.title,
+        cost: payload.cost,
+        listId: payload.list_id,
+        seasonId: payload.season_id,
+      });
+
       const { res, json } = await fetchJsonWithTimeout(
         "/api/gifts",
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            "x-request-id": requestId,
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({
-            title: title.trim(),
-            recipient_name: recipient.trim(),
-            cost: costNumber,
-            list_id: listId,
-            season_id: seasonId,
-            tracking: tracking.trim() ? tracking.trim() : null,
-          }),
+          body: JSON.stringify(payload),
         },
         15000
       );
@@ -219,7 +235,9 @@ export default function AddGiftForm({
           setShowUpgrade(true);
           return;
         }
-        setSubmitError(json?.message || "Couldn’t add gift. Please try again.");
+        const serverMessage = json?.error || json?.message || "Couldn’t add gift.";
+        const serverId = json?.requestId || requestId;
+        setSubmitError(`${serverMessage} (ID: ${serverId})`);
         return;
       }
 
@@ -228,6 +246,7 @@ export default function AddGiftForm({
       setCost("");
       setTracking("");
       setOpen(false);
+      setLastRequestId(null);
 
       setToast("Added 🎁");
 
@@ -240,14 +259,14 @@ export default function AddGiftForm({
       }, 300);
     } catch (err) {
       if (err instanceof Error && err.message === "timeout") {
-        setSubmitError("That took too long. Please try again.");
+        setSubmitError(`That took too long. Please try again. (ID: ${requestId})`);
         return;
       }
       const message =
         err instanceof Error && err.message
           ? err.message
           : "Couldn’t add gift. Please try again.";
-      setSubmitError(message);
+      setSubmitError(`${message} (ID: ${requestId})`);
     } finally {
       setSubmitting(false);
     }
@@ -503,6 +522,29 @@ export default function AddGiftForm({
             {submitError && (
               <div className="mt-2 flex flex-col gap-2">
                 <p className="text-sm text-rose-700">{submitError}</p>
+                {lastRequestId && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const debugInfo = [
+                        `requestId=${lastRequestId}`,
+                        `recipient=${recipient.trim()}`,
+                        `title=${title.trim()}`,
+                        `cost=${cost.trim()}`,
+                        `timestamp=${new Date().toISOString()}`,
+                      ].join("\n");
+                      try {
+                        await navigator.clipboard.writeText(debugInfo);
+                        setToast("Debug info copied");
+                      } catch {
+                        setToast("Unable to copy debug info");
+                      }
+                    }}
+                    className="text-left text-xs font-semibold text-slate-600 underline underline-offset-2"
+                  >
+                    Copy debug info
+                  </button>
+                )}
                 {!submitting && (
                   <div className="flex gap-2">
                     <button
