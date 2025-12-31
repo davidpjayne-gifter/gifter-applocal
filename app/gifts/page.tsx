@@ -755,6 +755,9 @@ export default async function GiftsPage(props: {
                         disabled={list.length === 0}
                         label="Mark All Wrapped Up"
                         confirmText={`Wrap up ${displayName}?\n\nThis will mark all gifts as wrapped and collapse this section (you can reopen it anytime).`}
+                        autoWrap
+                        totalGifts={total}
+                        wrappedCount={wrappedCount}
                       />
                     </form>
                   </div>
