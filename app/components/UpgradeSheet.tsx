@@ -136,10 +136,15 @@ export default function UpgradeSheet({ open, onClose }: Props) {
             padding: 16,
           }}
         >
-          <div style={{ fontSize: 16, fontWeight: 900 }}>Upgrade to GIFTer Pro</div>
+          <div style={{ fontSize: 16, fontWeight: 900 }}>Continue GIFTing stress-free 🎁</div>
           <div style={{ marginTop: 8, color: "#334155", fontSize: 13, lineHeight: 1.35 }}>
-            You’ve reached the free limit. Unlock unlimited GIFTing for just $9/year and be done
-            GIFTing.
+            Pro keeps all your people and gifts in one place so you never have to juggle limits.
+          </div>
+          <div style={{ marginTop: 6, color: "#334155", fontSize: 13, lineHeight: 1.35 }}>
+            Add more people, track more gifts, and finish every season with confidence.
+          </div>
+          <div style={{ marginTop: 6, color: "#64748b", fontSize: 12 }}>
+            Simple yearly plan. Cancel anytime.
           </div>
 
           <button
@@ -158,7 +163,7 @@ export default function UpgradeSheet({ open, onClose }: Props) {
               cursor: loading ? "not-allowed" : "pointer",
             }}
           >
-            {loading ? "Opening checkout..." : "Upgrade for $9/year"}
+            {loading ? "Opening checkout..." : "Go Pro"}
           </button>
 
           <button

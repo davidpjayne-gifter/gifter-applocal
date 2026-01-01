@@ -594,12 +594,16 @@ export default function AddGiftForm({
             )}
 
             {isPro ? (
-              <p className="mt-1 flex items-center justify-center gap-1 text-sm font-semibold text-green-600">
-                <span>You’re a Pro</span> ✅
-              </p>
+              <div className="mt-1 text-center">
+                <div className="flex items-center justify-center gap-1 text-sm font-semibold text-green-600">
+                  <span>You’re GIFTing stress-free 🎉</span>
+                  <span>✅</span>
+                </div>
+                <div className="mt-1 text-xs text-slate-600">Unlimited people and gifts for every season.</div>
+              </div>
             ) : (
               <p className="mt-1 text-center text-sm text-slate-600">
-                Free includes up to <span className="font-semibold">2 people</span> +{" "}
+                Free includes up to <span className="font-semibold">2 people</span> and{" "}
                 <span className="font-semibold">3 gifts</span> per season.
               </p>
             )}
@@ -620,7 +624,7 @@ export default function AddGiftForm({
                   cursor: "pointer",
                 }}
               >
-                Upgrade to Pro
+                Go Pro
               </button>
             )}
           </div>

@@ -315,9 +315,17 @@ export default function HomePage() {
           />
           <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
             <div className="w-full max-w-md rounded-2xl border border-slate-300 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-              <div className="text-lg font-semibold text-slate-900 dark:text-slate-50">Unlock GIFTer Pro</div>
+              <div className="text-lg font-semibold text-slate-900 dark:text-slate-50">
+                Continue GIFTing stress-free 🎁
+              </div>
               <div className="mt-3 text-sm text-slate-600 dark:text-slate-300">
-                This feature is part of GIFTer Pro.
+                Pro keeps all your people and gifts in one place so you never have to juggle limits.
+              </div>
+              <div className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                Add more people, track more gifts, and finish every season with confidence.
+              </div>
+              <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                Simple yearly plan. Cancel anytime.
               </div>
               <div className="mt-5 flex gap-3">
                 <button
@@ -332,7 +340,7 @@ export default function HomePage() {
                   onClick={handleUpgrade}
                   className="flex-1 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500"
                 >
-                  Upgrade
+                  Go Pro
                 </button>
               </div>
             </div>
