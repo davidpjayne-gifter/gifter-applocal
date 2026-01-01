@@ -485,6 +485,8 @@ export default async function GiftsPage(props: {
   }));
 
   const totalSpent = seasonTotalSpent(gifts);
+  const wrappedGiftsInSeason = gifts.filter((g) => g.wrapped === true).length;
+  const totalGiftsInSeason = gifts.length;
   const giftsUsed = gifts.length;
   const existingRecipientKeys = Array.from(
     new Set(
@@ -573,6 +575,24 @@ export default async function GiftsPage(props: {
               <span className="text-slate-900" style={pillStyle()}>
                 Season: {activeSeason.name}
               </span>
+            </div>
+            <div className="w-full">
+              <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
+                <span>Season progress</span>
+                <span>
+                  {wrappedGiftsInSeason}/{totalGiftsInSeason} wrapped
+                </span>
+              </div>
+              <div className="mt-2 h-2 w-full rounded-full bg-slate-200">
+                <div
+                  className="h-2 rounded-full bg-emerald-500"
+                  style={{
+                    width: `${Math.round(
+                      (wrappedGiftsInSeason / Math.max(totalGiftsInSeason, 1)) * 100
+                    )}%`,
+                  }}
+                />
+              </div>
             </div>
             <div className="flex w-full justify-center">
               <span className="text-slate-900" style={{ ...pillStyle(), opacity: 0.9 }}>
