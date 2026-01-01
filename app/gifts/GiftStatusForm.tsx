@@ -109,7 +109,11 @@ export default function GiftStatusForm({
         >
           Wrapped 🎁
         </button>
-        {actions ? <div style={{ display: "flex", gap: 8 }}>{actions}</div> : null}
+        {actions ? (
+          <div className="flex w-full justify-end gap-2 sm:w-auto sm:justify-start">
+            {actions}
+          </div>
+        ) : null}
       </div>
       {saved && <div className="mt-2 text-xs font-semibold text-emerald-700">Saved</div>}
 
