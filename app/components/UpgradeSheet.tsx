@@ -125,25 +125,18 @@ export default function UpgradeSheet({ open, onClose }: Props) {
         }}
       >
         <div
-          style={{
-            maxWidth: 520,
-            margin: "0 auto",
-            background: "#fff",
-            borderTopLeftRadius: 26,
-            borderTopRightRadius: 26,
-            border: "1px solid #e2e8f0",
-            boxShadow: "0 -10px 40px rgba(0,0,0,0.12)",
-            padding: 16,
-          }}
+          className="mx-auto max-w-[520px] rounded-t-[26px] border border-slate-200 bg-white p-4 shadow-[0_-10px_40px_rgba(0,0,0,0.12)] dark:border-slate-700 dark:bg-slate-900"
         >
-          <div style={{ fontSize: 16, fontWeight: 900 }}>Continue GIFTing stress-free 🎁</div>
-          <div style={{ marginTop: 8, color: "#334155", fontSize: 13, lineHeight: 1.35 }}>
+          <div className="text-base font-black text-slate-900 dark:text-slate-50">
+            Continue GIFTing stress-free 🎁
+          </div>
+          <div className="mt-2 text-[13px] leading-[1.35] text-slate-700 dark:text-slate-300">
             Pro keeps all your people and gifts in one place so you never have to juggle limits.
           </div>
-          <div style={{ marginTop: 6, color: "#334155", fontSize: 13, lineHeight: 1.35 }}>
+          <div className="mt-2 text-[13px] leading-[1.35] text-slate-700 dark:text-slate-300">
             Add more people, track more gifts, and finish every season with confidence.
           </div>
-          <div style={{ marginTop: 6, color: "#64748b", fontSize: 12 }}>
+          <div className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
             Simple yearly plan. Cancel anytime.
           </div>
 
@@ -151,17 +144,7 @@ export default function UpgradeSheet({ open, onClose }: Props) {
             type="button"
             onClick={handleUpgrade}
             disabled={loading}
-            style={{
-              marginTop: 12,
-              width: "100%",
-              padding: "12px 14px",
-              borderRadius: 16,
-              border: "1px solid #0f172a",
-              background: loading ? "#94a3b8" : "#0f172a",
-              color: "#fff",
-              fontWeight: 900,
-              cursor: loading ? "not-allowed" : "pointer",
-            }}
+            className="mt-3 w-full rounded-2xl border border-slate-900 bg-slate-900 px-4 py-3 text-sm font-black text-white transition disabled:cursor-not-allowed disabled:border-slate-400 disabled:bg-slate-400 dark:border-slate-100 dark:bg-slate-100 dark:text-slate-900 dark:disabled:border-slate-500 dark:disabled:bg-slate-500"
           >
             {loading ? "Opening checkout..." : "Go Pro"}
           </button>
@@ -170,17 +153,7 @@ export default function UpgradeSheet({ open, onClose }: Props) {
             type="button"
             onClick={handleSyncAccess}
             disabled={syncLoading}
-            style={{
-              marginTop: 10,
-              width: "100%",
-              padding: "10px 12px",
-              borderRadius: 12,
-              border: "1px solid #e2e8f0",
-              background: syncLoading ? "#e2e8f0" : "#fff",
-              color: "#0f172a",
-              fontWeight: 900,
-              cursor: syncLoading ? "not-allowed" : "pointer",
-            }}
+            className="mt-2.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-900 transition disabled:cursor-not-allowed disabled:bg-slate-200 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-50 dark:disabled:bg-slate-800"
           >
             {syncLoading ? "Syncing access..." : "I already paid — Sync Access"}
           </button>
@@ -188,22 +161,15 @@ export default function UpgradeSheet({ open, onClose }: Props) {
           <button
             type="button"
             onClick={onClose}
-            style={{
-              marginTop: 10,
-              width: "100%",
-              padding: "10px 14px",
-              borderRadius: 14,
-              border: "1px solid #e2e8f0",
-              background: "#fff",
-              fontWeight: 900,
-              cursor: "pointer",
-            }}
+            className="mt-2.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-900 transition hover:border-slate-300 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-50 dark:hover:border-slate-600"
           >
             Not now
           </button>
 
           {errorMessage && (
-            <div style={{ marginTop: 10, fontSize: 12, color: "#b91c1c" }}>{errorMessage}</div>
+            <div className="mt-2.5 text-xs text-rose-700 dark:text-rose-300">
+              {errorMessage}
+            </div>
           )}
           {errorMessage === "Please sign in first." && (
             <SignInCtaButton

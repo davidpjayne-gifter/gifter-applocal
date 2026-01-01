@@ -595,18 +595,20 @@ export default function AddGiftForm({
 
             {isPro ? (
               <div className="mt-1 text-center">
-                <div className="flex items-center justify-center gap-1 text-sm font-semibold text-green-600">
-                  <span>You’re GIFTing stress-free 🎉</span>
-                  <span>✅</span>
-                </div>
-                <div className="mt-1 text-xs text-slate-600">Unlimited people and gifts for every season.</div>
+              <div className="flex items-center justify-center gap-1 text-sm font-semibold text-green-600 dark:text-emerald-300">
+                <span>You’re GIFTing stress-free 🎉</span>
+                <span>✅</span>
               </div>
-            ) : (
-              <p className="mt-1 text-center text-sm text-slate-600">
-                Free includes up to <span className="font-semibold">2 people</span> and{" "}
-                <span className="font-semibold">3 gifts</span> per season.
-              </p>
-            )}
+              <div className="mt-1 text-xs text-slate-600 dark:text-slate-300">
+                Unlimited people and gifts for every season.
+              </div>
+            </div>
+          ) : (
+            <p className="mt-1 text-center text-sm text-slate-600 dark:text-slate-300">
+              Free includes up to <span className="font-semibold">2 people</span> and{" "}
+              <span className="font-semibold">3 gifts</span> per season.
+            </p>
+          )}
 
             {showUpgradeCta && (
               <button
