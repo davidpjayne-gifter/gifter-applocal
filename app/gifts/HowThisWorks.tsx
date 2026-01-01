@@ -25,11 +25,25 @@ export default function HowThisWorks() {
           />
           <div className="relative w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-5 text-gray-900 shadow-xl">
             <div className="text-sm font-black">How it works</div>
-            <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-gray-700">
-              <li>Add people</li>
-              <li>Add gifts under each person</li>
-              <li>Track cost, wrapping, and arrival</li>
-            </ul>
+            <div className="mt-3 space-y-3 text-sm text-gray-700">
+              <p>
+                Start by creating a season and setting a budget.
+                This helps you see how much you plan to spend overall and how much is left as you go.
+              </p>
+              <p>
+                Add the people you’re buying for, then add gifts under each person.
+                For every gift, you can track what it is, the cost, and an optional tracking number.
+              </p>
+              <p>GIFTer keeps everything organized so you can quickly see:</p>
+              <ul className="list-disc space-y-1 pl-5">
+                <li>How many people you’re buying for</li>
+                <li>How much you’ve spent total</li>
+                <li>How much you’ve spent on each person</li>
+              </ul>
+              <p>
+                As gifts are wrapped or arrive, update their status so you always know what’s left to do - and when you’re done GIFTing.
+              </p>
+            </div>
             <button
               type="button"
               onClick={() => setOpen(false)}
