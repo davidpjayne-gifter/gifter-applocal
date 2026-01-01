@@ -4,292 +4,341 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import SeasonalGiftIcon from "@/app/components/SeasonalGiftIcon";
+import SignOutButton from "@/app/gifts/SignOutButton";
+import { safeFetchJson } from "@/app/lib/safeFetchJson";
+
+type ExploreCard = {
+  label: string;
+  href: string;
+  proLocked?: boolean;
+};
+
+const EXPLORE_CARDS: ExploreCard[] = [
+  { label: "🔥 Popular Right Now", href: "/explore/popular", proLocked: true },
+  { label: "👔 For Him", href: "/explore/for-him" },
+  { label: "💄 For Her", href: "/explore/for-her" },
+  { label: "🎁 For Them", href: "/explore/for-them" },
+];
 
 export default function HomePage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [gender, setGender] = useState("");
-  const [ageRange, setAgeRange] = useState("");
-  const [status, setStatus] = useState<null | "sent" | "error">(null);
-  const [errorMessage, setErrorMessage] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [redirectTo, setRedirectTo] = useState<string | null>(null);
-  const [showBookmarkHelp, setShowBookmarkHelp] = useState(false);
-
-  const origin = useMemo(() => {
-    if (typeof window !== "undefined") return window.location.origin;
-    return process.env.NEXT_PUBLIC_APP_URL || "";
-  }, []);
+  const [hasSession, setHasSession] = useState(false);
+  const [isPro, setIsPro] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
+  const [showUpgrade, setShowUpgrade] = useState(false);
+  const [summary, setSummary] = useState<null | {
+    peopleCount: number;
+    giftsCount: number;
+    spentTotal: number;
+    budget: number | null;
+    remaining: number | null;
+  }>(null);
+  const [summaryLoaded, setSummaryLoaded] = useState(false);
 
   useEffect(() => {
     let mounted = true;
-    const params = new URLSearchParams(window.location.search);
-    const nextRedirect = params.get("redirect");
-    const redirectTarget = nextRedirect && nextRedirect.startsWith("/") ? nextRedirect : null;
-    setRedirectTo(redirectTarget);
 
-    supabase.auth.getSession().then(({ data }) => {
+    async function updateFromSession(session: typeof supabase.auth.getSession extends (...args: any) => Promise<infer R>
+      ? R extends { data: { session: infer S } }
+        ? S
+        : null
+      : null) {
       if (!mounted) return;
-      if (data.session) {
-        router.push(redirectTarget ?? "/gifts");
+      setHasSession(Boolean(session));
+      setSummary(null);
+      setSummaryLoaded(false);
+
+      if (!session?.user?.id) {
+        setIsPro(false);
+        return;
       }
-    });
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("is_pro,subscription_status")
+        .eq("id", session.user.id)
+        .maybeSingle();
+
+      if (!mounted) return;
+      const pro =
+        profile?.subscription_status === "active" ||
+        profile?.subscription_status === "trialing" ||
+        Boolean(profile?.is_pro);
+      setIsPro(Boolean(pro));
+
+      const result = await safeFetchJson("/api/gifts/summary");
+      if (!mounted) return;
+      if (result.ok && (result.json as any)?.ok && (result.json as any)?.hasData) {
+        setSummary((result.json as any).summary ?? null);
+      } else {
+        setSummary(null);
+      }
+      setSummaryLoaded(true);
+    }
+
+    supabase.auth.getSession().then(({ data }) => updateFromSession(data.session));
 
     const { data: authSub } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) {
-        router.push(redirectTarget ?? "/gifts");
-      }
+      updateFromSession(session);
     });
 
     return () => {
       mounted = false;
       authSub?.subscription?.unsubscribe();
     };
-  }, [router, redirectTo]);
+  }, []);
 
-  function clearMessages() {
-    setStatus(null);
-    setErrorMessage("");
+  const heroSubtitle = hasSession
+    ? "View your current season and GIFTees"
+    : "Sign in to view and manage your gifts";
+  const showEmptyState = hasSession && summaryLoaded && !summary;
+
+  const formatMoney = (value: number) =>
+    value.toLocaleString(undefined, { style: "currency", currency: "USD" });
+
+  function handleHeroClick() {
+    router.push(hasSession ? "/gifts" : "/login");
   }
 
-  async function handleSendLink() {
-    if (loading) return;
-    const nextEmail = email.trim();
-    if (!nextEmail) {
-      setStatus("error");
-      setErrorMessage("Email is required.");
+  function handleExploreClick(card: ExploreCard) {
+    if (card.proLocked && !isPro) {
+      setShowUpgrade(true);
       return;
     }
-    if (!gender || !ageRange) {
-      setStatus("error");
-      setErrorMessage("Please select your gender and age range.");
-      return;
-    }
-
-    clearMessages();
-    setLoading(true);
-
-    const emailRedirectOrigin =
-      typeof window !== "undefined"
-        ? window.location.origin
-        : process.env.NEXT_PUBLIC_APP_URL;
-    const emailRedirectTo = `${emailRedirectOrigin}/auth/callback`;
-
-    const { error } = await supabase.auth.signInWithOtp({
-      email: nextEmail,
-      options: {
-        emailRedirectTo,
-        data: {
-          gender,
-          age_range: ageRange,
-        },
-      },
-    });
-
-    setLoading(false);
-
-    if (error) {
-      setStatus("error");
-      setErrorMessage(error.message);
-      return;
-    }
-
-    setStatus("sent");
+    router.push(card.href);
   }
+
+  function handleUpgrade() {
+    setShowUpgrade(false);
+    router.push("/upgrade");
+  }
+
+  const cardBase =
+    "w-full rounded-2xl border border-slate-300 bg-white p-4 shadow-sm transition sm:p-6 dark:border-slate-700 dark:bg-slate-900";
+  const exploreCardBase = `${cardBase} lg:aspect-square`;
+  const cardInteractive =
+    "cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/50 active:translate-y-0 dark:hover:border-blue-300/40";
 
   return (
-    <main style={{ padding: 24, maxWidth: 520, margin: "0 auto", textAlign: "center" }}>
-      <SeasonalGiftIcon />
-      <h1 style={{ fontSize: 24, fontWeight: 900, marginBottom: 10 }}>Welcome to GIFTer</h1>
-      <p style={{ opacity: 0.8, marginBottom: 16 }}>
-        A simple web app for keeping track of gifts, budgets, and who’s wrapped up.
-      </p>
+    <main className="min-h-screen mx-auto w-full max-w-3xl bg-white px-4 py-6 text-slate-900 sm:px-6 dark:bg-slate-950 dark:text-slate-50">
+      <div className="text-center text-2xl font-semibold">GIFTer 🎁</div>
 
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-          handleSendLink();
-        }}
-        style={{ display: "flex", flexDirection: "column", gap: 12, alignItems: "center" }}
+      <div className="mt-6 mb-2 text-lg font-semibold">My GIFTs</div>
+      <button
+        type="button"
+        onClick={handleHeroClick}
+        className={`mt-6 ${cardBase} ${cardInteractive} text-center md:min-h-[140px] lg:min-h-[160px] border-slate-400 bg-gradient-to-br from-blue-50/80 via-white to-white dark:border-slate-600 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900`}
       >
-        <input
-          type="email"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          placeholder="you@example.com"
-          style={{
-            width: "100%",
-            maxWidth: 320,
-            padding: "10px 12px",
-            borderRadius: 12,
-            border: "1px solid #cbd5e1",
-            fontSize: 14,
-          }}
-        />
-        <select
-          value={gender}
-          onChange={(event) => setGender(event.target.value)}
-          required
-          style={{
-            width: "100%",
-            maxWidth: 320,
-            padding: "10px 12px",
-            borderRadius: 12,
-            border: "1px solid #cbd5e1",
-            fontSize: 14,
-            background: "#fff",
-            color: gender ? "#1d4ed8" : "#0f172a",
-            appearance: "none",
-          }}
-        >
-          <option value="" disabled>
-            Select gender
-          </option>
-          <option value="male">Male</option>
-          <option value="female">Female</option>
-        </select>
-        <select
-          value={ageRange}
-          onChange={(event) => setAgeRange(event.target.value)}
-          required
-          style={{
-            width: "100%",
-            maxWidth: 320,
-            padding: "10px 12px",
-            borderRadius: 12,
-            border: "1px solid #cbd5e1",
-            fontSize: 14,
-            background: "#fff",
-            color: ageRange ? "#1d4ed8" : "#0f172a",
-            appearance: "none",
-          }}
-        >
-          <option value="" disabled>
-            Select age range
-          </option>
-          <option value="13-17">13–17</option>
-          <option value="18-24">18–24</option>
-          <option value="25-34">25–34</option>
-          <option value="35-44">35–44</option>
-          <option value="45-54">45–54</option>
-          <option value="55-64">55–64</option>
-          <option value="65+">65+</option>
-        </select>
-
-        <button
-          type="submit"
-          disabled={loading}
-          style={{
-            padding: "10px 14px",
-            borderRadius: 12,
-            border: "1px solid #0f172a",
-            background: loading ? "#475569" : "#0f172a",
-            color: "#fff",
-            fontWeight: 900,
-            cursor: loading ? "not-allowed" : "pointer",
-          }}
-        >
-          {loading ? "Sending..." : "Send me a login link"}
-        </button>
-
-        {status === "sent" && (
-          <div style={{ fontSize: 13, fontWeight: 700 }}>Check your email for a sign-in link.</div>
+        {hasSession ? (
+          showEmptyState ? (
+            <>
+              <div className="text-base font-semibold text-slate-900 dark:text-slate-50">
+                You don&apos;t have any gifts yet.
+              </div>
+              <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                Start by adding a person, then add gifts under them.
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center justify-center gap-2 text-base font-semibold text-slate-900 dark:text-slate-50">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-base text-blue-700 dark:bg-blue-900/40 dark:text-blue-100">
+                  🎁
+                </span>
+                <span>My GIFTs</span>
+              </div>
+              <div className="mt-2 text-base text-slate-700 dark:text-slate-300">{heroSubtitle}</div>
+              {summary && (
+                <div className="mt-4 rounded-xl border border-blue-600/60 bg-blue-600/10 p-4 dark:border-blue-400/30 dark:bg-blue-400/10">
+                  <div className="flex flex-wrap justify-center gap-3">
+                    <div className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-3 text-center dark:border-slate-700 dark:bg-slate-950">
+                      <div className="flex flex-col items-center justify-center">
+                        <div className="text-sm font-medium text-slate-600 dark:text-slate-300">👥 People</div>
+                        <div className="mt-1 text-xl font-semibold text-slate-900 dark:text-slate-50">
+                          {summary.peopleCount}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-3 text-center dark:border-slate-700 dark:bg-slate-950">
+                      <div className="flex flex-col items-center justify-center">
+                        <div className="text-sm font-medium text-slate-600 dark:text-slate-300">🎁 Gifts</div>
+                        <div className="mt-1 text-xl font-semibold text-slate-900 dark:text-slate-50">
+                          {summary.giftsCount}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {summary.budget !== null ? (
+                    <div className="mt-3 flex flex-wrap justify-center gap-3">
+                      <div className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-3 text-center dark:border-slate-700 dark:bg-slate-950">
+                        <div className="flex flex-col items-center justify-center">
+                          <div className="text-sm font-medium text-slate-600 dark:text-slate-300">💰 Budget</div>
+                          <div className="mt-1 text-xl font-semibold text-slate-900 dark:text-slate-50">
+                            {formatMoney(summary.budget)}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-3 text-center dark:border-slate-700 dark:bg-slate-950">
+                        <div className="flex flex-col items-center justify-center">
+                          <div className="text-sm font-medium text-slate-600 dark:text-slate-300">🧾 Spent</div>
+                          <div className="mt-1 text-xl font-semibold text-slate-900 dark:text-slate-50">
+                            {formatMoney(summary.spentTotal)}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-3 text-center dark:border-slate-700 dark:bg-slate-950">
+                        <div className="flex flex-col items-center justify-center">
+                          <div className="text-sm font-medium text-slate-600 dark:text-slate-300">✅ Left</div>
+                          <div className="mt-1 text-xl font-semibold text-slate-900 dark:text-slate-50">
+                            {formatMoney(summary.remaining ?? 0)}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-3 flex flex-wrap justify-center gap-3">
+                      <div className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-3 text-center dark:border-slate-700 dark:bg-slate-950">
+                        <div className="flex flex-col items-center justify-center">
+                          <div className="text-sm font-medium text-slate-600 dark:text-slate-300">🧾 Spent</div>
+                          <div className="mt-1 text-xl font-semibold text-slate-900 dark:text-slate-50">
+                            {formatMoney(summary.spentTotal)}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          )
+        ) : (
+          <div className="text-sm text-slate-600 dark:text-slate-300">{heroSubtitle}</div>
         )}
-        {(status === "error" || errorMessage) && (
-          <div style={{ fontSize: 12, color: "#b91c1c" }}>{errorMessage}</div>
-        )}
-        {status === "sent" && (
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              marginTop: 6,
-              border: "1px solid #0f172a",
-              background: "#fff",
-              color: "#0f172a",
-              borderRadius: 12,
-              padding: "8px 12px",
-              fontWeight: 800,
-              cursor: loading ? "not-allowed" : "pointer",
-            }}
-          >
-            {loading ? "Resending..." : "Resend link"}
-          </button>
-        )}
+      </button>
 
-      </form>
+      <div className="mt-8 mb-4 text-lg font-semibold">Explore</div>
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+        {EXPLORE_CARDS.map((card) => {
+          const [emoji, ...labelParts] = card.label.split(" ");
+          const labelText = labelParts.join(" ");
+          const content = (
+            <>
+              {card.proLocked && (
+                <span className="absolute right-3 top-3 rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300">
+                  Pro
+                </span>
+              )}
+              <div className="flex flex-col items-center gap-3 text-center">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-lg text-blue-700 dark:bg-blue-900/40 dark:text-blue-100">
+                  {emoji}
+                </div>
+                <div className="text-base font-semibold text-slate-900 dark:text-slate-50 sm:text-lg">
+                  {labelText}
+                </div>
+              </div>
+              <div className="mt-3 flex items-center justify-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                <span>{card.proLocked ? "Pro feature" : "Tap to explore"}</span>
+                <span aria-hidden="true">→</span>
+              </div>
+            </>
+          );
 
-      <div style={{ marginTop: 16 }}>
-        <Link
-          href="/gifts"
-          style={{
-            display: "inline-block",
-            padding: "10px 14px",
-            borderRadius: 12,
-            border: "1px solid #cbd5e1",
-            fontWeight: 900,
-            textDecoration: "none",
-          }}
-        >
-          My GIFTs →
-        </Link>
+          const className = `${exploreCardBase} ${cardInteractive} relative text-center bg-gradient-to-br from-blue-50/80 via-white to-white dark:from-slate-900 dark:via-slate-900 dark:to-slate-900`;
+
+          if (card.proLocked && !isPro) {
+            return (
+              <button
+                key={card.label}
+                type="button"
+                onClick={() => handleExploreClick(card)}
+                className={className}
+              >
+                {content}
+              </button>
+            );
+          }
+
+          return (
+            <Link key={card.label} href={card.href} className={className}>
+              {content}
+            </Link>
+          );
+        })}
       </div>
 
-      <div
-        style={{
-          marginTop: 20,
-          textAlign: "center",
-          border: "1px solid #e2e8f0",
-          borderRadius: 16,
-          padding: 16,
-          background: "#fff",
-        }}
-      >
-        <div style={{ fontWeight: 900, fontSize: 14, color: "#0f172a" }}>
-          How GIFTer works
-        </div>
-        <ul
-          style={{
-            marginTop: 8,
-            paddingLeft: 0,
-            fontSize: 13,
-            color: "#475569",
-            listStylePosition: "inside",
-            textAlign: "center",
-          }}
-        >
-          <li>Sign in once, then come back anytime at: {origin || "this site"}</li>
-          <li>Bookmark this page (desktop) or “Add to Home Screen” (mobile) for quick access.</li>
-          <li>You’ll stay signed in unless you click Sign out.</li>
-          <li>
-            Tip: If you’re using an Incognito/Private window, you may need to sign in again next time.
-          </li>
-        </ul>
-
+      <div className="mt-8 flex flex-col items-center gap-3 pb-6">
         <button
           type="button"
-          onClick={() => setShowBookmarkHelp((prev) => !prev)}
-          style={{
-            marginTop: 8,
-            border: "none",
-            background: "transparent",
-            color: "#1d4ed8",
-            fontWeight: 700,
-            cursor: "pointer",
-            fontSize: 12,
-            textAlign: "center",
-          }}
+          onClick={() => setShowHelp(true)}
+          className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:border-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50 dark:hover:border-slate-600"
         >
-          {showBookmarkHelp ? "Hide bookmark tips" : "How do I bookmark this?"}
+          Help
         </button>
-
-        {showBookmarkHelp && (
-          <div style={{ marginTop: 6, fontSize: 12, color: "#475569", textAlign: "center" }}>
-            Desktop: Press Ctrl+D (Windows) / Cmd+D (Mac). Mobile: Share → Add to Home Screen.
-          </div>
-        )}
+        <SignOutButton
+          className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:border-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50 dark:hover:border-slate-600"
+        />
       </div>
+
+      {showHelp && (
+        <>
+          <div
+            onClick={() => setShowHelp(false)}
+            className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur"
+          />
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+            <div className="w-full max-w-md rounded-2xl border border-slate-300 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+              <div className="text-lg font-semibold text-slate-900 dark:text-slate-50">Help with GIFTer 🎁</div>
+              <div className="mt-3 text-sm text-slate-600 dark:text-slate-300">
+                GIFTer is a simple place to keep track of who you’re buying for, what you’ve
+                purchased, and what’s already wrapped up.
+              </div>
+              <div className="mt-3 text-sm text-slate-600 dark:text-slate-300">
+                You sign in with your email, so your gifts are available anywhere you open GIFTer.
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowHelp(false)}
+                className="mt-5 w-full rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:border-slate-400 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-50 dark:hover:border-slate-600"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {showUpgrade && (
+        <>
+          <div
+            onClick={() => setShowUpgrade(false)}
+            className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur"
+          />
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+            <div className="w-full max-w-md rounded-2xl border border-slate-300 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+              <div className="text-lg font-semibold text-slate-900 dark:text-slate-50">Unlock GIFTer Pro</div>
+              <div className="mt-3 text-sm text-slate-600 dark:text-slate-300">
+                This feature is part of GIFTer Pro.
+              </div>
+              <div className="mt-5 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowUpgrade(false)}
+                  className="flex-1 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:border-slate-400 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-50 dark:hover:border-slate-600"
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  onClick={handleUpgrade}
+                  className="flex-1 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500"
+                >
+                  Upgrade
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </main>
   );
 }

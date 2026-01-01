@@ -366,7 +366,7 @@ export default async function GiftsPage(props: {
           }}
         >
           <div className="text-slate-900" style={{ fontWeight: 700 }}>
-            Welcome back — logging you in…
+            Welcome back - logging you in…
           </div>
           <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
             Just a moment.
@@ -543,7 +543,14 @@ export default async function GiftsPage(props: {
         <SeasonalGiftIcon />
         <div style={{ marginBottom: 14 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <div style={{ flex: 1 }} />
+            <div style={{ flex: 1 }}>
+              <Link
+                href="/"
+                className="inline-flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:underline"
+              >
+                ← Main
+              </Link>
+            </div>
             <div style={{ fontSize: 22, fontWeight: 900, textAlign: "center", flex: 1 }}>
               My GIFTs
             </div>

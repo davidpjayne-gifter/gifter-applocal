@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="450" viewBox="0 0 600 450">
+  <rect width="600" height="450" fill="#e2e8f0"/>
+  <rect x="80" y="120" width="440" height="210" rx="24" fill="#f8fafc" stroke="#cbd5f5" stroke-width="4"/>
+  <text x="300" y="235" text-anchor="middle" font-family="Arial, sans-serif" font-size="36" fill="#64748b">
+    Amazon
+  </text>
+</svg>
