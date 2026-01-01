@@ -32,7 +32,7 @@ export default function AmazonProductGrid({ products }: AmazonProductGridProps) 
 
   return (
     <div className="mt-6 border-t border-slate-200 pt-4 dark:border-slate-800">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-2">
         {products.map((product) => {
           const title = product.title?.trim() || "Amazon item";
           const imageSrc = product.imageUrl?.trim() ? product.imageUrl : placeholderImage;
