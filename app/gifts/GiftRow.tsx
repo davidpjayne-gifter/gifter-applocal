@@ -23,6 +23,7 @@ type Gift = {
 type Props = {
   gift: Gift;
   updateGiftStatus: (formData: FormData) => void;
+  isSeasonWrapped?: boolean;
 };
 
 function statusLabel(status: ShippingStatus) {
@@ -31,7 +32,7 @@ function statusLabel(status: ShippingStatus) {
   return "Storebought";
 }
 
-export default function GiftRow({ gift, updateGiftStatus }: Props) {
+export default function GiftRow({ gift, updateGiftStatus, isSeasonWrapped = false }: Props) {
   const { toast } = useToast();
   const [removed, setRemoved] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -124,6 +125,7 @@ export default function GiftRow({ gift, updateGiftStatus }: Props) {
 
   function handleDelete() {
     if (deleting) return;
+    if (isSeasonWrapped) return;
     setConfirmDeleteOpen(true);
   }
 
@@ -204,6 +206,7 @@ export default function GiftRow({ gift, updateGiftStatus }: Props) {
   }
 
   function handleEditClick() {
+    if (isSeasonWrapped) return;
     window.dispatchEvent(new CustomEvent("gifter-edit-gift", { detail: { id: gift.id } }));
     setEditTitle(localGift.title);
     setEditCost(localGift.cost === null ? "" : String(localGift.cost));
@@ -298,20 +301,24 @@ export default function GiftRow({ gift, updateGiftStatus }: Props) {
             isWrapped={isWrapped}
             shippingStatus={shipping}
             updateGiftStatus={updateGiftStatus}
+            disabled={isSeasonWrapped}
             actions={
               <>
                 <button
                   type="button"
                   onClick={handleEditClick}
-                  className="rounded-lg bg-blue-600 px-2 py-1 text-[11px] font-semibold text-white transition hover:bg-blue-700"
+                  disabled={isSeasonWrapped}
+                  className="rounded-lg bg-blue-600 px-2 py-1 text-[11px] font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  title={isSeasonWrapped ? "Reopen season to edit." : "Edit gift"}
                 >
                   Edit
                 </button>
                 <button
                   type="button"
                   onClick={handleDelete}
-                  disabled={deleting}
+                  disabled={deleting || isSeasonWrapped}
                   className="rounded-lg border border-rose-200 bg-white px-2 py-1 text-[11px] font-semibold text-rose-600 transition hover:border-rose-300 disabled:cursor-not-allowed disabled:opacity-60"
+                  title={isSeasonWrapped ? "Reopen season to edit." : "Delete gift"}
                 >
                   {deleting ? "Deleting..." : "Delete"}
                 </button>

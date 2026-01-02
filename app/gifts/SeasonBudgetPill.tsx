@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/app/components/ui/toast";
 import { supabase } from "@/lib/supabase";
@@ -18,9 +18,15 @@ type Props = {
   seasonId: string;
   totalSpent: number;
   initialBudget: number | null;
+  locked?: boolean;
 };
 
-export default function SeasonBudgetPill({ seasonId, totalSpent, initialBudget }: Props) {
+export default function SeasonBudgetPill({
+  seasonId,
+  totalSpent,
+  initialBudget,
+  locked = false,
+}: Props) {
   const router = useRouter();
   const { toast } = useToast();
 
@@ -36,6 +42,12 @@ export default function SeasonBudgetPill({ seasonId, totalSpent, initialBudget }
     initialBudget === null || typeof initialBudget !== "number" ? "" : String(initialBudget)
   );
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (locked && editing) {
+      setEditing(false);
+    }
+  }, [locked, editing]);
 
   const parsedBudget = useMemo<number | null>(() => {
     const v = value.trim();
@@ -122,12 +134,14 @@ export default function SeasonBudgetPill({ seasonId, totalSpent, initialBudget }
       {!editing ? (
         <button
           onClick={() => {
+            if (locked) return;
             if (!seasonIdValid) {
               toast.error("Season ID missing or invalid. Please refresh and try again.");
               return;
             }
             setEditing(true);
           }}
+          disabled={locked || !seasonIdValid}
           className="text-slate-900"
           style={{
             padding: "4px 10px",
@@ -136,10 +150,16 @@ export default function SeasonBudgetPill({ seasonId, totalSpent, initialBudget }
             fontSize: 12,
             fontWeight: 900,
             background: "#fff",
-            cursor: seasonIdValid ? "pointer" : "not-allowed",
-            opacity: seasonIdValid ? 1 : 0.55,
+            cursor: locked || !seasonIdValid ? "not-allowed" : "pointer",
+            opacity: locked || !seasonIdValid ? 0.55 : 1,
           }}
-          title={seasonIdValid ? "Click to set/edit budget" : "Season ID missing/invalid"}
+          title={
+            locked
+              ? "This season is wrapped."
+              : seasonIdValid
+                ? "Click to set/edit budget"
+                : "Season ID missing/invalid"
+          }
         >
           Budget: {initialBudget === null ? "Set" : money(initialBudget)}
         </button>
@@ -175,7 +195,7 @@ export default function SeasonBudgetPill({ seasonId, totalSpent, initialBudget }
               fontSize: 12,
               fontWeight: 800,
             }}
-            disabled={saving}
+            disabled={saving || locked}
           />
 
           <button
@@ -183,7 +203,7 @@ export default function SeasonBudgetPill({ seasonId, totalSpent, initialBudget }
               if (!canSave) return;
               save(parsedBudget as number);
             }}
-            disabled={!canSave}
+            disabled={!canSave || locked}
             style={{
               border: "1px solid #cbd5e1",
               background: "#fff",
@@ -210,7 +230,7 @@ export default function SeasonBudgetPill({ seasonId, totalSpent, initialBudget }
               setEditing(false);
               setValue(initialBudget === null ? "" : String(initialBudget));
             }}
-            disabled={saving}
+            disabled={saving || locked}
             style={{
               border: "none",
               background: "transparent",

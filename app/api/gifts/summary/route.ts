@@ -7,22 +7,24 @@ import { getOrCreateCurrentList } from "@/lib/currentList";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+type SeasonSummary = {
+  id: string;
+  name: string;
+  created_at: string | null;
+  is_wrapped_up: boolean | null;
+  budget: number | null;
+  peopleCount: number;
+  giftsCount: number;
+  wrappedCount: number;
+  spentTotal: number;
+};
+
 type SummaryResponse =
   | {
       ok: true;
-      hasData: boolean;
-      summary: null;
-    }
-  | {
-      ok: true;
-      hasData: true;
-      summary: {
-        peopleCount: number;
-        giftsCount: number;
-        spentTotal: number;
-        budget: number | null;
-        remaining: number | null;
-      };
+      hasSeasons: boolean;
+      hasAnyGifts: boolean;
+      seasons: SeasonSummary[];
     }
   | {
       ok: false;
@@ -34,64 +36,110 @@ export async function GET() {
     const cookieStore = await cookies();
     const token = cookieStore.get("sb-access-token")?.value ?? null;
     if (!token) {
-      return NextResponse.json<SummaryResponse>({ ok: true, hasData: false, summary: null });
+      return NextResponse.json<SummaryResponse>({
+        ok: true,
+        hasSeasons: false,
+        hasAnyGifts: false,
+        seasons: [],
+      });
     }
 
     const { data: userData, error: userErr } = await supabaseAdmin.auth.getUser(token);
     if (userErr || !userData?.user?.id) {
-      return NextResponse.json<SummaryResponse>({ ok: true, hasData: false, summary: null });
+      return NextResponse.json<SummaryResponse>({
+        ok: true,
+        hasSeasons: false,
+        hasAnyGifts: false,
+        seasons: [],
+      });
     }
 
     const list = await getOrCreateCurrentList(userData.user.id);
 
     const { data: seasons } = await supabaseAdmin
       .from("seasons")
-      .select("id,is_active,budget,created_at")
+      .select("id,name,is_active,budget,created_at,is_wrapped_up")
       .eq("list_id", list.id)
+      .or("is_wrapped_up.is.null,is_wrapped_up.eq.false")
+      .order("is_wrapped_up", { ascending: true })
       .order("created_at", { ascending: false });
 
-    const activeSeason =
-      (seasons ?? []).find((season) => season.is_active) ?? (seasons ?? [])[0] ?? null;
-
-    if (!activeSeason) {
-      return NextResponse.json<SummaryResponse>({ ok: true, hasData: false, summary: null });
+    if (!seasons || seasons.length === 0) {
+      return NextResponse.json<SummaryResponse>({
+        ok: true,
+        hasSeasons: false,
+        hasAnyGifts: false,
+        seasons: [],
+      });
     }
+
+    const seasonIds = seasons.map((season) => season.id);
 
     const { data: gifts } = await supabaseAdmin
       .from("gifts")
-      .select("recipient_name,cost")
+      .select("season_id,recipient_name,cost,wrapped")
       .eq("list_id", list.id)
-      .eq("season_id", activeSeason.id);
+      .in("season_id", seasonIds);
 
-    const giftsCount = (gifts ?? []).length;
-    if (giftsCount === 0) {
-      return NextResponse.json<SummaryResponse>({ ok: true, hasData: false, summary: null });
+    const summaryMap = new Map<string, SeasonSummary>();
+
+    for (const season of seasons) {
+      summaryMap.set(season.id, {
+        id: season.id,
+        name: season.name ?? "Season",
+        created_at: season.created_at ?? null,
+        is_wrapped_up: season.is_wrapped_up ?? null,
+        budget: typeof season.budget === "number" ? season.budget : null,
+        peopleCount: 0,
+        giftsCount: 0,
+        wrappedCount: 0,
+        spentTotal: 0,
+      });
     }
 
-    const recipientSet = new Set(
-      (gifts ?? [])
-        .map((gift) => (gift.recipient_name ?? "").trim())
-        .filter(Boolean)
-        .map((name) => name.toLowerCase())
-    );
+    for (const gift of gifts ?? []) {
+      const seasonId = String(gift.season_id ?? "").trim();
+      const entry = summaryMap.get(seasonId);
+      if (!entry) continue;
 
-    const spentTotal = (gifts ?? []).reduce(
-      (sum, gift) => sum + (typeof gift.cost === "number" ? gift.cost : 0),
-      0
-    );
-    const budget = typeof activeSeason.budget === "number" ? activeSeason.budget : null;
-    const remaining = budget !== null ? budget - spentTotal : null;
+      entry.giftsCount += 1;
+      if (gift.wrapped === true) entry.wrappedCount += 1;
+      if (typeof gift.cost === "number") entry.spentTotal += gift.cost;
+    }
+
+    for (const gift of gifts ?? []) {
+      const seasonId = String(gift.season_id ?? "").trim();
+      const entry = summaryMap.get(seasonId);
+      if (!entry) continue;
+      const nameKey = (gift.recipient_name ?? "").trim().toLowerCase();
+      if (!nameKey) continue;
+      entry.peopleCount += 0; // placeholder to ensure entry exists
+    }
+
+    const peopleMap = new Map<string, Set<string>>();
+    for (const gift of gifts ?? []) {
+      const seasonId = String(gift.season_id ?? "").trim();
+      if (!peopleMap.has(seasonId)) peopleMap.set(seasonId, new Set());
+      const nameKey = (gift.recipient_name ?? "").trim().toLowerCase();
+      if (nameKey) peopleMap.get(seasonId)!.add(nameKey);
+    }
+
+    for (const [seasonId, names] of peopleMap.entries()) {
+      const entry = summaryMap.get(seasonId);
+      if (entry) entry.peopleCount = names.size;
+    }
+
+    const summaries = seasons
+      .map((season) => summaryMap.get(season.id))
+      .filter((entry): entry is SeasonSummary => Boolean(entry));
+
+    const hasAnyGifts = summaries.some((summary) => summary.giftsCount > 0);
 
     return NextResponse.json<SummaryResponse>({
       ok: true,
-      hasData: true,
-      summary: {
-        peopleCount: recipientSet.size,
-        giftsCount,
-        spentTotal,
-        budget,
-        remaining,
-      },
+      hasSeasons: true,
+      hasAnyGifts,
+      seasons: summaries,
     });
   } catch (err: any) {
     console.error("Summary load failed:", err?.message ?? err);

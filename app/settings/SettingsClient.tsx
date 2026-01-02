@@ -36,12 +36,18 @@ type Season = {
   list_id: string;
   is_active: boolean;
   created_at: string | null;
+  is_wrapped_up: boolean | null;
+  wrapped_up_at: string | null;
+  peopleCount: number;
+  giftsCount: number;
 };
 
 type Props = {
   initialProfile: Profile | null;
   initialDevices: Device[];
   initialPastSeasons: Season[];
+  listId: string;
+  onReopenSeason: (formData: FormData) => void;
 };
 
 const DEVICE_LIMIT = 2;
@@ -64,7 +70,13 @@ function formatDateTime(value?: string | null) {
   return date.toLocaleString();
 }
 
-export default function SettingsClient({ initialProfile, initialDevices, initialPastSeasons }: Props) {
+export default function SettingsClient({
+  initialProfile,
+  initialDevices,
+  initialPastSeasons,
+  listId,
+  onReopenSeason,
+}: Props) {
   const router = useRouter();
   const { toast } = useToast();
   const [profile, setProfile] = useState<Profile | null>(initialProfile);
@@ -511,7 +523,10 @@ export default function SettingsClient({ initialProfile, initialDevices, initial
 
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-zinc-800">
+        <section
+          id="past-seasons"
+          className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-zinc-800"
+        >
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold text-slate-900">Past Seasons</h2>
             <span className="text-xs font-semibold text-slate-600">
@@ -527,19 +542,31 @@ export default function SettingsClient({ initialProfile, initialDevices, initial
             )}
 
             {pastSeasons.map((season) => (
-              <div key={season.id} className="flex items-center justify-between py-3">
+              <div key={season.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
                 <div>
                   <div className="text-sm font-semibold text-slate-900">{season.name}</div>
-                  <div className="text-xs text-slate-500">
-                    Created: {formatDate(season.created_at)}
+                  <div className="mt-1 text-xs text-slate-500">
+                    Wrapped ✅ • People {season.peopleCount} • Gifts {season.giftsCount}
                   </div>
                 </div>
-                <Link
-                  href={`/gifts?season=${season.id}`}
-                  className="rounded-lg border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700 transition hover:border-slate-300 dark:border-zinc-800 dark:hover:border-zinc-700"
-                >
-                  View
-                </Link>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Link
+                    href={`/gifts?seasonId=${season.id}`}
+                    className="rounded-lg border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700 transition hover:border-slate-300 dark:border-zinc-800 dark:hover:border-zinc-700"
+                  >
+                    View
+                  </Link>
+                  <form action={onReopenSeason}>
+                    <input type="hidden" name="seasonId" value={season.id} />
+                    <input type="hidden" name="listId" value={listId} />
+                    <button
+                      type="submit"
+                      className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 transition hover:border-emerald-300"
+                    >
+                      Reopen
+                    </button>
+                  </form>
+                </div>
               </div>
             ))}
           </div>

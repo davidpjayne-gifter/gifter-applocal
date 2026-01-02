@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import SignOutButton from "@/app/gifts/SignOutButton";
 import { safeFetchJson } from "@/app/lib/safeFetchJson";
+import SeasonProgressBar from "@/app/components/SeasonProgressBar";
 
 type ExploreCard = {
   label: string;
@@ -26,13 +27,19 @@ export default function HomePage() {
   const [isPro, setIsPro] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
-  const [summary, setSummary] = useState<null | {
-    peopleCount: number;
-    giftsCount: number;
-    spentTotal: number;
-    budget: number | null;
-    remaining: number | null;
-  }>(null);
+  const [seasonSummaries, setSeasonSummaries] = useState<
+    {
+      id: string;
+      name: string;
+      created_at: string | null;
+      is_wrapped_up: boolean | null;
+      budget: number | null;
+      peopleCount: number;
+      giftsCount: number;
+      wrappedCount: number;
+      spentTotal: number;
+    }[]
+  >([]);
   const [summaryLoaded, setSummaryLoaded] = useState(false);
 
   useEffect(() => {
@@ -45,7 +52,7 @@ export default function HomePage() {
       : null) {
       if (!mounted) return;
       setHasSession(Boolean(session));
-      setSummary(null);
+      setSeasonSummaries([]);
       setSummaryLoaded(false);
 
       if (!session?.user?.id) {
@@ -68,10 +75,10 @@ export default function HomePage() {
 
       const result = await safeFetchJson("/api/gifts/summary");
       if (!mounted) return;
-      if (result.ok && (result.json as any)?.ok && (result.json as any)?.hasData) {
-        setSummary((result.json as any).summary ?? null);
+      if (result.ok && (result.json as any)?.ok) {
+        setSeasonSummaries((result.json as any).seasons ?? []);
       } else {
-        setSummary(null);
+        setSeasonSummaries([]);
       }
       setSummaryLoaded(true);
     }
@@ -91,7 +98,9 @@ export default function HomePage() {
   const heroSubtitle = hasSession
     ? "View your current season and GIFTees"
     : "Sign in to view and manage your gifts";
-  const showEmptyState = hasSession && summaryLoaded && !summary;
+  const showEmptyState = hasSession && summaryLoaded && seasonSummaries.length === 0;
+  const multiSeasonView = hasSession && summaryLoaded && seasonSummaries.length > 1;
+  const singleSeasonSummary = seasonSummaries[0] ?? null;
 
   const formatMoney = (value: number) =>
     value.toLocaleString(undefined, { style: "currency", currency: "USD" });
@@ -119,24 +128,36 @@ export default function HomePage() {
   const cardInteractive =
     "cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/50 active:translate-y-0 dark:hover:border-blue-300/40";
 
+  const actionButtonClass =
+    "inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:border-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50 dark:hover:border-slate-600";
+
   return (
     <main className="min-h-screen mx-auto w-full max-w-3xl bg-white px-4 py-6 text-slate-900 sm:px-6 dark:bg-slate-950 dark:text-slate-50">
       <div className="text-center text-2xl font-semibold">GIFTer 🎁</div>
 
       <div className="mt-6 mb-2 text-lg font-semibold">My GIFTs</div>
-      <button
-        type="button"
-        onClick={handleHeroClick}
-        className={`mt-6 ${cardBase} ${cardInteractive} text-center md:min-h-[140px] lg:min-h-[160px] border-slate-400 bg-gradient-to-br from-blue-50/80 via-white to-white dark:border-slate-600 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900`}
+      <div
+        className={`mt-6 ${cardBase} text-center md:min-h-[140px] lg:min-h-[160px] border-slate-400 bg-gradient-to-br from-blue-50/80 via-white to-white dark:border-slate-600 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900`}
       >
         {hasSession ? (
           showEmptyState ? (
             <>
               <div className="text-base font-semibold text-slate-900 dark:text-slate-50">
-                You don&apos;t have any gifts yet.
+                You’re done GIFTing for now.
               </div>
               <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                Start by adding a person, then add gifts under them.
+                Start a new season when you’re ready.
+              </div>
+              <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+                <Link href="/gifts" className={actionButtonClass}>
+                  Start New Season
+                </Link>
+                <Link
+                  href="/settings#past-seasons"
+                  className="text-xs font-semibold text-slate-600 underline underline-offset-2 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-50"
+                >
+                  View Past Seasons
+                </Link>
               </div>
             </>
           ) : (
@@ -148,14 +169,14 @@ export default function HomePage() {
                 <span>My GIFTs</span>
               </div>
               <div className="mt-2 text-base text-slate-700 dark:text-slate-300">{heroSubtitle}</div>
-              {summary && (
+              {!multiSeasonView && singleSeasonSummary && !showEmptyState && (
                 <div className="mt-4 rounded-xl border border-blue-600/60 bg-blue-600/10 p-4 dark:border-blue-400/30 dark:bg-blue-400/10">
                   <div className="flex flex-wrap justify-center gap-3">
                     <div className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-3 text-center dark:border-slate-700 dark:bg-slate-950">
                       <div className="flex flex-col items-center justify-center">
                         <div className="text-sm font-medium text-slate-600 dark:text-slate-300">👥 People</div>
                         <div className="mt-1 text-xl font-semibold text-slate-900 dark:text-slate-50">
-                          {summary.peopleCount}
+                          {singleSeasonSummary.peopleCount}
                         </div>
                       </div>
                     </div>
@@ -163,18 +184,18 @@ export default function HomePage() {
                       <div className="flex flex-col items-center justify-center">
                         <div className="text-sm font-medium text-slate-600 dark:text-slate-300">🎁 Gifts</div>
                         <div className="mt-1 text-xl font-semibold text-slate-900 dark:text-slate-50">
-                          {summary.giftsCount}
+                          {singleSeasonSummary.giftsCount}
                         </div>
                       </div>
                     </div>
                   </div>
-                  {summary.budget !== null ? (
+                  {singleSeasonSummary.budget !== null ? (
                     <div className="mt-3 flex flex-wrap justify-center gap-3">
                       <div className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-3 text-center dark:border-slate-700 dark:bg-slate-950">
                         <div className="flex flex-col items-center justify-center">
                           <div className="text-sm font-medium text-slate-600 dark:text-slate-300">💰 Budget</div>
                           <div className="mt-1 text-xl font-semibold text-slate-900 dark:text-slate-50">
-                            {formatMoney(summary.budget)}
+                            {formatMoney(singleSeasonSummary.budget)}
                           </div>
                         </div>
                       </div>
@@ -182,7 +203,7 @@ export default function HomePage() {
                         <div className="flex flex-col items-center justify-center">
                           <div className="text-sm font-medium text-slate-600 dark:text-slate-300">🧾 Spent</div>
                           <div className="mt-1 text-xl font-semibold text-slate-900 dark:text-slate-50">
-                            {formatMoney(summary.spentTotal)}
+                            {formatMoney(singleSeasonSummary.spentTotal)}
                           </div>
                         </div>
                       </div>
@@ -190,7 +211,11 @@ export default function HomePage() {
                         <div className="flex flex-col items-center justify-center">
                           <div className="text-sm font-medium text-slate-600 dark:text-slate-300">✅ Left</div>
                           <div className="mt-1 text-xl font-semibold text-slate-900 dark:text-slate-50">
-                            {formatMoney(summary.remaining ?? 0)}
+                            {formatMoney(
+                              typeof singleSeasonSummary.budget === "number"
+                                ? singleSeasonSummary.budget - singleSeasonSummary.spentTotal
+                                : 0
+                            )}
                           </div>
                         </div>
                       </div>
@@ -201,7 +226,7 @@ export default function HomePage() {
                         <div className="flex flex-col items-center justify-center">
                           <div className="text-sm font-medium text-slate-600 dark:text-slate-300">🧾 Spent</div>
                           <div className="mt-1 text-xl font-semibold text-slate-900 dark:text-slate-50">
-                            {formatMoney(summary.spentTotal)}
+                            {formatMoney(singleSeasonSummary.spentTotal)}
                           </div>
                         </div>
                       </div>
@@ -209,12 +234,91 @@ export default function HomePage() {
                   )}
                 </div>
               )}
+              {multiSeasonView && (
+                <div className="mt-4 rounded-xl border border-blue-600/60 bg-blue-600/10 p-4 text-left dark:border-blue-400/30 dark:bg-blue-400/10">
+                  <div className="flex items-center justify-between">
+                    <div className="text-base font-semibold text-slate-900 dark:text-slate-50">
+                      My GIFTs
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => router.push("/gifts")}
+                      className="text-xs font-semibold text-slate-600 underline underline-offset-2 hover:text-slate-800 dark:text-slate-300 dark:hover:text-slate-100"
+                    >
+                      View all
+                    </button>
+                  </div>
+                  <div className="mt-3 space-y-3">
+                    {seasonSummaries.slice(0, 3).map((season) => {
+                      const wrappedPercent =
+                        season.giftsCount > 0
+                          ? Math.round((season.wrappedCount / season.giftsCount) * 100)
+                          : 0;
+                      return (
+                        <Link
+                          key={season.id}
+                          href={`/gifts?seasonId=${season.id}`}
+                          className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white/80 px-3 py-3 text-slate-900 transition hover:border-blue-200 hover:shadow-md dark:border-slate-700 dark:bg-slate-950 dark:hover:border-blue-300/40"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <div className="text-sm font-semibold">{season.name}</div>
+                              <div className="mt-1 text-xs text-slate-600 dark:text-slate-300">
+                                {season.is_wrapped_up ? "Wrapped ✅" : "Open"}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-xs text-slate-600 dark:text-slate-300">
+                            People {season.peopleCount} • Gifts {season.giftsCount}
+                            {season.giftsCount > 0 ? ` • Wrapped ${wrappedPercent}%` : ""}
+                          </div>
+                          <div className="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-300">
+                            <span>Progress</span>
+                            <span>{wrappedPercent}%</span>
+                          </div>
+                          <SeasonProgressBar
+                            completed={season.wrappedCount}
+                            total={season.giftsCount}
+                            size="compact"
+                          />
+                        </Link>
+                      );
+                    })}
+                  </div>
+                  {seasonSummaries.length > 3 && (
+                    <div className="mt-3 text-xs text-slate-600 dark:text-slate-300">
+                      +{seasonSummaries.length - 3} more seasons{" "}
+                      <button
+                        type="button"
+                        onClick={() => router.push("/gifts")}
+                        className="ml-1 font-semibold text-slate-700 underline underline-offset-2 hover:text-slate-900 dark:text-slate-200 dark:hover:text-slate-100"
+                      >
+                        View all
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+              {!multiSeasonView && singleSeasonSummary && !showEmptyState && (
+                <div className="mt-4">
+                  <button type="button" onClick={handleHeroClick} className={actionButtonClass}>
+                    Open My GIFTs
+                  </button>
+                </div>
+              )}
             </>
           )
         ) : (
-          <div className="text-sm text-slate-600 dark:text-slate-300">{heroSubtitle}</div>
+          <>
+            <div className="text-sm text-slate-600 dark:text-slate-300">{heroSubtitle}</div>
+            <div className="mt-4">
+              <button type="button" onClick={handleHeroClick} className={actionButtonClass}>
+                Login
+              </button>
+            </div>
+          </>
         )}
-      </button>
+      </div>
 
       <div className="mt-8 mb-4 text-lg font-semibold">Explore</div>
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">

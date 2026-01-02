@@ -14,7 +14,10 @@ import SignInBanner from "./SignInBanner";
 import ReopenRecipientButton from "./ReopenRecipientButton";
 import HowThisWorks from "./HowThisWorks";
 import AuthRedirectGate from "./AuthRedirectGate";
+import RecipientDetailsSheet from "./RecipientDetailsSheet";
+import WrapUpSeasonSheet from "./WrapUpSeasonSheet";
 import SeasonalGiftIcon from "@/app/components/SeasonalGiftIcon";
+import SeasonProgressBar from "@/app/components/SeasonProgressBar";
 
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { FREE_GIFT_LIMIT, FREE_RECIPIENT_LIMIT, getProfileForUser, isPro } from "@/lib/entitlements";
@@ -42,6 +45,8 @@ type Season = {
   list_id: string;
   is_active: boolean;
   budget: number | null;
+  is_wrapped_up: boolean | null;
+  wrapped_up_at: string | null;
 };
 
 type RecipientWrapupRow = {
@@ -106,6 +111,12 @@ function recipientSummary(gifts: Gift[]) {
 
 function seasonTotalSpent(allGifts: Gift[]) {
   return allGifts.reduce((sum, g) => sum + (typeof g.cost === "number" ? g.cost : 0), 0);
+}
+
+function isUuid(v: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    v
+  );
 }
 
 function formatRecipientDetails(gender: string | null, ageRange: string | null) {
@@ -296,6 +307,64 @@ async function reopenRecipient(formData: FormData) {
   revalidatePath("/gifts");
 }
 
+async function wrapUpSeason(formData: FormData) {
+  "use server";
+
+  const seasonId = String(formData.get("seasonId") || "").trim();
+  const listId = String(formData.get("listId") || "").trim();
+
+  if (!seasonId || !listId || !isUuid(seasonId) || !isUuid(listId)) return;
+
+  const userId = await getUserIdFromCookie();
+  if (!userId) return;
+
+  const { data: season } = await supabaseAdmin
+    .from("seasons")
+    .select("id")
+    .eq("id", seasonId)
+    .eq("list_id", listId)
+    .maybeSingle();
+
+  if (!season) return;
+
+  await supabaseAdmin
+    .from("seasons")
+    .update({ is_wrapped_up: true, wrapped_up_at: new Date().toISOString() })
+    .eq("id", seasonId)
+    .eq("list_id", listId);
+
+  revalidatePath("/gifts");
+}
+
+async function reopenSeason(formData: FormData) {
+  "use server";
+
+  const seasonId = String(formData.get("seasonId") || "").trim();
+  const listId = String(formData.get("listId") || "").trim();
+
+  if (!seasonId || !listId || !isUuid(seasonId) || !isUuid(listId)) return;
+
+  const userId = await getUserIdFromCookie();
+  if (!userId) return;
+
+  const { data: season } = await supabaseAdmin
+    .from("seasons")
+    .select("id")
+    .eq("id", seasonId)
+    .eq("list_id", listId)
+    .maybeSingle();
+
+  if (!season) return;
+
+  await supabaseAdmin
+    .from("seasons")
+    .update({ is_wrapped_up: false, wrapped_up_at: null })
+    .eq("id", seasonId)
+    .eq("list_id", listId);
+
+  revalidatePath("/gifts");
+}
+
 async function updateRecipientDetails(formData: FormData) {
   "use server";
 
@@ -328,11 +397,13 @@ async function updateRecipientDetails(formData: FormData) {
 /* ---------------- PAGE ---------------- */
 
 export default async function GiftsPage(props: {
-  searchParams?: Promise<{ season?: string; upgraded?: string }> | { season?: string; upgraded?: string };
+  searchParams?: Promise<{ season?: string; seasonId?: string; upgraded?: string }> | { season?: string; seasonId?: string; upgraded?: string };
 }) {
   const searchParams = props.searchParams ? await props.searchParams : undefined;
+  const seasonParam =
+    typeof searchParams?.seasonId === "string" ? searchParams.seasonId.trim() : "";
   const requestedSeasonId =
-    typeof searchParams?.season === "string" ? searchParams.season.trim() : "";
+    seasonParam || (typeof searchParams?.season === "string" ? searchParams.season.trim() : "");
   const upgraded =
     typeof searchParams?.upgraded === "string" ? searchParams.upgraded.trim() === "1" : false;
 
@@ -408,7 +479,7 @@ export default async function GiftsPage(props: {
 
   const { data: seasons, error: seasonsErr } = await supabaseAdmin
     .from("seasons")
-    .select("id,name,list_id,is_active,budget,created_at")
+    .select("id,name,list_id,is_active,budget,created_at,is_wrapped_up,wrapped_up_at")
     .eq("list_id", listIdForClient)
     .order("created_at", { ascending: false });
 
@@ -427,6 +498,7 @@ export default async function GiftsPage(props: {
     : null;
 
   const activeSeason = requestedSeason ?? (seasons ?? []).find((season) => season.is_active) ?? null;
+  const isSeasonWrapped = Boolean(activeSeason?.is_wrapped_up);
 
   if (!activeSeason) {
     return (
@@ -571,10 +643,15 @@ export default async function GiftsPage(props: {
           </div>
 
           <div className="mt-3 flex w-full flex-col items-center gap-3">
-            <div className="flex w-full justify-center">
+            <div className="flex w-full justify-center gap-2">
               <span className="text-slate-900" style={pillStyle()}>
                 Season: {activeSeason.name}
               </span>
+              {isSeasonWrapped && (
+                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+                  Season Wrapped ✅
+                </span>
+              )}
             </div>
             <div className="w-full">
               <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
@@ -583,14 +660,11 @@ export default async function GiftsPage(props: {
                   {wrappedGiftsInSeason}/{totalGiftsInSeason} wrapped
                 </span>
               </div>
-              <div className="mt-2 h-2 w-full rounded-full bg-slate-200">
-                <div
-                  className="h-2 rounded-full bg-emerald-500"
-                  style={{
-                    width: `${Math.round(
-                      (wrappedGiftsInSeason / Math.max(totalGiftsInSeason, 1)) * 100
-                    )}%`,
-                  }}
+              <div className="mt-2">
+                <SeasonProgressBar
+                  completed={wrappedGiftsInSeason}
+                  total={totalGiftsInSeason}
+                  size="default"
                 />
               </div>
             </div>
@@ -604,11 +678,12 @@ export default async function GiftsPage(props: {
                 Total Spent: {money(totalSpent)}
               </span>
 
-              <SeasonBudgetPill
-                seasonId={seasonIdForClient}
-                totalSpent={totalSpent}
-                initialBudget={activeSeason.budget ?? null}
-              />
+          <SeasonBudgetPill
+            seasonId={seasonIdForClient}
+            totalSpent={totalSpent}
+            initialBudget={activeSeason.budget ?? null}
+            locked={isSeasonWrapped}
+          />
             </div>
             <div className="flex justify-center">
               <HowThisWorks />
@@ -636,6 +711,7 @@ export default async function GiftsPage(props: {
               freeRecipientLimit={FREE_RECIPIENT_LIMIT}
               existingRecipientKeys={existingRecipientKeys}
               triggerVariant="inline"
+              locked={isSeasonWrapped}
             />
           </div>
         </div>
@@ -664,11 +740,11 @@ export default async function GiftsPage(props: {
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center">
-                          <div className="inline-flex items-center justify-center rounded-none border border-blue-200 bg-white px-3 py-2 text-slate-900 dark:border-blue-300/30">
+                          <div className="inline-flex items-center justify-center rounded-none border border-slate-300 bg-white px-3 py-2 text-slate-900 dark:border-slate-300 dark:bg-white dark:text-slate-900">
                             <span className="text-base font-black text-center sm:text-lg">{displayName}</span>
-                            <span className="mx-3 h-5 w-px bg-blue-200 dark:bg-blue-300/30" />
+                            <span className="mx-3 h-5 w-px bg-slate-300 dark:bg-slate-300" />
                             <span className="text-xs font-semibold text-center">{total} GIFTS</span>
-                            <span className="mx-3 h-5 w-px bg-blue-200 dark:bg-blue-300/30" />
+                            <span className="mx-3 h-5 w-px bg-slate-300 dark:bg-slate-300" />
                             <span className="text-xs font-semibold text-center">
                               {hasAnyCost ? `${money(spend)} spent` : "$0.00 spent"}
                             </span>
@@ -731,11 +807,11 @@ export default async function GiftsPage(props: {
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center">
-                        <div className="inline-flex items-center justify-center rounded-none border border-blue-200 bg-white px-3 py-2 text-slate-900 dark:border-blue-300/30">
+                        <div className="inline-flex items-center justify-center rounded-none border border-slate-300 bg-white px-3 py-2 text-slate-900 dark:border-slate-300 dark:bg-white dark:text-slate-900">
                           <span className="text-base font-black text-center sm:text-lg">{displayName}</span>
-                          <span className="mx-3 h-5 w-px bg-blue-200 dark:bg-blue-300/30" />
+                          <span className="mx-3 h-5 w-px bg-slate-300 dark:bg-slate-300" />
                           <span className="text-xs font-semibold text-center">{total} GIFTS</span>
-                          <span className="mx-3 h-5 w-px bg-blue-200 dark:bg-blue-300/30" />
+                          <span className="mx-3 h-5 w-px bg-slate-300 dark:bg-slate-300" />
                           <span className="text-xs font-semibold text-center">
                             {hasAnyCost ? `${money(spend)} spent` : "$0.00 spent"}
                           </span>
@@ -785,6 +861,7 @@ export default async function GiftsPage(props: {
                           freeGiftLimit={FREE_GIFT_LIMIT}
                           freeRecipientLimit={FREE_RECIPIENT_LIMIT}
                           existingRecipientKeys={existingRecipientKeys}
+                          locked={isSeasonWrapped}
                         />
                       </div>
                     </div>
@@ -795,7 +872,7 @@ export default async function GiftsPage(props: {
                       <input type="hidden" name="seasonId" value={seasonIdForClient} />
 
                       <RecipientWrapUpButton
-                        disabled={list.length === 0}
+                        disabled={list.length === 0 || isSeasonWrapped}
                         label="Mark All Wrapped Up"
                         confirmText={`Wrap up ${displayName}?\n\nThis will mark all gifts as wrapped and collapse this section (you can reopen it anytime).`}
                         autoWrap
@@ -809,7 +886,12 @@ export default async function GiftsPage(props: {
                 <div style={{ padding: "0 14px 14px 14px" }}>
                   <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
                     {list.map((gift) => (
-                      <GiftRow key={gift.id} gift={gift} updateGiftStatus={updateGiftStatus} />
+                      <GiftRow
+                        key={gift.id}
+                        gift={gift}
+                        updateGiftStatus={updateGiftStatus}
+                        isSeasonWrapped={isSeasonWrapped}
+                      />
                     ))}
                   </ul>
 
@@ -843,6 +925,7 @@ export default async function GiftsPage(props: {
             freeGiftLimit={FREE_GIFT_LIMIT}
             freeRecipientLimit={FREE_RECIPIENT_LIMIT}
             existingRecipientKeys={existingRecipientKeys}
+            locked={isSeasonWrapped}
           />
         </div>
       )}
@@ -857,9 +940,21 @@ export default async function GiftsPage(props: {
         </div>
       )}
 
-      <div className="flex justify-center" style={{ marginTop: 16 }}>
+      <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
         <NewSeasonSheet listId={listIdForClient} />
+        <WrapUpSeasonSheet
+          listId={listIdForClient}
+          seasonId={seasonIdForClient}
+          isWrapped={isSeasonWrapped}
+          onWrap={wrapUpSeason}
+          onReopen={reopenSeason}
+        />
       </div>
+      {isSeasonWrapped && (
+        <div className="mt-2 text-center text-xs text-slate-600">
+          This season is wrapped. Reopen to edit.
+        </div>
+      )}
       <div className="mt-6 flex flex-wrap items-center justify-center gap-3 pb-10">
         <Link
           href="/settings"

@@ -11,9 +11,10 @@ type Props = {
   shippingStatus: ShippingStatus;
   updateGiftStatus: (formData: FormData) => void; // server action
   actions?: React.ReactNode;
+  disabled?: boolean;
 };
 
-function statusButtonStyle(active: boolean): React.CSSProperties {
+function statusButtonStyle(active: boolean, disabled: boolean): React.CSSProperties {
   return {
     padding: "8px 10px",
     borderRadius: 10,
@@ -22,7 +23,8 @@ function statusButtonStyle(active: boolean): React.CSSProperties {
     color: active ? "#ffffff" : "#0f172a",
     fontWeight: 900,
     fontSize: 12,
-    cursor: "pointer",
+    cursor: disabled ? "not-allowed" : "pointer",
+    opacity: disabled ? 0.6 : 1,
   };
 }
 
@@ -32,6 +34,7 @@ export default function GiftStatusForm({
   shippingStatus,
   updateGiftStatus,
   actions,
+  disabled = false,
 }: Props) {
   const [confirmOpen, setConfirmOpen] = React.useState(false);
   const [pendingStatus, setPendingStatus] = React.useState<ShippingStatus | null>(null);
@@ -44,6 +47,7 @@ export default function GiftStatusForm({
   }, [saved]);
 
   function handle(nextStatus: ShippingStatus | "wrapped") {
+    if (disabled) return;
     // Confirm only when unwrapping
     if (isWrapped && nextStatus !== "wrapped") {
       setPendingStatus(nextStatus as ShippingStatus);
@@ -60,6 +64,11 @@ export default function GiftStatusForm({
   }
 
   function handleConfirmUnwrap() {
+    if (disabled) {
+      setConfirmOpen(false);
+      setPendingStatus(null);
+      return;
+    }
     if (!pendingStatus) {
       setConfirmOpen(false);
       return;
@@ -80,32 +89,36 @@ export default function GiftStatusForm({
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
         <button
           type="button"
+          disabled={disabled}
           onClick={() => handle("unknown")}
-          style={statusButtonStyle(!isWrapped && shippingStatus === "unknown")}
+          style={statusButtonStyle(!isWrapped && shippingStatus === "unknown", disabled)}
         >
           Storebought
         </button>
 
         <button
           type="button"
+          disabled={disabled}
           onClick={() => handle("in_transit")}
-          style={statusButtonStyle(!isWrapped && shippingStatus === "in_transit")}
+          style={statusButtonStyle(!isWrapped && shippingStatus === "in_transit", disabled)}
         >
           In Transit
         </button>
 
         <button
           type="button"
+          disabled={disabled}
           onClick={() => handle("arrived")}
-          style={statusButtonStyle(!isWrapped && shippingStatus === "arrived")}
+          style={statusButtonStyle(!isWrapped && shippingStatus === "arrived", disabled)}
         >
           Arrived
         </button>
 
         <button
           type="button"
+          disabled={disabled}
           onClick={() => handle("wrapped")}
-          style={statusButtonStyle(isWrapped)}
+          style={statusButtonStyle(isWrapped, disabled)}
         >
           Wrapped 🎁
         </button>

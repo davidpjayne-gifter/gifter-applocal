@@ -14,6 +14,8 @@ type Props = {
   freeRecipientLimit: number;
   existingRecipientKeys: string[];
   triggerVariant?: "floating" | "inline";
+  locked?: boolean;
+  lockedMessage?: string;
 };
 
 export default function RefreshAfterAdd({
@@ -27,8 +29,17 @@ export default function RefreshAfterAdd({
   freeRecipientLimit,
   existingRecipientKeys,
   triggerVariant = "floating",
+  locked = false,
+  lockedMessage = "This season is wrapped. Reopen to edit.",
 }: Props) {
   const router = useRouter();
+
+  if (locked) {
+    if (triggerVariant === "inline") {
+      return <div className="text-xs text-slate-600">{lockedMessage}</div>;
+    }
+    return null;
+  }
 
   return (
     <AddGiftForm
