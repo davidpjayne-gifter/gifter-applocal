@@ -116,12 +116,6 @@ export default function SettingsClient({
     profile?.subscription_status === "past_due";
 
   useEffect(() => {
-    if (profile) {
-      setInitialLoading(false);
-      setCheckedSession(true);
-      return;
-    }
-
     let active = true;
 
     async function loadInitialData() {
@@ -143,18 +137,18 @@ export default function SettingsClient({
       if (!active) return;
 
       if (!result.ok || !(result.json as any)?.profile) {
-        const message =
-          (result.json as any)?.error?.message ||
-          (result.json as any)?.error ||
-          "Something went wrong.";
-        toast.error(message);
+        if (process.env.NODE_ENV !== "production") {
+          console.warn("[settings] fallback to free tier");
+        }
         setCheckedSession(true);
         setInitialLoading(false);
         return;
       }
 
       if (result.text) {
-        toast.error("Something went wrong.");
+        if (process.env.NODE_ENV !== "production") {
+          console.warn("[settings] non-json response");
+        }
         setCheckedSession(true);
         setInitialLoading(false);
         return;
@@ -172,7 +166,7 @@ export default function SettingsClient({
     return () => {
       active = false;
     };
-  }, [profile]);
+  }, []);
 
   async function getAccessToken(onError: (message: string) => void) {
     const { data } = await supabase.auth.getSession();
@@ -384,6 +378,12 @@ export default function SettingsClient({
 
   return (
     <div className="mx-auto w-full max-w-4xl px-4 py-10">
+      <Link
+        href="/gifts"
+        className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:border-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50 dark:hover:border-slate-600"
+      >
+        Back to my GIFTs
+      </Link>
       <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100">Settings</h1>
       <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
         Manage your account, billing, and devices.
@@ -399,8 +399,11 @@ export default function SettingsClient({
             <label className="text-sm text-slate-700">
               Email
               <input
+                id="settings-email"
+                name="email"
                 value={profile?.email ?? ""}
                 readOnly
+                autoComplete="email"
                 className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 dark:border-zinc-800"
               />
             </label>
@@ -408,8 +411,11 @@ export default function SettingsClient({
             <label className="text-sm text-slate-700">
               Name
               <input
+                id="settings-name"
+                name="name"
                 value={name}
                 onChange={(event) => setName(event.target.value)}
+                autoComplete="name"
                 className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-slate-400 focus:outline-none dark:border-zinc-800"
                 placeholder="Your name"
               />

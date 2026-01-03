@@ -20,6 +20,66 @@ export default function ForThemExplorePage() {
       url: "https://www.amazon.com/dp/B0FKVS1K4Z/ref=cm_sw_r_as_gl_api_gl_i_XR610F2YGDN482SC83YM?linkCode=ml1&tag=morganjayne-20&linkId=a0b9474682abe100fa9ffeb43071e934",
       imageUrl: "https://m.media-amazon.com/images/I/71jc-5iKtoL._AC_SL1500_.jpg",
     },
+    {
+      asin: "B08W5DGL1V",
+      title: "Paw Patrol, Mighty Lookout Tower",
+      url: "https://amzn.to/4bgBHJm",
+      imageUrl: "https://m.media-amazon.com/images/I/914zKPJuu8L._AC_SL1500_.jpg",
+    },
+    {
+      asin: "B0G4GDZ4FV",
+      title: "SIX–SEVEN! The Epic 67 Activity Book",
+      url: "https://amzn.to/4pXZZfM",
+      imageUrl: "https://m.media-amazon.com/images/I/81XxRnvAggL._SL1499_.jpg",
+    },
+    {
+      asin: "B0BRKPVZB4",
+      title: "BolaButty Bluetooth Speaker with HD Sound",
+      url: "https://amzn.to/4pxSfQQ",
+      imageUrl: "https://m.media-amazon.com/images/I/81l7mB5LhsL._AC_SL1500_.jpg",
+    },
+    {
+      asin: "B0C6KK8Q9V",
+      title: "Bottleboom STEM 13-in-1 Education Solar Power Robot",
+      url: "https://amzn.to/3KXJlhh",
+      imageUrl: "https://m.media-amazon.com/images/I/91arrRYVW5L._AC_SL1500_.jpg",
+    },
+    {
+      asin: "B0CTWHSSM8",
+      title: "Remote Control Car, RC Cars",
+      url: "https://amzn.to/45fYOQL",
+      imageUrl: "https://m.media-amazon.com/images/I/81pa-dG26dL._AC_SL1500_.jpg",
+    },
+    {
+      asin: "B0FN77THJH",
+      title: "Drones For Kids Beginners - Foldable HD 1080P Drone with Camera",
+      url: "https://amzn.to/3YqTpCq",
+      imageUrl: "https://m.media-amazon.com/images/I/71atrV8sIyL._AC_SL1500_.jpg",
+    },
+    {
+      asin: "B09Y9DT9W7",
+      title: "LED Mask with Gesture Sensing",
+      url: "https://amzn.to/4qzc1vX",
+      imageUrl: "https://m.media-amazon.com/images/I/81PatiJgAOL._AC_SL1500_.jpg",
+    },
+    {
+      asin: "B00SBBZITI",
+      title: "Bluetooth Beanie Hat Wireless Headphone for Outdoors",
+      url: "https://amzn.to/4sppt7m",
+      imageUrl: "https://m.media-amazon.com/images/I/81EijQnyMML._AC_SX679_.jpg",
+    },
+    {
+      asin: "B0DJRQZPS1",
+      title: "New Balance Men's Sport Essentials Fleece Hoodie",
+      url: "https://amzn.to/3L1csQN",
+      imageUrl: "https://m.media-amazon.com/images/I/711MJ-e7AXL._AC_SX679_.jpg",
+    },
+    {
+      asin: "B0BS3S1MHC",
+      title: "2 Pack Mens Athletic Shorts 5 Inch Quick Dry",
+      url: "https://amzn.to/44ONSt6",
+      imageUrl: "https://m.media-amazon.com/images/I/71rjcO4nkSL._AC_SX679_.jpg",
+    },
   ];
 
   return (

@@ -408,6 +408,8 @@ export default function AddGiftForm({
                 Person
               </span>
               <input
+                id="add-gift-recipient"
+                name="recipient"
                 value={recipient}
                 onChange={(e) => setRecipient(e.target.value)}
                 placeholder="e.g., Emma"
@@ -427,6 +429,8 @@ export default function AddGiftForm({
                 Gift
               </span>
               <input
+                id="add-gift-title"
+                name="title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="e.g., AirPods case"
@@ -446,6 +450,8 @@ export default function AddGiftForm({
                 Cost
               </span>
               <input
+                id="add-gift-cost"
+                name="cost"
                 value={cost}
                 onChange={(e) => {
                   setCost(e.target.value);
@@ -476,6 +482,8 @@ export default function AddGiftForm({
                 Tracking (optional)
               </span>
               <input
+                id="add-gift-tracking"
+                name="tracking"
                 value={tracking}
                 onChange={(e) => setTracking(e.target.value)}
                 placeholder="Tracking number"

@@ -26,7 +26,9 @@ export default function HowThisWorks() {
           <div className="relative w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-5 text-gray-900 shadow-xl">
             <div className="text-sm font-black">How it works</div>
             <div className="mt-3 space-y-3 text-sm text-gray-700">
-              <p className="font-semibold text-gray-900">🗓️ Start a season &amp; set a budget</p>
+              <p className="font-semibold text-gray-900">
+                🗓️ Start a season, set a budget, and even set a goal date to wrap your season up.
+              </p>
               <p>
                 Create a season and set a budget so you can see how much you plan to spend overall
                 - and how much is left as you go.

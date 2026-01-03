@@ -35,7 +35,7 @@ async function markEventProcessed(eventId: string) {
 }
 
 function isProStatus(status: string | null | undefined) {
-  return status === "active" || status === "trialing";
+  return status === "active" || status === "trialing" || status === "past_due";
 }
 
 async function handleCheckoutCompleted(params: {
@@ -98,8 +98,9 @@ async function handleCheckoutCompleted(params: {
       error,
     });
   } else {
-    console.log("✅ Subscription activated", {
+    console.log("[stripe-webhook] checkout completed", {
       userId,
+      status: subscriptionStatus ?? "active",
       stripeCustomerId,
       stripeSubscriptionId,
     });
@@ -126,6 +127,11 @@ async function handleSubscriptionLifecycle(params: {
   if (!userId) return null;
 
   if (eventType === "customer.subscription.deleted") {
+    const currentPeriodEnd =
+      typeof (subscription as any).current_period_end === "number"
+        ? new Date((subscription as any).current_period_end * 1000).toISOString()
+        : null;
+
     const { error } = await supabaseAdmin
       .from("profiles")
       .update({
@@ -133,6 +139,7 @@ async function handleSubscriptionLifecycle(params: {
         stripe_subscription_id: stripeSubscriptionId ?? undefined,
         subscription_status: subscription.status ?? "canceled",
         is_pro: false,
+        current_period_end: currentPeriodEnd ?? null,
         pro_expires_at: null,
       })
       .eq("id", userId);
@@ -151,6 +158,10 @@ async function handleSubscriptionLifecycle(params: {
       stripe_subscription_id: stripeSubscriptionId ?? undefined,
       subscription_status: subscription.status ?? null,
       is_pro: isProStatus(subscription.status),
+      current_period_end:
+        typeof (subscription as any).current_period_end === "number"
+          ? new Date((subscription as any).current_period_end * 1000).toISOString()
+          : null,
       pro_expires_at:
         typeof (subscription as any).current_period_end === "number"
           ? new Date((subscription as any).current_period_end * 1000).toISOString()
@@ -161,6 +172,13 @@ async function handleSubscriptionLifecycle(params: {
   if (error) {
     return NextResponse.json({ error: "Failed to update profile" }, { status: 500 });
   }
+
+  console.log("[stripe-webhook] subscription update", {
+    userId,
+    status: subscription.status ?? null,
+    stripeCustomerId,
+    stripeSubscriptionId,
+  });
 
   return null;
 }
@@ -304,13 +322,20 @@ export async function POST(req: NextRequest) {
             stripe_customer_id: stripeCustomerId ?? undefined,
             stripe_subscription_id: stripeSubscriptionId ?? undefined,
             subscription_status: "past_due",
-            is_pro: false,
+            is_pro: true,
           })
           .eq("id", userId);
 
         if (error) {
           return NextResponse.json({ error: "Failed to update profile" }, { status: 500 });
         }
+
+        console.log("[stripe-webhook] invoice payment failed", {
+          userId,
+          status: "past_due",
+          stripeCustomerId,
+          stripeSubscriptionId,
+        });
       } else if (stripeCustomerId || stripeSubscriptionId || subscription) {
         const response = await handleSubscriptionLifecycle({
           eventType,

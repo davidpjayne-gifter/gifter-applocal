@@ -14,7 +14,7 @@ function getAccessToken(req: NextRequest) {
 }
 
 function isPaidStatus(status: string | null) {
-  return status === "active" || status === "trialing";
+  return status === "active" || status === "trialing" || status === "past_due";
 }
 
 function pickBestSubscription(subscriptions: Stripe.Subscription[]) {

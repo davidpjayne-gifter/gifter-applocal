@@ -97,6 +97,7 @@ export default function LoginForm({ nextPath }: LoginFormProps) {
         </label>
         <input
           id="email"
+          name="email"
           type="email"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
@@ -113,6 +114,7 @@ export default function LoginForm({ nextPath }: LoginFormProps) {
         </label>
         <select
           id="gender"
+          name="gender"
           value={gender}
           onChange={(event) => setGender(event.target.value)}
           className={`${selectBase} ${gender ? "text-blue-700" : "text-slate-900 sm:text-blue-400"}`}
@@ -134,6 +136,7 @@ export default function LoginForm({ nextPath }: LoginFormProps) {
         </label>
         <select
           id="ageRange"
+          name="ageRange"
           value={ageRange}
           onChange={(event) => setAgeRange(event.target.value)}
           className={`${selectBase} ${ageRange ? "text-blue-700" : "text-slate-900 sm:text-blue-400"}`}

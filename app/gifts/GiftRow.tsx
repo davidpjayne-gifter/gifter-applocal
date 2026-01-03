@@ -238,6 +238,8 @@ export default function GiftRow({ gift, updateGiftStatus, isSeasonWrapped = fals
           <div className="flex flex-col gap-2">
             <label className="text-xs font-semibold text-slate-600">Title</label>
             <input
+              id={`gift-${gift.id}-title`}
+              name="title"
               value={editTitle}
               onChange={(event) => setEditTitle(event.target.value)}
               disabled={saving}
@@ -249,6 +251,8 @@ export default function GiftRow({ gift, updateGiftStatus, isSeasonWrapped = fals
               <div>
                 <label className="text-xs font-semibold text-slate-600">Cost</label>
                 <input
+                  id={`gift-${gift.id}-cost`}
+                  name="cost"
                   value={editCost}
                   onChange={(event) => setEditCost(event.target.value)}
                   disabled={saving}
@@ -260,6 +264,8 @@ export default function GiftRow({ gift, updateGiftStatus, isSeasonWrapped = fals
               <div>
                 <label className="text-xs font-semibold text-slate-600">Tracking</label>
                 <input
+                  id={`gift-${gift.id}-tracking`}
+                  name="tracking"
                   value={editTracking}
                   onChange={(event) => setEditTracking(event.target.value)}
                   disabled={saving}

@@ -183,6 +183,8 @@ export default function SeasonBudgetPill({
           <span style={{ fontWeight: 900 }}>$</span>
 
           <input
+            id={`season-budget-${seasonId}`}
+            name="budget"
             value={value}
             onChange={(e) => setValue(e.target.value)}
             inputMode="decimal"

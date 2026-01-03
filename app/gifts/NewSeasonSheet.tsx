@@ -218,6 +218,8 @@ export default function NewSeasonSheet({ listId }: { listId: string }) {
             </div>
             <input
               type="date"
+              id="new-season-goal-date"
+              name="goalDate"
               value={goalDate}
               onChange={(e) => setGoalDate(e.target.value)}
               className="text-slate-900"
@@ -240,6 +242,8 @@ export default function NewSeasonSheet({ listId }: { listId: string }) {
               Season name
             </div>
             <input
+              id="new-season-name"
+              name="seasonName"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g., Mom’s Birthday, Valentine’s, Christmas 2026"

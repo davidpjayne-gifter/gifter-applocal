@@ -147,6 +147,8 @@ export default function SeasonGoalProgress({ goalDate, createdAt, seasonId }: Pr
           </div>
           <input
             type="date"
+            id={`goal-date-${seasonId}`}
+            name="goalDate"
             value={pendingDate}
             onChange={(event) => setPendingDate(event.target.value)}
             className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs font-semibold text-slate-900 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-200 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:border-blue-400 dark:focus:ring-blue-900/40"
