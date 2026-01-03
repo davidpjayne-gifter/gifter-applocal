@@ -1,4 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { createClient } from "@supabase/supabase-js";
 
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { getOrCreateCurrentList } from "@/lib/currentList";
@@ -6,7 +8,7 @@ import { getOrCreateCurrentList } from "@/lib/currentList";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET(req: NextRequest) {
+export async function GET(req: Request) {
   const fallback = (source: string) =>
     NextResponse.json({
       ok: true,
@@ -21,21 +23,31 @@ export async function GET(req: NextRequest) {
   try {
     const authHeader = req.headers.get("authorization") || "";
     const headerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+    const cookieStore = await cookies();
     const cookieToken =
-      req.cookies.get("sb-access-token")?.value ??
-      req.cookies.get("supabase-auth-token")?.value ??
+      cookieStore.get("sb-access-token")?.value ??
+      cookieStore.get("supabase-auth-token")?.value ??
       "";
 
     let authSource: "bearer" | "cookie" | "none" = "none";
     let userData: { user: { id: string; email: string | null } } | null = null;
 
     if (headerToken) {
-      const { data, error } = await supabaseAdmin.auth.getUser(headerToken);
-      if (!error && data?.user) {
-        authSource = "bearer";
-        userData = { user: { id: data.user.id, email: data.user.email ?? null } };
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
+      if (supabaseUrl && supabaseAnonKey) {
+        const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+          auth: { persistSession: false, autoRefreshToken: false },
+        });
+        const { data, error } = await supabase.auth.getUser(headerToken);
+        if (!error && data?.user) {
+          authSource = "bearer";
+          userData = { user: { id: data.user.id, email: data.user.email ?? null } };
+        } else {
+          console.error("[api/settings] bearer auth failed", error?.message ?? error);
+        }
       } else {
-        console.error("[api/settings] bearer auth failed", error?.message ?? error);
+        console.error("[api/settings] missing supabase env vars for bearer auth");
       }
     }
 
@@ -52,7 +64,11 @@ export async function GET(req: NextRequest) {
     if (!userData?.user?.id) {
       const debug =
         process.env.NODE_ENV !== "production"
-          ? { authSource, userIdPresent: false }
+          ? {
+              hadAuthHeader: Boolean(authHeader),
+              authSource,
+              userIdPresent: false,
+            }
           : undefined;
       return NextResponse.json({
         ok: true,
@@ -93,6 +109,7 @@ export async function GET(req: NextRequest) {
       const debug =
         process.env.NODE_ENV !== "production"
           ? {
+              hadAuthHeader: Boolean(authHeader),
               authSource,
               userIdPresent: true,
               profileFound: false,
@@ -195,6 +212,7 @@ export async function GET(req: NextRequest) {
     const debug =
       process.env.NODE_ENV !== "production"
         ? {
+            hadAuthHeader: Boolean(authHeader),
             authSource,
             userIdPresent: true,
             profileFound: true,
