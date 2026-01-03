@@ -131,6 +131,7 @@ export default function SettingsClient({
 
       const result = await safeFetchJson("/api/settings", {
         method: "GET",
+        cache: "no-store",
         headers: { Authorization: `Bearer ${token}` },
       });
 

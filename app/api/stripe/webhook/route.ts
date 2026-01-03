@@ -98,12 +98,15 @@ async function handleCheckoutCompleted(params: {
       error,
     });
   } else {
-    console.log("[stripe-webhook] checkout completed", {
-      userId,
-      status: subscriptionStatus ?? "active",
-      stripeCustomerId,
-      stripeSubscriptionId,
-    });
+    if (process.env.NODE_ENV !== "production") {
+      console.log("[stripe-webhook][debug]", {
+        event: "checkout.session.completed",
+        userId,
+        status: subscriptionStatus ?? "active",
+        stripeCustomerId,
+        stripeSubscriptionId,
+      });
+    }
   }
 
   return {
@@ -173,12 +176,15 @@ async function handleSubscriptionLifecycle(params: {
     return NextResponse.json({ error: "Failed to update profile" }, { status: 500 });
   }
 
-  console.log("[stripe-webhook] subscription update", {
-    userId,
-    status: subscription.status ?? null,
-    stripeCustomerId,
-    stripeSubscriptionId,
-  });
+  if (process.env.NODE_ENV !== "production") {
+    console.log("[stripe-webhook][debug]", {
+      event: eventType,
+      userId,
+      status: subscription.status ?? null,
+      stripeCustomerId,
+      stripeSubscriptionId,
+    });
+  }
 
   return null;
 }
@@ -330,12 +336,15 @@ export async function POST(req: NextRequest) {
           return NextResponse.json({ error: "Failed to update profile" }, { status: 500 });
         }
 
-        console.log("[stripe-webhook] invoice payment failed", {
-          userId,
-          status: "past_due",
-          stripeCustomerId,
-          stripeSubscriptionId,
-        });
+        if (process.env.NODE_ENV !== "production") {
+          console.log("[stripe-webhook][debug]", {
+            event: "invoice.payment_failed",
+            userId,
+            status: "past_due",
+            stripeCustomerId,
+            stripeSubscriptionId,
+          });
+        }
       } else if (stripeCustomerId || stripeSubscriptionId || subscription) {
         const response = await handleSubscriptionLifecycle({
           eventType,

@@ -21,17 +21,49 @@ export async function GET(req: NextRequest) {
   try {
     const authHeader = req.headers.get("authorization") || "";
     const headerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
-    const cookieToken = req.cookies.get("sb-access-token")?.value ?? "";
-    const token = headerToken || cookieToken;
+    const cookieToken =
+      req.cookies.get("sb-access-token")?.value ??
+      req.cookies.get("supabase-auth-token")?.value ??
+      "";
 
-    if (!token) {
-      return fallback("anon");
+    let authSource: "bearer" | "cookie" | "none" = "none";
+    let userData: { user: { id: string; email: string | null } } | null = null;
+
+    if (headerToken) {
+      const { data, error } = await supabaseAdmin.auth.getUser(headerToken);
+      if (!error && data?.user) {
+        authSource = "bearer";
+        userData = { user: { id: data.user.id, email: data.user.email ?? null } };
+      } else {
+        console.error("[api/settings] bearer auth failed", error?.message ?? error);
+      }
     }
 
-    const { data: userData, error: userErr } = await supabaseAdmin.auth.getUser(token);
-    if (userErr || !userData?.user) {
-      console.error("[api/settings] invalid auth token", userErr?.message ?? userErr);
-      return fallback("fallback");
+    if (!userData && cookieToken) {
+      const { data, error } = await supabaseAdmin.auth.getUser(cookieToken);
+      if (!error && data?.user) {
+        authSource = "cookie";
+        userData = { user: { id: data.user.id, email: data.user.email ?? null } };
+      } else {
+        console.error("[api/settings] cookie auth failed", error?.message ?? error);
+      }
+    }
+
+    if (!userData?.user?.id) {
+      const debug =
+        process.env.NODE_ENV !== "production"
+          ? { authSource, userIdPresent: false }
+          : undefined;
+      return NextResponse.json({
+        ok: true,
+        tier: "free",
+        isPro: false,
+        source: "anon",
+        profile: null,
+        devices: [],
+        pastSeasons: [],
+        debug,
+      });
     }
 
     const userId = userData.user.id;
@@ -55,16 +87,31 @@ export async function GET(req: NextRequest) {
           ...profileData,
           email: profileData.email ?? userData.user.email ?? null,
         }
-      : {
-          id: userId,
-          email: userData.user.email ?? null,
-          name: null,
-          is_pro: false,
-          subscription_status: null,
-          current_period_end: null,
-          stripe_customer_id: null,
-          stripe_subscription_id: null,
-        };
+      : null;
+
+    if (!profile) {
+      const debug =
+        process.env.NODE_ENV !== "production"
+          ? {
+              authSource,
+              userIdPresent: true,
+              profileFound: false,
+              subscription_status: null,
+              is_pro: null,
+              computedIsPro: false,
+            }
+          : undefined;
+      return NextResponse.json({
+        ok: true,
+        tier: "free",
+        isPro: false,
+        source: "no_profile",
+        profile: null,
+        devices: [],
+        pastSeasons: [],
+        debug,
+      });
+    }
 
     console.log("[api/settings][debug]", {
       userId,
@@ -148,11 +195,17 @@ export async function GET(req: NextRequest) {
     const debug =
       process.env.NODE_ENV !== "production"
         ? {
+            authSource,
+            userIdPresent: true,
+            profileFound: true,
             userId,
+            email: profile.email ?? null,
             is_pro: profile.is_pro,
             subscription_status: profile.subscription_status,
-            stripe_customer_id: profile.stripe_customer_id ? "set" : "missing",
-            stripe_subscription_id: profile.stripe_subscription_id ? "set" : "missing",
+            current_period_end: profile.current_period_end,
+            stripe_customer_id_present: Boolean(profile.stripe_customer_id),
+            stripe_subscription_id_present: Boolean(profile.stripe_subscription_id),
+            computedIsPro: isPro,
           }
         : undefined;
 
@@ -160,7 +213,7 @@ export async function GET(req: NextRequest) {
       ok: true,
       tier: isPro ? "pro" : "free",
       isPro,
-      source: "profile",
+      source: "db",
       profile,
       devices: deviceData ?? [],
       pastSeasons,

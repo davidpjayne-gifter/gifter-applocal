@@ -48,14 +48,33 @@ export async function POST(req: NextRequest) {
       ? "test"
       : "missing";
 
-  const token = getAccessToken(req);
-  if (!token) {
-    return NextResponse.json({ ok: false, error: "Not logged in" }, { status: 401 });
+  const authHeader = req.headers.get("authorization") || "";
+  const headerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+  const cookieToken =
+    req.cookies.get("sb-access-token")?.value ??
+    req.cookies.get("supabase-auth-token")?.value ??
+    "";
+
+  let userData: { user: { id: string; email: string | null } } | null = null;
+  if (headerToken) {
+    const { data, error } = await supabaseAdmin.auth.getUser(headerToken);
+    if (!error && data?.user) {
+      userData = { user: { id: data.user.id, email: data.user.email ?? null } };
+    }
   }
 
-  const { data: userData, error: userErr } = await supabaseAdmin.auth.getUser(token);
-  if (userErr || !userData?.user) {
-    return NextResponse.json({ ok: false, error: "Not logged in" }, { status: 401 });
+  if (!userData && cookieToken) {
+    const { data, error } = await supabaseAdmin.auth.getUser(cookieToken);
+    if (!error && data?.user) {
+      userData = { user: { id: data.user.id, email: data.user.email ?? null } };
+    }
+  }
+
+  if (!userData?.user) {
+    return NextResponse.json(
+      { ok: false, error: "UNAUTHENTICATED" },
+      { status: 200 }
+    );
   }
 
   const user = userData.user;
@@ -219,6 +238,16 @@ export async function POST(req: NextRequest) {
     };
   } else {
     didUpdateProfile = true;
+  }
+
+  if (process.env.NODE_ENV !== "production") {
+    console.log("[billing-sync][debug]", {
+      userId,
+      stripeCustomerId,
+      stripeSubscriptionId: best?.id ?? null,
+      status: subscriptionStatus,
+      isPro,
+    });
   }
 
   return NextResponse.json({
