@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { createClient } from "@supabase/supabase-js";
 
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { getOrCreateCurrentList } from "@/lib/currentList";
@@ -8,7 +7,7 @@ import { getOrCreateCurrentList } from "@/lib/currentList";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET(req: Request) {
+export async function GET() {
   const fallback = (source: string) =>
     NextResponse.json({
       ok: true,
@@ -21,37 +20,16 @@ export async function GET(req: Request) {
     });
 
   try {
-    const authHeader = req.headers.get("authorization") || "";
-    const headerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
     const cookieStore = await cookies();
     const cookieToken =
       cookieStore.get("sb-access-token")?.value ??
       cookieStore.get("supabase-auth-token")?.value ??
       "";
 
-    let authSource: "bearer" | "cookie" | "none" = "none";
+    let authSource: "cookie" | "none" = "none";
     let userData: { user: { id: string; email: string | null } } | null = null;
 
-    if (headerToken) {
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
-      if (supabaseUrl && supabaseAnonKey) {
-        const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-          auth: { persistSession: false, autoRefreshToken: false },
-        });
-        const { data, error } = await supabase.auth.getUser(headerToken);
-        if (!error && data?.user) {
-          authSource = "bearer";
-          userData = { user: { id: data.user.id, email: data.user.email ?? null } };
-        } else {
-          console.error("[api/settings] bearer auth failed", error?.message ?? error);
-        }
-      } else {
-        console.error("[api/settings] missing supabase env vars for bearer auth");
-      }
-    }
-
-    if (!userData && cookieToken) {
+    if (cookieToken) {
       const { data, error } = await supabaseAdmin.auth.getUser(cookieToken);
       if (!error && data?.user) {
         authSource = "cookie";
@@ -65,7 +43,7 @@ export async function GET(req: Request) {
       const debug =
         process.env.NODE_ENV !== "production"
           ? {
-              hadAuthHeader: Boolean(authHeader),
+              hadAuthHeader: false,
               authSource,
               userIdPresent: false,
             }
@@ -98,7 +76,7 @@ export async function GET(req: Request) {
       return fallback("fallback");
     }
 
-    const profile = profileData
+    let profile = profileData
       ? {
           ...profileData,
           email: profileData.email ?? userData.user.email ?? null,
@@ -106,28 +84,37 @@ export async function GET(req: Request) {
       : null;
 
     if (!profile) {
-      const debug =
-        process.env.NODE_ENV !== "production"
-          ? {
-              hadAuthHeader: Boolean(authHeader),
-              authSource,
-              userIdPresent: true,
-              profileFound: false,
-              subscription_status: null,
-              is_pro: null,
-              computedIsPro: false,
-            }
-          : undefined;
-      return NextResponse.json({
-        ok: true,
-        tier: "free",
-        isPro: false,
-        source: "no_profile",
-        profile: null,
-        devices: [],
-        pastSeasons: [],
-        debug,
-      });
+      const { error: insertErr } = await supabaseAdmin
+        .from("profiles")
+        .upsert({
+          id: userId,
+          email: userData.user.email ?? null,
+          is_pro: false,
+          subscription_status: "free",
+        });
+
+      if (insertErr) {
+        console.error("[api/settings] profile upsert failed", insertErr.message);
+        return fallback("fallback");
+      }
+
+      const { data: refreshed, error: refreshErr } = await supabaseAdmin
+        .from("profiles")
+        .select(
+          "id,email,name,is_pro,subscription_status,current_period_end,stripe_customer_id,stripe_subscription_id"
+        )
+        .eq("id", userId)
+        .maybeSingle();
+
+      if (refreshErr || !refreshed) {
+        console.error("[api/settings] profile refresh failed", refreshErr?.message ?? "missing");
+        return fallback("fallback");
+      }
+
+      profile = {
+        ...refreshed,
+        email: refreshed.email ?? userData.user.email ?? null,
+      };
     }
 
     console.log("[api/settings][debug]", {
@@ -212,7 +199,7 @@ export async function GET(req: Request) {
     const debug =
       process.env.NODE_ENV !== "production"
         ? {
-            hadAuthHeader: Boolean(authHeader),
+            hadAuthHeader: false,
             authSource,
             userIdPresent: true,
             profileFound: true,
