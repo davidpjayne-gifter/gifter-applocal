@@ -119,20 +119,14 @@ export default function SettingsClient({
     let active = true;
 
     async function loadInitialData() {
-      const { data } = await supabase.auth.getSession();
-      const token = data.session?.access_token;
-
-      if (!token) {
-        if (!active) return;
-        setCheckedSession(true);
-        setInitialLoading(false);
-        return;
-      }
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
       const result = await safeFetchJson("/api/settings", {
-        method: "GET",
-        cache: "no-store",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: session?.access_token
+          ? { Authorization: `Bearer ${session.access_token}` }
+          : undefined,
       });
 
       if (!active) return;
