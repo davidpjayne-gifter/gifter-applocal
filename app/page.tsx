@@ -84,6 +84,7 @@ export default function HomePage() {
       const pro =
         profile?.subscription_status === "active" ||
         profile?.subscription_status === "trialing" ||
+        profile?.subscription_status === "past_due" ||
         Boolean(profile?.is_pro);
       setIsPro(Boolean(pro));
 

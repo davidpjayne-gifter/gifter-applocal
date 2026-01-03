@@ -32,11 +32,22 @@ export async function getProfileForUser(userId: string) {
 
 export function isPro(profile: ProfileEntitlements | null) {
   if (!profile) return false;
-  return (
+  const pro =
     profile.subscription_status === "active" ||
     profile.subscription_status === "trialing" ||
-    profile.is_pro === true
-  );
+    profile.subscription_status === "past_due" ||
+    profile.is_pro === true;
+
+  if (process.env.NODE_ENV !== "production") {
+    console.log("[pro-check]", {
+      userId: profile.id,
+      isPro: pro,
+      status: profile.subscription_status,
+      is_pro: profile.is_pro,
+    });
+  }
+
+  return pro;
 }
 
 function makeLimitError() {
