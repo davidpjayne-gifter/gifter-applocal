@@ -159,11 +159,11 @@ export async function GET(req: Request) {
 
     console.log("[api/settings][debug]", {
       userId,
-      is_pro: profile.is_pro,
-      subscription_status: profile.subscription_status,
-      current_period_end: profile.current_period_end,
-      stripe_customer_id: profile.stripe_customer_id,
-      stripe_subscription_id: profile.stripe_subscription_id,
+      is_pro: profile?.is_pro ?? null,
+      subscription_status: profile?.subscription_status ?? null,
+      current_period_end: profile?.current_period_end ?? null,
+      stripe_customer_id: profile?.stripe_customer_id ?? null,
+      stripe_subscription_id: profile?.stripe_subscription_id ?? null,
     });
 
     let deviceData: any[] = [];
@@ -279,14 +279,14 @@ export async function GET(req: Request) {
             hadAuthHeader: false,
             authSource,
             userIdPresent: true,
-            profileFound: true,
+            profileFound: Boolean(profile),
             userId,
-            email: profile.email ?? null,
-            is_pro: profile.is_pro,
-            subscription_status: profile.subscription_status,
-            current_period_end: profile.current_period_end,
-            stripe_customer_id_present: Boolean(profile.stripe_customer_id),
-            stripe_subscription_id_present: Boolean(profile.stripe_subscription_id),
+            email: profile?.email ?? null,
+            is_pro: profile?.is_pro ?? null,
+            subscription_status: profile?.subscription_status ?? null,
+            current_period_end: profile?.current_period_end ?? null,
+            stripe_customer_id_present: Boolean(profile?.stripe_customer_id),
+            stripe_subscription_id_present: Boolean(profile?.stripe_subscription_id),
             computedIsPro: isPro,
           }
         : undefined;
