@@ -2,19 +2,23 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { supabase } from "@/lib/supabase";
 import { safeNext } from "@/lib/safeNext";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import LoginForm from "./LoginForm";
 
 export const dynamic = "force-dynamic";
 
-async function getAccessTokenFromCookies() {
+async function getSessionTokensFromCookies() {
   const store = await cookies();
-  return (
+  const accessToken =
     store.get("sb-access-token")?.value ??
     store.get("supabase-auth-token")?.value ??
-    null
-  );
+    null;
+  const refreshToken =
+    store.get("sb-refresh-token")?.value ??
+    store.get("supabase-refresh-token")?.value ??
+    null;
+  return { accessToken, refreshToken };
 }
 
 export default async function LoginPage(props: {
@@ -22,10 +26,10 @@ export default async function LoginPage(props: {
 }) {
   const searchParams = props.searchParams ? await props.searchParams : undefined;
   const nextPath = safeNext(typeof searchParams?.next === "string" ? searchParams.next : undefined);
-  const token = await getAccessTokenFromCookies();
+  const { accessToken, refreshToken } = await getSessionTokensFromCookies();
 
-  if (token) {
-    const { data, error } = await supabase.auth.getUser(token);
+  if (accessToken && refreshToken) {
+    const { data, error } = await supabaseAdmin.auth.getUser(accessToken);
     if (!error && data?.user) {
       redirect(nextPath);
     }
