@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { safeNext } from "@/lib/safeNext";
+import { safeFetchJson } from "@/app/lib/safeFetchJson";
 
 export default function AuthCallbackPage() {
   const router = useRouter();
@@ -25,6 +26,11 @@ export default function AuthCallbackPage() {
         });
 
         if (!error && isMounted) {
+          await safeFetchJson("/api/auth/session", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ accessToken }),
+          });
           router.replace(nextPath);
           return;
         }
@@ -35,6 +41,15 @@ export default function AuthCallbackPage() {
       if (code) {
         const { error } = await supabase.auth.exchangeCodeForSession(code);
         if (!error && isMounted) {
+          const { data } = await supabase.auth.getSession();
+          const accessToken = data.session?.access_token;
+          if (accessToken) {
+            await safeFetchJson("/api/auth/session", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ accessToken }),
+            });
+          }
           router.replace(nextPath);
           return;
         }

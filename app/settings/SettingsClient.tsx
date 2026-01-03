@@ -99,21 +99,24 @@ export default function SettingsClient({
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [revokeTarget, setRevokeTarget] = useState<Device | null>(null);
 
-  const planLabel = useMemo(() => {
-    if (!profile) return "Free";
-    if (profile?.subscription_status === "past_due") return "Past due";
-    if (profile?.subscription_status === "trialing") return "Trialing";
-    if (profile?.subscription_status === "active") return "Pro";
-    if (profile?.is_pro) return "Pro";
-    if (profile?.subscription_status === "canceled") return "Canceled";
-    return "Free";
+  const isPro = useMemo(() => {
+    if (!profile) return false;
+    return (
+      profile.subscription_status === "active" ||
+      profile.subscription_status === "trialing" ||
+      profile.subscription_status === "past_due" ||
+      profile.is_pro === true
+    );
   }, [profile]);
 
-  const showManageBilling =
-    profile?.is_pro ||
-    profile?.subscription_status === "active" ||
-    profile?.subscription_status === "trialing" ||
-    profile?.subscription_status === "past_due";
+  const planLabel = useMemo(() => {
+    if (!profile) return "Free";
+    if (isPro) return "Pro";
+    if (profile?.subscription_status === "canceled") return "Canceled";
+    return "Free";
+  }, [isPro, profile]);
+
+  const showManageBilling = isPro;
 
   useEffect(() => {
     let active = true;
