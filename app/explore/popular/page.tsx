@@ -17,9 +17,6 @@ export default function PopularExplorePage() {
         GIFTer Pro will unlock deeper insights, better organization, and time saving features
         designed to make GIFTing easier, especially when you are buying for a lot of people.
       </p>
-      <p className="mt-4 text-xs text-slate-500 dark:text-slate-400">
-        An Amazon affiliate earns from qualifying purchases.
-      </p>
       <p className="mt-4 text-sm text-slate-600 dark:text-slate-300">
         Here is what we are working on:
       </p>
