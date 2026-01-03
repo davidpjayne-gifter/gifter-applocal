@@ -22,8 +22,6 @@ export default function SignInCtaButton({
 
   const handleClick = useCallback(() => {
     if (typeof window === "undefined") return;
-    if (window.location.pathname === "/login") return;
-
     const currentPath = `${window.location.pathname}${window.location.search}`;
     const safeNext = safeNextClient(nextPath ?? currentPath);
 
