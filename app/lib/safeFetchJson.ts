@@ -1,8 +1,8 @@
 export async function safeFetchJson<T = any>(
   input: RequestInfo | URL,
-  init?: RequestInit
+  init: RequestInit = {}
 ): Promise<{ ok: boolean; status: number; json: T | null; text: string | null }> {
-  const res = await fetch(input, init);
+  const res = await fetch(input, { cache: "no-store", ...init });
   const contentType = res.headers.get("content-type") || "";
   if (contentType.includes("application/json")) {
     const json = await res.json().catch(() => null);
