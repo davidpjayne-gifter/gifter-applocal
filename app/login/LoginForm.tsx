@@ -47,18 +47,14 @@ export default function LoginForm({ nextPath }: LoginFormProps) {
       nextPath
     )}`;
 
-    const dataPayload =
-      gender || ageRange
-        ? {
-            ...(gender ? { gender } : {}),
-            ...(ageRange ? { age_range: ageRange } : {}),
-          }
-        : undefined;
     const { error } = await supabase.auth.signInWithOtp({
       email: nextEmail,
       options: {
         emailRedirectTo,
-        ...(dataPayload ? { data: dataPayload } : {}),
+        data: {
+          gender,
+          age_range: ageRange,
+        },
       },
     });
 
@@ -87,6 +83,11 @@ export default function LoginForm({ nextPath }: LoginFormProps) {
       setMessage("Please enter a valid email address.");
       return;
     }
+    if (!gender || !ageRange) {
+      setStatus("error");
+      setMessage("Please select your gender and age range.");
+      return;
+    }
 
     setStatus(null);
     setMessage("");
@@ -101,6 +102,11 @@ export default function LoginForm({ nextPath }: LoginFormProps) {
     if (!nextEmail || !emailIsValid) {
       setStatus("error");
       setMessage("Please enter a valid email address.");
+      return;
+    }
+    if (!gender || !ageRange) {
+      setStatus("error");
+      setMessage("Please select your gender and age range.");
       return;
     }
     setStatus(null);
@@ -132,6 +138,7 @@ export default function LoginForm({ nextPath }: LoginFormProps) {
     "dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100";
 
   const showEmailError = (emailTouched || attemptedSubmit) && !emailIsValid;
+  const canSubmit = emailIsValid && gender && ageRange;
 
   return (
     <div className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-600/10 via-blue-600/5 to-blue-600/0 px-5 py-6 text-left shadow-sm">
@@ -191,9 +198,49 @@ export default function LoginForm({ nextPath }: LoginFormProps) {
             )}
           </div>
 
+          <div className="grid gap-2">
+            <label className={labelBase} htmlFor="gender">
+              Gender
+            </label>
+            <select
+              id="gender"
+              name="gender"
+              value={gender}
+              onChange={(event) => setGender(event.target.value)}
+              className={`${selectBase} ${gender ? "text-slate-900 dark:text-slate-100" : "text-slate-400"}`}
+              required
+            >
+              <option value="">Select gender</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="prefer_not_to_say">Prefer not to say</option>
+            </select>
+          </div>
+
+          <div className="grid gap-2">
+            <label className={labelBase} htmlFor="ageRange">
+              Age range
+            </label>
+            <select
+              id="ageRange"
+              name="ageRange"
+              value={ageRange}
+              onChange={(event) => setAgeRange(event.target.value)}
+              className={`${selectBase} ${ageRange ? "text-slate-900 dark:text-slate-100" : "text-slate-400"}`}
+              required
+            >
+              <option value="">Select age range</option>
+              {AGE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <button
             type="submit"
-            disabled={loading || !emailIsValid}
+            disabled={loading || !canSubmit}
             className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300 dark:disabled:bg-blue-500/40"
           >
             {loading ? "Sending..." : "Send my sign-in link"}
@@ -202,55 +249,6 @@ export default function LoginForm({ nextPath }: LoginFormProps) {
           <p className="text-xs text-slate-500 dark:text-slate-400">
             We’ll only email you sign-in links. No spam.
           </p>
-
-          <details className="rounded-xl border border-slate-200 bg-white/70 p-3 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-200">
-            <summary className="cursor-pointer text-xs font-semibold text-slate-600 dark:text-slate-300">
-              Optional: personalize recommendations
-            </summary>
-            <div className="mt-3 grid gap-3">
-              <div className="grid gap-2">
-                <label className={labelBase} htmlFor="gender">
-                  Gender
-                </label>
-                <select
-                  id="gender"
-                  name="gender"
-                  value={gender}
-                  onChange={(event) => setGender(event.target.value)}
-                  className={`${selectBase} ${gender ? "text-slate-900 dark:text-slate-100" : "text-slate-400"}`}
-                >
-                  <option value="">Select gender</option>
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                  <option value="prefer_not_to_say">Prefer not to say</option>
-                </select>
-              </div>
-
-              <div className="grid gap-2">
-                <label className={labelBase} htmlFor="ageRange">
-                  Age range
-                </label>
-                <select
-                  id="ageRange"
-                  name="ageRange"
-                  value={ageRange}
-                  onChange={(event) => setAgeRange(event.target.value)}
-                  className={`${selectBase} ${ageRange ? "text-slate-900 dark:text-slate-100" : "text-slate-400"}`}
-                >
-                  <option value="">Select age range</option>
-                  {AGE_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                You can skip this - update anytime in Settings.
-              </p>
-            </div>
-          </details>
 
           {status === "error" && (
             <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-200">

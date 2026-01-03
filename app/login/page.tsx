@@ -26,12 +26,13 @@ export default async function LoginPage(props: {
 }) {
   const searchParams = props.searchParams ? await props.searchParams : undefined;
   const nextPath = safeNext(typeof searchParams?.next === "string" ? searchParams.next : undefined);
+  const redirectTo = nextPath || "/";
   const { accessToken, refreshToken } = await getSessionTokensFromCookies();
 
   if (accessToken && refreshToken) {
     const { data, error } = await supabaseAdmin.auth.getUser(accessToken);
     if (!error && data?.user) {
-      redirect(nextPath);
+      redirect(redirectTo);
     }
   }
 
