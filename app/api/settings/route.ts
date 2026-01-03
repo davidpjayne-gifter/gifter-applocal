@@ -66,19 +66,42 @@ export async function GET(req: Request) {
     const authSource: "cookie" = "cookie";
     const entitlementsProfile = await getProfileForUser(user.id).catch(() => null);
     const computedIsPro = entitlementsProfile ? isProFromProfile(entitlementsProfile) : false;
-    const list = await getOrCreateCurrentList(userId);
+    let list: { id: string } | null = null;
+    try {
+      list = await getOrCreateCurrentList(userId);
+    } catch (err) {
+      console.error("[api/settings] list load failed", (err as Error)?.message ?? err);
+      list = null;
+    }
 
-    const { data: profileData, error: profileErr } = await supabaseAdmin
-      .from("profiles")
-      .select(
-        "id,email,name,is_pro,subscription_status,current_period_end,stripe_customer_id,stripe_subscription_id"
-      )
-      .eq("id", userId)
-      .maybeSingle();
+    const profileSelect =
+      "id,email,name,is_pro,subscription_status,current_period_end,stripe_customer_id,stripe_subscription_id";
+    let profileData = null;
+    let profileErr: { message?: string } | null = null;
+    {
+      const { data, error } = await supabaseAdmin
+        .from("profiles")
+        .select(profileSelect)
+        .eq("id", userId)
+        .maybeSingle();
+      profileData = data;
+      profileErr = error;
+    }
 
     if (profileErr) {
       console.error("[api/settings] profile load failed", profileErr.message);
-      return fallback("fallback");
+      const { data, error } = await supabase
+        .from("profiles")
+        .select(profileSelect)
+        .eq("id", userId)
+        .maybeSingle();
+      profileData = data;
+      profileErr = error;
+    }
+
+    if (profileErr) {
+      console.error("[api/settings] profile load failed after fallback", profileErr.message);
+      profileData = null;
     }
 
     let profile = profileData
@@ -89,37 +112,49 @@ export async function GET(req: Request) {
       : null;
 
     if (!profile) {
-      const { error: insertErr } = await supabaseAdmin
-        .from("profiles")
-        .upsert({
+      let insertErr: { message?: string } | null = null;
+      {
+        const { error } = await supabaseAdmin.from("profiles").upsert({
           id: userId,
           email: userEmail ?? null,
           is_pro: false,
           subscription_status: "free",
         });
+        insertErr = error;
+      }
 
       if (insertErr) {
         console.error("[api/settings] profile upsert failed", insertErr.message);
-        return fallback("fallback");
+        const { error } = await supabase.from("profiles").upsert({
+          id: userId,
+          email: userEmail ?? null,
+          is_pro: false,
+          subscription_status: "free",
+        });
+        insertErr = error;
       }
 
-      const { data: refreshed, error: refreshErr } = await supabaseAdmin
+      if (insertErr) {
+        console.error("[api/settings] profile upsert failed after fallback", insertErr.message);
+        profile = null;
+      }
+
+      const { data: refreshed, error: refreshErr } = await supabase
         .from("profiles")
-        .select(
-          "id,email,name,is_pro,subscription_status,current_period_end,stripe_customer_id,stripe_subscription_id"
-        )
+        .select(profileSelect)
         .eq("id", userId)
         .maybeSingle();
 
       if (refreshErr || !refreshed) {
         console.error("[api/settings] profile refresh failed", refreshErr?.message ?? "missing");
-        return fallback("fallback");
       }
 
-      profile = {
-        ...refreshed,
-        email: refreshed.email ?? userEmail ?? null,
-      };
+      if (refreshed) {
+        profile = {
+          ...refreshed,
+          email: refreshed.email ?? userEmail ?? null,
+        };
+      }
     }
 
     console.log("[api/settings][debug]", {
@@ -131,28 +166,62 @@ export async function GET(req: Request) {
       stripe_subscription_id: profile.stripe_subscription_id,
     });
 
-    const { data: deviceData, error: deviceErr } = await supabaseAdmin
-      .from("user_devices")
-      .select("id,user_id,device_label,last_seen_at,created_at")
-      .eq("user_id", userId)
-      .order("last_seen_at", { ascending: false });
+    let deviceData: any[] = [];
+    let deviceErr: { message?: string } | null = null;
+    {
+      const { data, error } = await supabaseAdmin
+        .from("user_devices")
+        .select("id,user_id,device_label,last_seen_at,created_at")
+        .eq("user_id", userId)
+        .order("last_seen_at", { ascending: false });
+      deviceData = data ?? [];
+      deviceErr = error;
+    }
 
     if (deviceErr) {
       console.error("[api/settings] device load failed", deviceErr.message);
-      return fallback("fallback");
+      const { data, error } = await supabase
+        .from("user_devices")
+        .select("id,user_id,device_label,last_seen_at,created_at")
+        .eq("user_id", userId)
+        .order("last_seen_at", { ascending: false });
+      deviceData = data ?? [];
+      deviceErr = error;
     }
 
-    const { data: seasonData, error: seasonErr } = await supabaseAdmin
-      .from("seasons")
-      .select("id,name,list_id,is_active,created_at,is_wrapped_up,wrapped_up_at")
-      .eq("list_id", list.id)
-      .eq("is_wrapped_up", true)
-      .order("wrapped_up_at", { ascending: false })
-      .order("created_at", { ascending: false });
+    if (deviceErr) {
+      console.error("[api/settings] device load failed after fallback", deviceErr.message);
+    }
+
+    let seasonData: any[] = [];
+    let seasonErr: { message?: string } | null = null;
+    if (list?.id) {
+      const { data, error } = await supabaseAdmin
+        .from("seasons")
+        .select("id,name,list_id,is_active,created_at,is_wrapped_up,wrapped_up_at")
+        .eq("list_id", list.id)
+        .eq("is_wrapped_up", true)
+        .order("wrapped_up_at", { ascending: false })
+        .order("created_at", { ascending: false });
+      seasonData = data ?? [];
+      seasonErr = error;
+    }
+
+    if (seasonErr && list?.id) {
+      console.error("[api/settings] past seasons load failed", seasonErr.message);
+      const { data, error } = await supabase
+        .from("seasons")
+        .select("id,name,list_id,is_active,created_at,is_wrapped_up,wrapped_up_at")
+        .eq("list_id", list.id)
+        .eq("is_wrapped_up", true)
+        .order("wrapped_up_at", { ascending: false })
+        .order("created_at", { ascending: false });
+      seasonData = data ?? [];
+      seasonErr = error;
+    }
 
     if (seasonErr) {
-      console.error("[api/settings] past seasons load failed", seasonErr.message);
-      return fallback("fallback");
+      console.error("[api/settings] past seasons load failed after fallback", seasonErr.message);
     }
 
     const wrappedSeasons = seasonData ?? [];
