@@ -391,6 +391,31 @@ export default function SettingsClient({
       </p>
 
       <div className="mt-8 grid gap-6">
+        {showManageBilling && (
+          <section className="rounded-2xl border border-blue-200/60 bg-blue-50/50 p-6 shadow-sm dark:border-blue-800/50 dark:bg-blue-900/20">
+            <div className="text-lg font-bold text-slate-900 dark:text-slate-50">
+              🎉 You’re Pro!
+            </div>
+            <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
+              Enjoy stress-free GIFTing with all features unlocked.
+            </p>
+
+            <div className="mt-4 flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
+              <span>💎</span>
+              <span>Pro Member</span>
+              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                Active subscription
+              </span>
+            </div>
+
+            <div className="mt-4 grid gap-2 text-sm text-slate-700 dark:text-slate-300">
+              <div>🎁 Unlimited gifts</div>
+              <div>📦 Tracking & gift details</div>
+              <div>📊 Full season insights</div>
+            </div>
+          </section>
+        )}
+
         <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-zinc-800">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold text-slate-900">Account</h2>
