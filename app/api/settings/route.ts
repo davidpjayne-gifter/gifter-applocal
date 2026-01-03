@@ -227,13 +227,14 @@ export async function GET(req: Request) {
     const wrappedSeasons = seasonData ?? [];
     const seasonIds = wrappedSeasons.map((season) => season.id);
 
-    const { data: gifts } = seasonIds.length
-      ? await supabaseAdmin
-          .from("gifts")
-          .select("season_id,recipient_name")
-          .eq("list_id", list.id)
-          .in("season_id", seasonIds)
-      : { data: [] };
+    const { data: gifts } =
+      seasonIds.length && list?.id
+        ? await supabaseAdmin
+            .from("gifts")
+            .select("season_id,recipient_name")
+            .eq("list_id", list.id)
+            .in("season_id", seasonIds)
+        : { data: [] };
 
     const summaryMap = new Map<string, { people: Set<string>; giftsCount: number }>();
     for (const season of wrappedSeasons) {
