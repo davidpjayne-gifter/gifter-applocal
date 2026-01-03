@@ -134,7 +134,7 @@ export default function LoginForm({ nextPath }: LoginFormProps) {
   const showEmailError = (emailTouched || attemptedSubmit) && !emailIsValid;
 
   return (
-    <div className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-600/10 via-blue-600/5 to-blue-600/0 px-5 py-6 shadow-sm">
+    <div className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-600/10 via-blue-600/5 to-blue-600/0 px-5 py-6 text-left shadow-sm">
       {status === "sent" ? (
         <div className="flex flex-col gap-4 text-sm">
           <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 dark:border-emerald-900/40 dark:bg-emerald-900/20">

@@ -32,8 +32,8 @@ export default async function LoginPage(props: {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-col gap-6 px-6 py-10 text-slate-900 dark:text-slate-100">
-      <div>
+    <main className="mx-auto flex w-full max-w-md flex-col items-center gap-6 px-6 py-10 text-slate-900 dark:text-slate-100">
+      <div className="text-center">
         <Link
           href="/"
           className="text-xs font-semibold text-blue-700 hover:text-blue-800 dark:text-blue-300 dark:hover:text-blue-200"
@@ -49,9 +49,11 @@ export default async function LoginPage(props: {
         </p>
       </div>
 
-      <LoginForm nextPath={nextPath} />
+      <div className="w-full">
+        <LoginForm nextPath={nextPath} />
+      </div>
 
-      <p className="text-sm text-slate-500 dark:text-slate-400">
+      <p className="text-center text-sm text-slate-500 dark:text-slate-400">
         Tip: After you’re in, bookmark GIFTer for next time ✨
       </p>
     </main>
