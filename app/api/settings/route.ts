@@ -217,7 +217,10 @@ export async function GET(req: Request) {
     }
 
     if (deviceErr) {
-      console.error("[api/settings] device load failed after fallback", deviceErr.message);
+      console.error(
+        "[api/settings] device load failed after fallback",
+        (deviceErr as Error)?.message ?? deviceErr
+      );
     }
 
     let seasonData: any[] = [];
