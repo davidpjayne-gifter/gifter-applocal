@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
+import { createClient } from "@supabase/supabase-js";
 
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { getOrCreateCurrentList } from "@/lib/currentList";
@@ -46,12 +47,12 @@ export async function GET(req: Request) {
       error: userError,
     } = await supabase.auth.getUser();
 
-    if (!user) {
-      const auth = req.headers.get("authorization") || "";
-      const token = auth.startsWith("Bearer ") ? auth.slice(7) : null;
+    const auth = req.headers.get("authorization") || "";
+    const bearerToken = auth.startsWith("Bearer ") ? auth.slice(7) : null;
 
-      if (token) {
-        const tokenRes = await supabase.auth.getUser(token);
+    if (!user) {
+      if (bearerToken) {
+        const tokenRes = await supabase.auth.getUser(bearerToken);
         user = tokenRes.data.user ?? null;
         userError = tokenRes.error ?? null;
       }
@@ -66,6 +67,23 @@ export async function GET(req: Request) {
     const authSource: "cookie" = "cookie";
     const entitlementsProfile = await getProfileForUser(user.id).catch(() => null);
     const computedIsPro = entitlementsProfile ? isProFromProfile(entitlementsProfile) : false;
+    const dataClient = bearerToken
+      ? createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+          {
+            global: {
+              headers: {
+                Authorization: `Bearer ${bearerToken}`,
+              },
+            },
+            auth: {
+              persistSession: false,
+            },
+          }
+        )
+      : supabase;
+
     let list: { id: string } | null = null;
     try {
       list = await getOrCreateCurrentList(userId);
@@ -74,12 +92,25 @@ export async function GET(req: Request) {
       list = null;
     }
 
+    if (!list) {
+      const { data: listData } = await dataClient
+        .from("gift_lists")
+        .select("id, owner_id")
+        .eq("owner_id", userId)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (listData?.id) {
+        list = { id: listData.id };
+      }
+    }
+
     const profileSelect =
       "id,email,name,is_pro,subscription_status,current_period_end,stripe_customer_id,stripe_subscription_id";
     let profileData = null;
     let profileErr: { message?: string } | null = null;
     {
-      const { data, error } = await supabaseAdmin
+      const { data, error } = await dataClient
         .from("profiles")
         .select(profileSelect)
         .eq("id", userId)
@@ -90,13 +121,7 @@ export async function GET(req: Request) {
 
     if (profileErr) {
       console.error("[api/settings] profile load failed", profileErr.message);
-      const { data, error } = await supabase
-        .from("profiles")
-        .select(profileSelect)
-        .eq("id", userId)
-        .maybeSingle();
-      profileData = data;
-      profileErr = error;
+      profileData = null;
     }
 
     if (profileErr) {
@@ -111,10 +136,23 @@ export async function GET(req: Request) {
         }
       : null;
 
+    if (!profile && entitlementsProfile) {
+      profile = {
+        id: userId,
+        email: userEmail ?? null,
+        name: null,
+        is_pro: entitlementsProfile.is_pro ?? null,
+        subscription_status: entitlementsProfile.subscription_status ?? null,
+        current_period_end: entitlementsProfile.current_period_end ?? null,
+        stripe_customer_id: null,
+        stripe_subscription_id: null,
+      };
+    }
+
     if (!profile) {
       let insertErr: { message?: string } | null = null;
       {
-        const { error } = await supabaseAdmin.from("profiles").upsert({
+        const { error } = await dataClient.from("profiles").upsert({
           id: userId,
           email: userEmail ?? null,
           is_pro: false,
@@ -125,13 +163,7 @@ export async function GET(req: Request) {
 
       if (insertErr) {
         console.error("[api/settings] profile upsert failed", insertErr.message);
-        const { error } = await supabase.from("profiles").upsert({
-          id: userId,
-          email: userEmail ?? null,
-          is_pro: false,
-          subscription_status: "free",
-        });
-        insertErr = error;
+        profile = null;
       }
 
       if (insertErr) {
@@ -139,7 +171,7 @@ export async function GET(req: Request) {
         profile = null;
       }
 
-      const { data: refreshed, error: refreshErr } = await supabase
+      const { data: refreshed, error: refreshErr } = await dataClient
         .from("profiles")
         .select(profileSelect)
         .eq("id", userId)
@@ -169,7 +201,7 @@ export async function GET(req: Request) {
     let deviceData: any[] = [];
     let deviceErr: { message?: string } | null = null;
     {
-      const { data, error } = await supabaseAdmin
+      const { data, error } = await dataClient
         .from("user_devices")
         .select("id,user_id,device_label,last_seen_at,created_at")
         .eq("user_id", userId)
@@ -180,13 +212,8 @@ export async function GET(req: Request) {
 
     if (deviceErr) {
       console.error("[api/settings] device load failed", deviceErr.message);
-      const { data, error } = await supabase
-        .from("user_devices")
-        .select("id,user_id,device_label,last_seen_at,created_at")
-        .eq("user_id", userId)
-        .order("last_seen_at", { ascending: false });
-      deviceData = data ?? [];
-      deviceErr = error;
+      deviceData = [];
+      deviceErr = null;
     }
 
     if (deviceErr) {
@@ -196,7 +223,7 @@ export async function GET(req: Request) {
     let seasonData: any[] = [];
     let seasonErr: { message?: string } | null = null;
     if (list?.id) {
-      const { data, error } = await supabaseAdmin
+      const { data, error } = await dataClient
         .from("seasons")
         .select("id,name,list_id,is_active,created_at,is_wrapped_up,wrapped_up_at")
         .eq("list_id", list.id)
@@ -209,15 +236,8 @@ export async function GET(req: Request) {
 
     if (seasonErr && list?.id) {
       console.error("[api/settings] past seasons load failed", seasonErr.message);
-      const { data, error } = await supabase
-        .from("seasons")
-        .select("id,name,list_id,is_active,created_at,is_wrapped_up,wrapped_up_at")
-        .eq("list_id", list.id)
-        .eq("is_wrapped_up", true)
-        .order("wrapped_up_at", { ascending: false })
-        .order("created_at", { ascending: false });
-      seasonData = data ?? [];
-      seasonErr = error;
+      seasonData = [];
+      seasonErr = null;
     }
 
     if (seasonErr) {
