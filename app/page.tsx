@@ -21,6 +21,19 @@ const EXPLORE_CARDS: ExploreCard[] = [
   { label: "🎁 For Them", href: "/explore/for-them" },
 ];
 
+function getSeasonEmoji(name: string) {
+  const value = name.toLowerCase();
+  if (value.includes("christmas") || value.includes("xmas")) return "🎄";
+  if (value.includes("valentine")) return "💘";
+  if (value.includes("birthday") || value.includes("bday")) return "🎂";
+  if (value.includes("easter")) return "🐣";
+  if (value.includes("wedding")) return "💍";
+  if (value.includes("graduation")) return "🎓";
+  if (value.includes("baby") || value.includes("shower")) return "🍼";
+  if (value.includes("anniversary")) return "💖";
+  return "🎁";
+}
+
 export default function HomePage() {
   const router = useRouter();
   const [hasSession, setHasSession] = useState(false);
@@ -96,8 +109,8 @@ export default function HomePage() {
   }, []);
 
   const heroSubtitle = hasSession
-    ? "View your current season and GIFTees"
-    : "Sign in to view and manage your gifts";
+    ? "Your active gifting seasons"
+    : "Sign in to see your seasons 🎁";
   const showEmptyState = hasSession && summaryLoaded && seasonSummaries.length === 0;
   const multiSeasonView = hasSession && summaryLoaded && seasonSummaries.length > 1;
   const singleSeasonSummary = seasonSummaries[0] ?? null;
@@ -137,16 +150,48 @@ export default function HomePage() {
 
       <div className="mt-6 mb-2 text-lg font-semibold">My GIFTs</div>
       <div
-        className={`mt-6 ${cardBase} text-center md:min-h-[140px] lg:min-h-[160px] border-slate-400 bg-gradient-to-br from-blue-50/80 via-white to-white dark:border-slate-600 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900`}
+        className={`mt-6 ${cardBase} text-center md:min-h-[140px] lg:min-h-[160px] border-slate-400 bg-gradient-to-br from-blue-50/80 via-white to-white dark:border-slate-600 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900 ${
+          hasSession && summaryLoaded && !showEmptyState && !multiSeasonView && singleSeasonSummary
+            ? "cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/50 active:translate-y-0 dark:hover:border-blue-300/40"
+            : ""
+        }`}
+        onClick={() => {
+          if (hasSession && summaryLoaded && !showEmptyState && !multiSeasonView && singleSeasonSummary) {
+            handleHeroClick();
+          }
+        }}
+        role={
+          hasSession && summaryLoaded && !showEmptyState && !multiSeasonView && singleSeasonSummary
+            ? "button"
+            : undefined
+        }
+        tabIndex={
+          hasSession && summaryLoaded && !showEmptyState && !multiSeasonView && singleSeasonSummary
+            ? 0
+            : undefined
+        }
+        onKeyDown={(event) => {
+          if (
+            hasSession &&
+            summaryLoaded &&
+            !showEmptyState &&
+            !multiSeasonView &&
+            singleSeasonSummary &&
+            (event.key === "Enter" || event.key === " ")
+          ) {
+            event.preventDefault();
+            handleHeroClick();
+          }
+        }}
       >
         {hasSession ? (
           showEmptyState ? (
             <>
               <div className="text-base font-semibold text-slate-900 dark:text-slate-50">
-                You’re done GIFTing for now.
+                No active seasons right now ✨
               </div>
               <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                Start a new season when you’re ready.
+                Start a season for birthdays, holidays, or anything you’re GIFTing.
               </div>
               <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
                 <Link href="/gifts" className={actionButtonClass}>
@@ -156,21 +201,41 @@ export default function HomePage() {
                   href="/settings#past-seasons"
                   className="text-xs font-semibold text-slate-600 underline underline-offset-2 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-50"
                 >
-                  View Past Seasons
+                  Past Seasons →
                 </Link>
+              </div>
+              <div className="mt-3 text-xs text-slate-500 dark:text-slate-400">
+                When you’re done GIFTing, you can wrap up a season.
               </div>
             </>
           ) : (
             <>
-              <div className="flex items-center justify-center gap-2 text-base font-semibold text-slate-900 dark:text-slate-50">
+              <div className="flex items-center justify-center gap-2 text-lg font-semibold text-slate-900 dark:text-slate-50">
                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-base text-blue-700 dark:bg-blue-900/40 dark:text-blue-100">
                   🎁
                 </span>
                 <span>My GIFTs</span>
               </div>
-              <div className="mt-2 text-base text-slate-700 dark:text-slate-300">{heroSubtitle}</div>
+              <div className="mt-2 text-base text-slate-700 dark:text-slate-300">
+                {heroSubtitle}
+              </div>
               {!multiSeasonView && singleSeasonSummary && !showEmptyState && (
                 <div className="mt-4 rounded-xl border border-blue-600/60 bg-blue-600/10 p-4 dark:border-blue-400/30 dark:bg-blue-400/10">
+                  <div className="flex items-center justify-center gap-2 text-sm font-semibold text-slate-900 dark:text-slate-50">
+                    <span>{getSeasonEmoji(singleSeasonSummary.name)}</span>
+                    <span>{singleSeasonSummary.name}</span>
+                    <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+                      🟢 Open
+                    </span>
+                  </div>
+                  <div className="mt-2 text-xs text-slate-600 dark:text-slate-300">
+                    👥 People {singleSeasonSummary.peopleCount} • 🎁 Gifts {singleSeasonSummary.giftsCount} • 📦
+                    Wrapped{" "}
+                    {singleSeasonSummary.giftsCount > 0
+                      ? Math.round((singleSeasonSummary.wrappedCount / singleSeasonSummary.giftsCount) * 100)
+                      : 0}
+                    %
+                  </div>
                   <div className="flex flex-wrap justify-center gap-3">
                     <div className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-3 text-center dark:border-slate-700 dark:bg-slate-950">
                       <div className="flex flex-col items-center justify-center">
@@ -232,69 +297,71 @@ export default function HomePage() {
                       </div>
                     </div>
                   )}
+                  <div className="mt-3 flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    <span>
+                      📦 Wrapped {singleSeasonSummary.wrappedCount} of {singleSeasonSummary.giftsCount}
+                    </span>
+                    <span>
+                      {singleSeasonSummary.giftsCount > 0
+                        ? Math.round((singleSeasonSummary.wrappedCount / singleSeasonSummary.giftsCount) * 100)
+                        : 0}
+                      %
+                    </span>
+                  </div>
+                  <div className="mt-2">
+                    <SeasonProgressBar
+                      completed={singleSeasonSummary.wrappedCount}
+                      total={singleSeasonSummary.giftsCount}
+                      size="compact"
+                    />
+                  </div>
                 </div>
               )}
               {multiSeasonView && (
-                <div className="mt-4 rounded-xl border border-blue-600/60 bg-blue-600/10 p-4 text-left dark:border-blue-400/30 dark:bg-blue-400/10">
-                  <div className="flex items-center justify-between">
-                    <div className="text-base font-semibold text-slate-900 dark:text-slate-50">
-                      My GIFTs
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => router.push("/gifts")}
-                      className="text-xs font-semibold text-slate-600 underline underline-offset-2 hover:text-slate-800 dark:text-slate-300 dark:hover:text-slate-100"
-                    >
-                      View all
-                    </button>
-                  </div>
+                <div className="mt-4 rounded-xl border border-blue-600/60 bg-blue-600/10 p-4 text-center dark:border-blue-400/30 dark:bg-blue-400/10">
                   <div className="mt-3 space-y-3">
                     {seasonSummaries.slice(0, 3).map((season) => {
                       const wrappedPercent =
                         season.giftsCount > 0
                           ? Math.round((season.wrappedCount / season.giftsCount) * 100)
                           : 0;
+                      const seasonEmoji = getSeasonEmoji(season.name);
                       return (
-                        <Link
+                        <div
                           key={season.id}
-                          href={`/gifts?seasonId=${season.id}`}
-                          className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white/80 px-3 py-3 text-slate-900 transition hover:border-blue-200 hover:shadow-md dark:border-slate-700 dark:bg-slate-950 dark:hover:border-blue-300/40"
+                          className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white/80 px-3 py-3 text-center text-slate-900 dark:border-slate-700 dark:bg-slate-950"
                         >
-                          <div className="flex items-start justify-between gap-3">
-                            <div>
-                              <div className="text-sm font-semibold">{season.name}</div>
-                              <div className="mt-1 text-xs text-slate-600 dark:text-slate-300">
-                                {season.is_wrapped_up ? "Wrapped ✅" : "Open"}
-                              </div>
+                          <Link
+                            href={`/gifts?seasonId=${season.id}`}
+                            className="flex flex-col items-center gap-2"
+                          >
+                            <div className="text-sm font-semibold">
+                              {seasonEmoji} {season.name}
                             </div>
-                          </div>
-                          <div className="text-xs text-slate-600 dark:text-slate-300">
-                            People {season.peopleCount} • Gifts {season.giftsCount}
-                            {season.giftsCount > 0 ? ` • Wrapped ${wrappedPercent}%` : ""}
-                          </div>
-                          <div className="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-300">
-                            <span>Progress</span>
-                            <span>{wrappedPercent}%</span>
-                          </div>
-                          <SeasonProgressBar
-                            completed={season.wrappedCount}
-                            total={season.giftsCount}
-                            size="compact"
-                          />
-                        </Link>
+                            <div className="text-xs text-slate-600 dark:text-slate-300">🟢 Open</div>
+                            <div className="text-xs text-slate-600 dark:text-slate-300">
+                              👥 People {season.peopleCount} • 🎁 Gifts {season.giftsCount} • 📦
+                              Wrapped {wrappedPercent}%
+                            </div>
+                            <div className="flex w-full items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-300">
+                              <span>
+                                📦 Wrapped {season.wrappedCount} of {season.giftsCount}
+                              </span>
+                              <span>{wrappedPercent}%</span>
+                            </div>
+                            <SeasonProgressBar
+                              completed={season.wrappedCount}
+                              total={season.giftsCount}
+                              size="compact"
+                            />
+                          </Link>
+                        </div>
                       );
                     })}
                   </div>
                   {seasonSummaries.length > 3 && (
                     <div className="mt-3 text-xs text-slate-600 dark:text-slate-300">
-                      +{seasonSummaries.length - 3} more seasons{" "}
-                      <button
-                        type="button"
-                        onClick={() => router.push("/gifts")}
-                        className="ml-1 font-semibold text-slate-700 underline underline-offset-2 hover:text-slate-900 dark:text-slate-200 dark:hover:text-slate-100"
-                      >
-                        View all
-                      </button>
+                      +{seasonSummaries.length - 3} more seasons
                     </div>
                   )}
                 </div>
@@ -311,6 +378,11 @@ export default function HomePage() {
         ) : (
           <>
             <div className="text-sm text-slate-600 dark:text-slate-300">{heroSubtitle}</div>
+            <div className="mt-2 flex justify-center">
+              <span className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700 dark:border-blue-900/40 dark:bg-blue-900/20 dark:text-blue-200">
+                Secure sign-in ✨
+              </span>
+            </div>
             <div className="mt-4">
               <button type="button" onClick={handleHeroClick} className={actionButtonClass}>
                 Login
