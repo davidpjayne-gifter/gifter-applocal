@@ -1,4 +1,4 @@
-const DEFAULT_NEXT = "/gifts";
+const DEFAULT_NEXT = "/";
 
 export function safeNextClient(nextPath?: string | null) {
   if (!nextPath || typeof nextPath !== "string") return DEFAULT_NEXT;

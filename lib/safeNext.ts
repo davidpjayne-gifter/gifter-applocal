@@ -1,4 +1,4 @@
-const DEFAULT_NEXT = "/gifts";
+const DEFAULT_NEXT = "/";
 const ALLOWLIST = new Set(["/", "/gifts"]);
 
 export function safeNext(nextPath?: string | null) {

@@ -9,7 +9,7 @@ import { getProfileForUser, isPro as isProFromProfile } from "@/lib/entitlements
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(req: Request) {
   const fallback = (source: string) =>
     NextResponse.json({
       ok: true,
@@ -41,10 +41,21 @@ export async function GET() {
       }
     );
 
-    const {
+    let {
       data: { user },
       error: userError,
     } = await supabase.auth.getUser();
+
+    if (!user) {
+      const auth = req.headers.get("authorization") || "";
+      const token = auth.startsWith("Bearer ") ? auth.slice(7) : null;
+
+      if (token) {
+        const tokenRes = await supabase.auth.getUser(token);
+        user = tokenRes.data.user ?? null;
+        userError = tokenRes.error ?? null;
+      }
+    }
 
     if (userError || !user) {
       return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
