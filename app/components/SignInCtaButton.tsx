@@ -11,6 +11,7 @@ type SignInCtaButtonProps = {
   style?: React.CSSProperties;
   nextPath?: string | null;
   disabled?: boolean;
+  preserveNext?: boolean;
 };
 
 export default function SignInCtaButton({
@@ -19,6 +20,7 @@ export default function SignInCtaButton({
   style,
   nextPath,
   disabled,
+  preserveNext,
 }: SignInCtaButtonProps) {
   const router = useRouter();
 
@@ -28,9 +30,10 @@ export default function SignInCtaButton({
     event.stopPropagation();
     const currentPath = `${window.location.pathname}${window.location.search}`;
     const safeNext = safeNextClient(nextPath ?? currentPath);
+    const target = preserveNext ? `/login?next=${encodeURIComponent(safeNext)}` : "/login";
 
-    router.push(`/login?next=${encodeURIComponent(safeNext)}`);
-  }, [nextPath, router]);
+    router.push(target);
+  }, [nextPath, preserveNext, router]);
 
   return (
     <button
