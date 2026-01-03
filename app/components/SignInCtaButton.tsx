@@ -10,6 +10,7 @@ type SignInCtaButtonProps = {
   className?: string;
   style?: React.CSSProperties;
   nextPath?: string | null;
+  disabled?: boolean;
 };
 
 export default function SignInCtaButton({
@@ -17,11 +18,14 @@ export default function SignInCtaButton({
   className,
   style,
   nextPath,
+  disabled,
 }: SignInCtaButtonProps) {
   const router = useRouter();
 
-  const handleClick = useCallback(() => {
+  const handleClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
     if (typeof window === "undefined") return;
+    event.preventDefault();
+    event.stopPropagation();
     const currentPath = `${window.location.pathname}${window.location.search}`;
     const safeNext = safeNextClient(nextPath ?? currentPath);
 
@@ -29,7 +33,13 @@ export default function SignInCtaButton({
   }, [nextPath, router]);
 
   return (
-    <button type="button" onClick={handleClick} className={className} style={style}>
+    <button
+      type="button"
+      onClick={handleClick}
+      className={className}
+      style={style}
+      disabled={disabled}
+    >
       {children}
     </button>
   );
