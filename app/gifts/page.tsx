@@ -16,6 +16,7 @@ import HowThisWorks from "./HowThisWorks";
 import AuthRedirectGate from "./AuthRedirectGate";
 import RecipientDetailsSheet from "./RecipientDetailsSheet";
 import WrapUpSeasonSheet from "./WrapUpSeasonSheet";
+import SeasonGoalProgress from "./SeasonGoalProgress";
 import SeasonalGiftIcon from "@/app/components/SeasonalGiftIcon";
 import SeasonProgressBar from "@/app/components/SeasonProgressBar";
 
@@ -45,6 +46,8 @@ type Season = {
   list_id: string;
   is_active: boolean;
   budget: number | null;
+  goal_date: string | null;
+  created_at: string | null;
   is_wrapped_up: boolean | null;
   wrapped_up_at: string | null;
 };
@@ -479,7 +482,7 @@ export default async function GiftsPage(props: {
 
   const { data: seasons, error: seasonsErr } = await supabaseAdmin
     .from("seasons")
-    .select("id,name,list_id,is_active,budget,created_at,is_wrapped_up,wrapped_up_at")
+    .select("id,name,list_id,is_active,budget,goal_date,created_at,is_wrapped_up,wrapped_up_at")
     .eq("list_id", listIdForClient)
     .order("created_at", { ascending: false });
 
@@ -654,7 +657,7 @@ export default async function GiftsPage(props: {
               )}
             </div>
             <div className="w-full">
-              <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
+              <div className="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-300">
                 <span>Season progress</span>
                 <span>
                   {wrappedGiftsInSeason}/{totalGiftsInSeason} wrapped
@@ -667,6 +670,11 @@ export default async function GiftsPage(props: {
                   size="default"
                 />
               </div>
+              <SeasonGoalProgress
+                goalDate={activeSeason.goal_date ?? null}
+                createdAt={activeSeason.created_at ?? null}
+                seasonId={seasonIdForClient}
+              />
             </div>
             <div className="flex w-full justify-center">
               <span className="text-slate-900" style={{ ...pillStyle(), opacity: 0.9 }}>

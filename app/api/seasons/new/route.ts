@@ -25,6 +25,9 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json().catch(() => ({}));
     const name = String(body?.name ?? "").trim();
+    const goalDate =
+      typeof body?.goalDate === "string" ? body.goalDate.trim() : "";
+    const goalDateValue = goalDate === "" ? null : goalDate;
 
     if (!name) {
       return NextResponse.json({ error: "Missing season name" }, { status: 400 });
@@ -49,8 +52,10 @@ export async function POST(req: NextRequest) {
         list_id: listId,
         name,
         is_active: true,
+        goal_date: goalDateValue,
+        goal_date_set_at: goalDateValue ? new Date().toISOString() : null,
       })
-      .select("id,name,list_id,is_active,budget")
+      .select("id,name,list_id,is_active,budget,goal_date,goal_date_set_at")
       .single();
 
     if (error) {

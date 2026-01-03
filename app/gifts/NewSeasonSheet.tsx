@@ -14,6 +14,7 @@ const PRESETS = [
 export default function NewSeasonSheet({ listId }: { listId: string }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
+  const [goalDate, setGoalDate] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const sheetRef = useRef<HTMLDivElement | null>(null);
@@ -51,7 +52,11 @@ export default function NewSeasonSheet({ listId }: { listId: string }) {
     const result = await safeFetchJson("/api/seasons/new", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ listId, name }),
+      body: JSON.stringify({
+        listId,
+        name,
+        goalDate: goalDate.trim() === "" ? null : goalDate.trim(),
+      }),
     });
 
     setSubmitting(false);
@@ -73,6 +78,7 @@ export default function NewSeasonSheet({ listId }: { listId: string }) {
     setToast("Season started ✅");
     setOpen(false);
     setName("");
+    setGoalDate("");
 
     // Refresh server page after animation
     setTimeout(() => window.location.reload(), 350);
@@ -145,7 +151,7 @@ export default function NewSeasonSheet({ listId }: { listId: string }) {
         }}
       >
         <div
-          className="bg-white text-gray-900"
+          className="bg-white text-slate-900"
           ref={sheetRef}
           style={{
             maxWidth: 520,
@@ -158,7 +164,7 @@ export default function NewSeasonSheet({ listId }: { listId: string }) {
           }}
         >
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <div className="text-gray-900" style={{ fontSize: 16, fontWeight: 900 }}>
+            <div className="text-slate-900" style={{ fontSize: 16, fontWeight: 900 }}>
               Start a new season
             </div>
             <button
@@ -184,7 +190,7 @@ export default function NewSeasonSheet({ listId }: { listId: string }) {
                   key={p.label}
                   onClick={() => setName(p.example)}
                   type="button"
-                  className="text-gray-900"
+                  className="text-slate-900"
                   style={{
                     padding: "8px 10px",
                     borderRadius: 999,
@@ -197,19 +203,47 @@ export default function NewSeasonSheet({ listId }: { listId: string }) {
                 >
                   {p.label}
                 </button>
-              ))}
+            ))}
+          </div>
+
+          <div style={{ marginTop: 14 }}>
+            <label className="text-slate-900" style={{ fontSize: 12, fontWeight: 800 }}>
+              🎯 GIFTing Goal Date
+            </label>
+            <div className="text-slate-700" style={{ marginTop: 4, fontSize: 12 }}>
+              When do you want to be all wrapped up for this season?
             </div>
+            <div className="text-slate-500" style={{ marginTop: 4, fontSize: 11 }}>
+              You can change this anytime.
+            </div>
+            <input
+              type="date"
+              value={goalDate}
+              onChange={(e) => setGoalDate(e.target.value)}
+              className="text-slate-900"
+              style={{
+                marginTop: 8,
+                width: "100%",
+                border: "1px solid #cbd5e1",
+                borderRadius: 12,
+                padding: "8px 10px",
+                fontSize: 13,
+                fontWeight: 700,
+                background: "#fff",
+              }}
+            />
+          </div>
 
             {/* Name input */}
             <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 6 }}>
-            <div className="text-gray-900" style={{ fontSize: 12, fontWeight: 900 }}>
+            <div className="text-slate-900" style={{ fontSize: 12, fontWeight: 900 }}>
               Season name
             </div>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g., Mom’s Birthday, Valentine’s, Christmas 2026"
-              className="text-gray-900 placeholder:text-gray-400"
+              className="text-slate-900 placeholder:text-slate-400"
               style={{
                 padding: "12px 12px",
                 borderRadius: 14,
@@ -240,7 +274,7 @@ export default function NewSeasonSheet({ listId }: { listId: string }) {
           </button>
 
           <div
-            className="text-gray-500"
+            className="text-slate-500"
             style={{ marginTop: 10, fontSize: 11, textAlign: "center" }}
           >
             This will archive your current season and start a fresh one.
