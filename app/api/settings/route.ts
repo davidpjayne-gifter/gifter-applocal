@@ -4,6 +4,7 @@ import { createServerClient } from "@supabase/ssr";
 
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { getOrCreateCurrentList } from "@/lib/currentList";
+import { getProfileForUser, isPro as isProFromProfile } from "@/lib/entitlements";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -52,6 +53,8 @@ export async function GET() {
     const userId = user.id;
     const userEmail = user.email ?? null;
     const authSource: "cookie" = "cookie";
+    const entitlementsProfile = await getProfileForUser(user.id).catch(() => null);
+    const computedIsPro = entitlementsProfile ? isProFromProfile(entitlementsProfile) : false;
     const list = await getOrCreateCurrentList(userId);
 
     const { data: profileData, error: profileErr } = await supabaseAdmin
@@ -181,11 +184,14 @@ export async function GET() {
       };
     });
 
-    const isPro =
-      profile.subscription_status === "active" ||
-      profile.subscription_status === "trialing" ||
-      profile.subscription_status === "past_due" ||
-      profile.is_pro === true;
+    const isPro = entitlementsProfile
+      ? computedIsPro
+      : profile
+        ? profile.subscription_status === "active" ||
+          profile.subscription_status === "trialing" ||
+          profile.subscription_status === "past_due" ||
+          profile.is_pro === true
+        : false;
 
     const debug =
       process.env.NODE_ENV !== "production"
