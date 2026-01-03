@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { getOrCreateCurrentList } from "@/lib/currentList";
@@ -20,47 +21,19 @@ export async function GET() {
     });
 
   try {
-    const cookieStore = await cookies();
-    const cookieToken =
-      cookieStore.get("sb-access-token")?.value ??
-      cookieStore.get("supabase-auth-token")?.value ??
-      "";
+    const supabase = createRouteHandlerClient({ cookies });
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
 
-    let authSource: "cookie" | "none" = "none";
-    let userData: { user: { id: string; email: string | null } } | null = null;
-
-    if (cookieToken) {
-      const { data, error } = await supabaseAdmin.auth.getUser(cookieToken);
-      if (!error && data?.user) {
-        authSource = "cookie";
-        userData = { user: { id: data.user.id, email: data.user.email ?? null } };
-      } else {
-        console.error("[api/settings] cookie auth failed", error?.message ?? error);
-      }
+    if (userError || !user) {
+      return fallback("anon");
     }
 
-    if (!userData?.user?.id) {
-      const debug =
-        process.env.NODE_ENV !== "production"
-          ? {
-              hadAuthHeader: false,
-              authSource,
-              userIdPresent: false,
-            }
-          : undefined;
-      return NextResponse.json({
-        ok: true,
-        tier: "free",
-        isPro: false,
-        source: "anon",
-        profile: null,
-        devices: [],
-        pastSeasons: [],
-        debug,
-      });
-    }
-
-    const userId = userData.user.id;
+    const userId = user.id;
+    const userEmail = user.email ?? null;
+    const authSource: "cookie" = "cookie";
     const list = await getOrCreateCurrentList(userId);
 
     const { data: profileData, error: profileErr } = await supabaseAdmin
@@ -79,7 +52,7 @@ export async function GET() {
     let profile = profileData
       ? {
           ...profileData,
-          email: profileData.email ?? userData.user.email ?? null,
+          email: profileData.email ?? userEmail ?? null,
         }
       : null;
 
@@ -88,7 +61,7 @@ export async function GET() {
         .from("profiles")
         .upsert({
           id: userId,
-          email: userData.user.email ?? null,
+          email: userEmail ?? null,
           is_pro: false,
           subscription_status: "free",
         });
@@ -113,7 +86,7 @@ export async function GET() {
 
       profile = {
         ...refreshed,
-        email: refreshed.email ?? userData.user.email ?? null,
+        email: refreshed.email ?? userEmail ?? null,
       };
     }
 
