@@ -43,18 +43,10 @@ export default function LoginForm({ nextPath }: LoginFormProps) {
   }, [resendCountdown]);
 
   async function sendLink(nextEmail: string) {
-    const emailRedirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(
-      nextPath
-    )}`;
-
     const { error } = await supabase.auth.signInWithOtp({
       email: nextEmail,
       options: {
-        emailRedirectTo,
-        data: {
-          gender,
-          age_range: ageRange,
-        },
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
 
