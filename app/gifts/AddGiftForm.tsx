@@ -311,15 +311,25 @@ export default function AddGiftForm({
               background: "#0f172a",
               color: "white",
               fontWeight: 900,
-              fontSize: 34,
+              fontSize: 28,
               boxShadow: "0 10px 30px rgba(0,0,0,0.18)",
               cursor: "pointer",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 2,
             }}
             aria-label="Add gift"
           >
-            +
+            <span aria-hidden style={{ lineHeight: 1 }}>
+              +
+            </span>
+            <span style={{ fontSize: 14 }}>Add GIFT</span>
+            <span aria-hidden style={{ fontSize: 24, lineHeight: 1 }}>
+              🎁
+            </span>
           </button>
-          <div style={{ fontSize: 12, fontWeight: 800, color: "#fff" }}>Add GIFT</div>
         </div>
       ) : (
         <button

@@ -68,10 +68,10 @@ export default function RecipientWrapUpButton({
 
       <ConfirmDialog
         open={confirmOpen}
-        title="Wrap up this recipient?"
+        title="Are you sure?"
         description={confirmText}
-        confirmText="Wrap up"
-        cancelText="Cancel"
+        confirmText="Wrap up ✅"
+        cancelText="Not yet"
         variant="success"
         onCancel={() => setConfirmOpen(false)}
         onConfirm={() => {

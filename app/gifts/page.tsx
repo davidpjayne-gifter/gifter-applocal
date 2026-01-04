@@ -749,12 +749,14 @@ export default async function GiftsPage(props: {
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center">
                           <div className="inline-flex items-center justify-center rounded-none border border-slate-300 bg-white px-3 py-2 text-slate-900 dark:border-slate-300 dark:bg-white dark:text-slate-900">
-                            <span className="text-base font-black text-center sm:text-lg">{displayName}</span>
+                            <span className="text-base font-black text-center sm:text-lg">
+                              👤 {displayName}
+                            </span>
                             <span className="mx-3 h-5 w-px bg-slate-300 dark:bg-slate-300" />
-                            <span className="text-xs font-semibold text-center">{total} GIFTS</span>
+                            <span className="text-xs font-semibold text-center">🎁 {total} GIFTS</span>
                             <span className="mx-3 h-5 w-px bg-slate-300 dark:bg-slate-300" />
                             <span className="text-xs font-semibold text-center">
-                              {hasAnyCost ? `${money(spend)} spent` : "$0.00 spent"}
+                              {hasAnyCost ? `💰 ${money(spend)} spent` : "💰 $0.00 spent"}
                             </span>
                           </div>
                         </div>
@@ -816,12 +818,14 @@ export default async function GiftsPage(props: {
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center">
                         <div className="inline-flex items-center justify-center rounded-none border border-slate-300 bg-white px-3 py-2 text-slate-900 dark:border-slate-300 dark:bg-white dark:text-slate-900">
-                          <span className="text-base font-black text-center sm:text-lg">{displayName}</span>
+                          <span className="text-base font-black text-center sm:text-lg">
+                            👤 {displayName}
+                          </span>
                           <span className="mx-3 h-5 w-px bg-slate-300 dark:bg-slate-300" />
-                          <span className="text-xs font-semibold text-center">{total} GIFTS</span>
+                          <span className="text-xs font-semibold text-center">🎁 {total} GIFTS</span>
                           <span className="mx-3 h-5 w-px bg-slate-300 dark:bg-slate-300" />
                           <span className="text-xs font-semibold text-center">
-                            {hasAnyCost ? `${money(spend)} spent` : "$0.00 spent"}
+                            {hasAnyCost ? `💰 ${money(spend)} spent` : "💰 $0.00 spent"}
                           </span>
                         </div>
                       </div>
@@ -874,7 +878,7 @@ export default async function GiftsPage(props: {
                       </div>
                     </div>
 
-                    <form action={markRecipientWrappedUp} className="m-0">
+                    <form action={markRecipientWrappedUp} className="m-0 sm:self-start sm:pt-1">
                       <input type="hidden" name="recipientKey" value={key} />
                       <input type="hidden" name="listId" value={listIdForClient} />
                       <input type="hidden" name="seasonId" value={seasonIdForClient} />

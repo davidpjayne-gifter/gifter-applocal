@@ -232,7 +232,7 @@ export default function GiftRow({ gift, updateGiftStatus, isSeasonWrapped = fals
       <div>
         {!isEditing ? (
           <div className="text-slate-900" style={{ fontWeight: 800 }}>
-            {localGift.title}
+            🎁 {localGift.title}
           </div>
         ) : (
           <div className="flex flex-col gap-2">
@@ -335,7 +335,7 @@ export default function GiftRow({ gift, updateGiftStatus, isSeasonWrapped = fals
 
         {!isEditing && (
           <div className="text-slate-900" style={{ fontSize: 12, marginTop: 6 }}>
-            Status: {isWrapped ? "Wrapped" : statusLabel(shipping)}
+            📦 Status: {isWrapped ? "Wrapped" : statusLabel(shipping)}
           </div>
         )}
 
