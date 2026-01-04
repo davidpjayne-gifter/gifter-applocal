@@ -304,14 +304,14 @@ export default function AddGiftForm({
           <button
             onClick={() => setOpen(true)}
             style={{
-              width: 54,
-              height: 54,
-              borderRadius: 18,
+              width: 108,
+              height: 108,
+              borderRadius: 28,
               border: "1px solid #e2e8f0",
               background: "#0f172a",
               color: "white",
               fontWeight: 900,
-              fontSize: 24,
+              fontSize: 34,
               boxShadow: "0 10px 30px rgba(0,0,0,0.18)",
               cursor: "pointer",
             }}
@@ -319,7 +319,7 @@ export default function AddGiftForm({
           >
             +
           </button>
-          <div style={{ fontSize: 11, fontWeight: 800, color: "#fff" }}>Add GIFT</div>
+          <div style={{ fontSize: 12, fontWeight: 800, color: "#fff" }}>Add GIFT</div>
         </div>
       ) : (
         <button
@@ -614,7 +614,7 @@ export default function AddGiftForm({
           ) : (
             <p className="mt-1 text-center text-sm text-slate-600 dark:text-slate-300">
               Free includes up to <span className="font-semibold">2 people</span> and{" "}
-              <span className="font-semibold">3 gifts</span> per season.
+              <span className="font-semibold">6 gifts</span> per season.
             </p>
           )}
 

@@ -88,11 +88,11 @@ export default function PricingPage() {
           <h2 className="text-lg font-bold text-slate-900">Free</h2>
           <div className="mt-2 text-2xl font-black text-slate-900">$0</div>
           <p className="mt-3 text-sm text-slate-600">
-            Free includes up to 2 people + 3 gifts per season.
+            Free includes up to 2 people + 6 gifts per season.
           </p>
           <ul className="mt-4 space-y-2 text-sm text-slate-700">
             <li>Up to 2 people per season</li>
-            <li>Up to 3 gifts per season</li>
+            <li>Up to 6 gifts per season</li>
             <li>Basic tracking + wrapping</li>
           </ul>
         </section>

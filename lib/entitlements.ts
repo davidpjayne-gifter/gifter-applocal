@@ -1,8 +1,8 @@
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export const FREE_RECIPIENT_LIMIT = 2;
-export const FREE_GIFT_LIMIT = 3;
-export const FREE_LIMIT_MESSAGE = "Free includes up to 2 people + 3 gifts per season.";
+export const FREE_GIFT_LIMIT = 6;
+export const FREE_LIMIT_MESSAGE = "Free includes up to 2 people + 6 gifts per season.";
 
 export type ProfileEntitlements = {
   id: string;
