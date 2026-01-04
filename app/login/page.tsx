@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -39,13 +38,7 @@ export default async function LoginPage(props: {
   return (
     <main className="mx-auto flex w-full max-w-md flex-col items-center gap-6 px-6 py-10 text-slate-900 dark:text-slate-100">
       <div className="text-center">
-        <Link
-          href="/"
-          className="text-xs font-semibold text-blue-700 hover:text-blue-800 dark:text-blue-300 dark:hover:text-blue-200"
-        >
-          ← Back to home
-        </Link>
-        <h1 className="mt-3 text-2xl font-black">Welcome to GIFTer 🎁</h1>
+        <h1 className="text-2xl font-black">Welcome to GIFTer 🎁</h1>
         <p className="mt-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
           Done GIFTing, stress-free.
         </p>
