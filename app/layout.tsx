@@ -21,18 +21,18 @@ export const metadata: Metadata = {
     default: "🎁 GIFTer",
     template: "%s | 🎁 GIFTer",
   },
-  description: "Track gifts, budgets, and status—so you can be done GIFTing.",
+  description: "Track gifts, budgets and status - so you can be done GIFTing.",
   openGraph: {
     type: "website",
     url: "https://gifter.skeletonkeysolution.com",
     title: "🎁 GIFTer",
     siteName: "GIFTer",
-    description: "Track gifts, budgets, and status—so you can be done GIFTing.",
+    description: "Track gifts, budgets and status - so you can be done GIFTing.",
   },
   twitter: {
     card: "summary_large_image",
     title: "🎁 GIFTer",
-    description: "Track gifts, budgets, and status—so you can be done GIFTing.",
+    description: "Track gifts, budgets and status - so you can be done GIFTing.",
   },
 };
 
