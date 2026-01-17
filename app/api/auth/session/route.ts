@@ -23,7 +23,10 @@ export async function POST(req: NextRequest) {
 
     const { data: userData, error: userErr } = await supabaseAuth.auth.getUser(token);
     if (userErr || !userData?.user) {
-      return NextResponse.json({ error: "Invalid access token" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Please sign in again to keep GIFTing 🎁" },
+        { status: 401 }
+      );
     }
 
     const res = NextResponse.json({ success: true });

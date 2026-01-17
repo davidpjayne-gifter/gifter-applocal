@@ -43,10 +43,11 @@ export default function LoginForm({ nextPath }: LoginFormProps) {
   }, [resendCountdown]);
 
   async function sendLink(nextEmail: string) {
+    const computedBaseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
     const { error } = await supabase.auth.signInWithOtp({
       email: nextEmail,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: `${computedBaseUrl}/auth/callback`,
       },
     });
 
